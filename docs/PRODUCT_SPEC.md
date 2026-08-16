@@ -27,6 +27,8 @@ Character Profiler is not intended to write the novel for the author. Its AI-ass
 6. **Visualisation stays focused.** Visual AI exists to establish and inspect a character's appearance. It must not grow into scene generation, animation, filmmaking or a game engine.
 7. **The core app remains useful without AI.** Profiles, relationships, history and the Character Guide must remain usable when visual AI is unavailable.
 8. **Local-first is the default.** Character and story data should remain available on the device without requiring a permanent online account or service dependency.
+9. **Author work must be portable and recoverable.** A developed story bible must be exportable in a documented, versioned Character Profiler format and restorable without depending on a raw local database copy.
+10. **Destructive actions must be deliberate.** Permanent removal of substantial story or character data should clearly communicate the impact before it happens.
 
 ## 3. Story projects
 
@@ -39,7 +41,9 @@ A project must support:
 - optional custom genre text;
 - story premise or short description;
 - a project-scoped cast of characters;
-- searching and navigating characters within that project.
+- searching and navigating characters within that project;
+- useful at-a-glance indicators of how developed the cast and project records are;
+- explicit project backup/export and restore/import.
 
 Built-in genres currently include Fantasy, Science Fiction, Romance, Mystery, Thriller, Horror, Historical Fiction, Contemporary, Adventure, Crime and Young Adult, plus a custom genre option.
 
@@ -63,6 +67,8 @@ The character record must remain extensible. The author can add arbitrary profil
 
 Default starter areas should cover common author needs such as identity, appearance, personality, motivation, background, fears and flaws, beliefs and values, habits and mannerisms, and secrets. These are starting points, not a closed schema.
 
+When permanent character deletion can remove linked relationship, history, Guide or visual data, the UI should describe that impact before deletion is confirmed.
+
 ## 5. Character Guide
 
 The Character Guide helps an author develop a character by asking useful questions.
@@ -78,6 +84,8 @@ Examples for Fantasy include questions about taverns, adventuring, magic, creatu
 The Guide should consider, where available, the selected story genre, existing profile fields, previous Guide answers, relationships, and life events—especially trauma and loss.
 
 Guide answers are saved as part of the character record. Once a question has been meaningfully answered it should normally stop appearing as an unanswered suggestion.
+
+When the Guide has a deterministic reason for choosing a question, that reason should be visible to the author without being confused with a fact about the character.
 
 The Guide may ask follow-up questions but must not autonomously rewrite the character profile. A later feature may offer explicit, author-approved promotion of Guide answers into profile facts, but that is not implicit behaviour.
 
@@ -104,6 +112,8 @@ The family tree should:
 
 Relationship creation should protect the integrity of the family graph. The app should reject self-links, duplicate equivalent family links, direct ancestry cycles, and an ancestor/descendant pair being added as siblings. These checks exist to prevent contradictory graph structure, not to impose assumptions about what kinds of fictional families or partnerships may exist.
 
+Portable project backup must preserve relationship direction and endpoints so the graph can be reconstructed after all archived characters have been restored.
+
 A broader visual relationship network for non-family links such as friends, rivals, enemies, mentors and colleagues may be added separately. It should not make the genealogical family view unreadable.
 
 ## 7. Character history
@@ -113,6 +123,8 @@ Authors must be able to record formative life events. A life event is more struc
 Event types may include trauma, loss, milestones, achievements, relationships, conflict, education, career changes, adventures, relocation, secrets and custom events.
 
 The application should treat history as part of character development. For example, a recorded trauma or major loss may cause the Guide to ask how reminders affect the character or which other characters notice the lasting impact.
+
+Life history is part of the author's story bible and must be included in portable project backup/restore.
 
 ## 8. Character Visual Studio
 
@@ -142,6 +154,10 @@ Dragging across the turntable viewer moves through available views to provide a 
 
 This is **not a true textured 3D mesh** and is not represented as one. A true 3D model would be a separate future decision and must not be introduced merely as feature creep.
 
+### 8.4 Visual portability
+
+Profile portraits, author reference images, accepted canonical visuals and generated turnaround frames are part of the project record and must be included in a complete project backup.
+
 ## 9. Explicit non-goals
 
 Character Profiler must not drift into the following without a deliberate change to this specification:
@@ -157,7 +173,7 @@ Character Profiler must not drift into the following without a deliberate change
 
 The Visual Studio remains a character appearance tool, not a scene creator.
 
-## 10. Persistence and privacy
+## 10. Persistence, backup and privacy
 
 The current implementation uses SwiftData for local persistence.
 
@@ -165,15 +181,41 @@ The model stores story projects, characters, flexible profile fields, Guide answ
 
 The graphical family tree is derived at runtime from existing relationship records and adds no separate persistent family-tree entities.
 
+### 10.1 Portable project backup
+
+Character Profiler must provide a project-scoped portable backup format that is separate from the internal SwiftData store.
+
+The backup format must:
+
+- be explicitly versioned from its first release;
+- include project metadata and the complete project-scoped cast;
+- include arbitrary profile sections and fields;
+- include Guide answers and life events;
+- preserve relationship kind, direction and endpoints;
+- include current visual assets;
+- validate required structure before restore;
+- reject unsupported future format versions rather than silently guessing;
+- restore into a coherent project graph without depending on local SwiftData identifiers from the device that created the backup.
+
+Restoring a backup should create valid local model objects with fresh local identifiers. Archived identifiers may be used internally to reconstruct links but must not make a backup inseparable from the source database.
+
+A failed restore should avoid deliberately leaving an incomplete project behind.
+
+### 10.2 Privacy and provider credentials
+
 The system Photos picker should be used for selecting images so the author deliberately supplies the files the app needs.
 
 No private AI service API key should be embedded in the distributed app binary. The current Visual Studio uses Apple's system Image Playground on supported devices. If another provider is added later, credentials and provider access must be designed safely and separately from the core data model.
+
+Backup export and restore are explicit author actions through system document interfaces; the app should not silently upload project archives to an external service.
 
 ## 11. Compatibility
 
 The core application currently targets iOS 17 or later.
 
-Visual AI is availability-gated because Image Playground support depends on newer Apple software and compatible hardware. A device that cannot use Visual AI must still be able to use the rest of Character Profiler.
+Visual AI is availability-gated because Image Playground support depends on newer Apple software and compatible hardware. A device that cannot use Visual AI must still be able to use the rest of Character Profiler, including project backup/restore.
+
+Persistence-schema evolution and portable-archive evolution are separate compatibility concerns. Both require deliberate migration/version handling when their structures change.
 
 ## 12. UX structure
 
@@ -181,7 +223,10 @@ The primary navigation is:
 
 ```text
 Story Library
+├── Restore Backup
 └── Story Project
+    ├── Project Overview
+    ├── Export Backup
     └── Character
         ├── Profile
         ├── Guide
@@ -198,13 +243,16 @@ This structure should remain understandable as features grow. New functionality 
 A release suitable to call 1.0 should, at minimum:
 
 - build and test cleanly in supported Xcode CI;
-- reliably create, edit, search and delete story projects and characters;
+- reliably create, edit, search and deliberately delete story projects and characters;
 - preserve flexible profile data across launches;
 - correctly maintain relationship direction and inverse meaning;
 - provide a usable graphical family/relationship view;
 - record and display life history;
 - provide useful genre-aware Character Guide questions;
 - keep answered prompts and character facts persistent;
+- provide complete versioned project backup/export and restore/import;
+- preserve relationships, history, Guide data and visual assets through a tested archive round trip;
+- warn before destructive actions that remove substantial linked author work;
 - support reference images and focused character visual generation on compatible devices;
 - make the limitations of the eight-view turnaround clear;
 - preserve core functionality on devices without Visual AI;
