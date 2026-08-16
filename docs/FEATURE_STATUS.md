@@ -20,7 +20,7 @@ Status meanings:
 | Story/project library | Implemented | Projects own a cast and store genre/premise. |
 | Built-in genres plus custom genre | Implemented | Used by the Character Guide. |
 | Migration of pre-project characters | Implemented | Earlier characters can be placed into Imported Characters. |
-| CI build and unit-test workflow | Implemented | 0.3.1 passed the full Xcode simulator build and unit-test workflow after fixing the renderer regression exposed by 0.3.0. |
+| CI build and unit-test workflow | Implemented | 0.3.1 passed the full Xcode simulator build and unit-test workflow; 0.4 continues to use the same release gate. |
 
 ## Character profile
 
@@ -43,7 +43,7 @@ Status meanings:
 | Persisted Guide answers | Implemented | Answers are stored per character. |
 | Hide answered prompts from normal suggestions | Implemented | Answered prompt IDs are suppressed. |
 | Adaptive prompts from relationships/history/profile text | Implemented | Initial rule-based version. |
-| Deep semantic consistency checking | Planned | Future Guide work; not required for initial stabilisation. |
+| Deep semantic consistency checking | Planned | Future Guide work. |
 | Explicit promotion of Guide answer into profile field | Candidate | Must remain author-controlled if added. |
 
 ## Relationships and family
@@ -55,8 +55,13 @@ Status meanings:
 | Mentor/student inverse meaning | Implemented | Same directional model. |
 | Family grouping in character People view | Implemented | Family relationships are separated from other relationships. |
 | Notes on relationships | Implemented | Stored on each relationship edge. |
-| Graphical family tree | Planned | Next major feature after stabilisation. |
-| Broader visual relationship network | Planned | Can build on the same graph foundation. |
+| Graphical family tree | Implemented | Root-centred graph derived from existing family relationship edges. |
+| Multi-generation traversal | Implemented | Connected grandparents, grandchildren and further generations are included without extra stored tree data. |
+| Tappable family members | Implemented | Tree cards navigate to the existing character record. |
+| Large-family navigation | Implemented | Two-axis scrolling, pinch zoom and explicit zoom controls. |
+| Duplicate family-link prevention | Implemented | Equivalent family links are blocked while adding relationships. |
+| Ancestry-cycle prevention | Implemented | Parent/child cycles and ancestor/descendant sibling contradictions are rejected. |
+| Broader non-family relationship network | Planned | Friends, rivals, enemies, mentors and colleagues remain separate future work. |
 
 ## History and trauma
 
@@ -92,12 +97,15 @@ Status meanings:
 | JSON/project export and import | Candidate | Useful for backup/portability but not yet committed to a release. |
 | iCloud sync | Candidate | Requires a deliberate design and migration strategy. |
 
-## 0.3.1 stabilisation result
+## 0.4.0 completion criteria
 
-The 0.3.1 stabilisation criteria have now been met on the feature branch:
+0.4.0 is considered complete when:
 
-1. the renderer compile regression is fixed;
-2. GitHub Actions completed the Xcode simulator build and unit tests successfully;
-3. product intent, implementation status and roadmap are documented;
-4. version/build metadata is 0.3.1 / build 4;
-5. no unrelated feature scope was added during stabilisation.
+1. the graphical family tree is generated only from existing relationship data;
+2. parent/child generation placement and same-generation family links behave correctly;
+3. large families can be navigated through scrolling and zoom;
+4. family cards open the existing linked character records;
+5. invalid duplicate/cyclic family links are blocked;
+6. the new relationship tests pass in Xcode CI;
+7. version/build metadata is 0.4.0 / build 5;
+8. product specification, architecture, README, changelog and roadmap reflect the implemented behaviour.

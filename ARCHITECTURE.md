@@ -16,6 +16,7 @@ The application deliberately stops at the character boundary. It is not a scene 
 - Author-entered facts are persistent canon; suggestions do not silently overwrite them.
 - Flexible profile data is preferred over continually expanding a rigid database schema.
 - Relationships link real character records and have meaningful inverse views.
+- Visual family/network presentations are derived projections of relationship edges, never a second relationship database.
 - Visual generation is optional and availability-gated.
 - Provider-specific AI code must not become the owner of core character data.
 - Existing story data must survive model evolution through compatible defaults or explicit migrations.
@@ -30,6 +31,7 @@ StoryProject
     ├── LifeEvent[]
     ├── PromptResponse[]
     ├── outgoing/incoming CharacterRelationship[]
+    │   └── derived FamilyGraphSnapshot / FamilyTreeView
     ├── CharacterReferenceImage[]
     ├── generatedVisualData
     └── CharacterVisualFrame[]
@@ -61,8 +63,27 @@ Important invariants:
 
 - both endpoints refer to real character records;
 - the same edge must be interpretable from either endpoint;
+- duplicate equivalent links should be rejected at creation time;
+- parent/child creation must not introduce an ancestry cycle;
+- an ancestor/descendant pair cannot also be recorded as siblings;
 - deleting or editing relationships must not create a second contradictory copy merely to express the inverse label;
-- graphical family/network views should be projections of this graph, not a second relationship database.
+- graphical family/network views are projections of this graph, not a second relationship database.
+
+### Family graph projection
+
+Version 0.4 introduces `FamilyGraphSnapshot`, an in-memory projection rooted on the currently selected character. It walks only family relationship kinds and assigns a generation offset relative to the root:
+
+- parent = -1 generation;
+- child = +1 generation;
+- sibling, spouse and partner = same generation.
+
+The projection follows connected relatives so grandparents, grandchildren and more distant generations can appear without additional stored family-tree entities. Relationship edges are deduplicated by relationship ID during graph construction.
+
+`FamilyTreeView` computes a layout from that snapshot. SwiftUI character cards remain ordinary interactive views, while a `Canvas` draws connectors behind them. This separation keeps navigation and accessibility on normal controls while avoiding a duplicate visual-data model.
+
+The family view supports two-axis scrolling and zoom. The selected root is visually distinguished, and tapping another family member opens that character's existing record.
+
+`FamilyRelationshipRules` performs structural validation before a new relationship is saved. Its purpose is data integrity, not social or moral judgement: it blocks self-links, duplicate family links and ancestry contradictions while otherwise leaving fictional family structures to the author.
 
 ### Life history
 
@@ -100,7 +121,7 @@ Character Profiler does not currently construct a true 3D mesh.
 
 `VisualAngle` defines eight standard views at 45-degree intervals. `CharacterVisualFrame` stores an accepted image for each angle. Angle generation uses the canonical character image as a source reference and asks for the same identity, proportions, clothing and equipment from the requested direction.
 
-`TurntableViewer` maps horizontal drag input across available frames. With all eight views present, the author can inspect a complete image-based turnaround.
+The turnaround viewer maps horizontal drag input across available frames. With all eight views present, the author can inspect a complete image-based turnaround.
 
 This is deliberately an inspection tool, not an animation or posing system.
 
@@ -113,6 +134,11 @@ ProjectListView
         ├── Profile
         ├── Guide
         ├── People
+        │   ├── Family / other relationship rows
+        │   ├── AddRelationshipView
+        │   │   └── FamilyRelationshipRules validation
+        │   └── FamilyTreeView
+        │       └── FamilyGraphSnapshot
         ├── History
         └── Visual
             ├── Reference Pictures
@@ -121,15 +147,17 @@ ProjectListView
             └── 360° Turnaround
 ```
 
-The planned family/relationship tree belongs to the People area and should consume existing relationship edges rather than introduce a parallel family data model.
+A broader non-family relationship network may later build on the same graph concept, but it should remain distinct from the family tree so friends, enemies and professional links do not make genealogy unreadable.
 
 ## Compatibility
 
-The core application retains its iOS 17 deployment target. Visual AI is availability-gated so devices without Image Playground can continue using story, profile, Guide, relationship and history features.
+The core application retains its iOS 17 deployment target. Visual AI is availability-gated so devices without Image Playground can continue using story, profile, Guide, relationship, family-tree and history features.
 
-CI builds and tests the iOS simulator target using Xcode on GitHub Actions. A green CI run is a release requirement for stabilisation versions.
+CI builds and tests the iOS simulator target using Xcode on GitHub Actions. A green CI run is a release requirement.
 
 ## Migration strategy
+
+Version 0.4 adds no persistent model entities or fields for the family tree. Existing relationship data is projected at runtime, so no SwiftData migration is required for the graphical family feature itself.
 
 New optional features should prefer optional fields, empty defaults or explicit migration steps that preserve prior story data.
 

@@ -89,7 +89,22 @@ Supported relationship concepts include family relationships and broader social/
 
 Directional relationships must be understandable from either character's point of view. For example, if Character A is recorded as the parent of Character B, Character B must read Character A as a parent while Character A reads Character B as a child.
 
-The current structured relationship model is the foundation for a future graphical family/relationship view. The graphical tree is a planned interface feature; the underlying relationship data already exists.
+The People workspace includes a graphical family tree generated from the same structured relationship records. It must not maintain a second family-tree database.
+
+The family tree should:
+
+- place parents and earlier generations above the selected character;
+- place children and later generations below;
+- keep siblings, spouses and partners on the corresponding generation;
+- follow connected family relationships so grandparents, grandchildren and larger families can be viewed;
+- allow the author to tap a family member and open that character's existing record;
+- remain usable for larger families through scrolling and zoom;
+- distinguish the selected/root character clearly;
+- preserve relationship direction and inverse meaning.
+
+Relationship creation should protect the integrity of the family graph. The app should reject self-links, duplicate equivalent family links, direct ancestry cycles, and an ancestor/descendant pair being added as siblings. These checks exist to prevent contradictory graph structure, not to impose assumptions about what kinds of fictional families or partnerships may exist.
+
+A broader visual relationship network for non-family links such as friends, rivals, enemies, mentors and colleagues may be added separately. It should not make the genealogical family view unreadable.
 
 ## 7. Character history
 
@@ -148,6 +163,8 @@ The current implementation uses SwiftData for local persistence.
 
 The model stores story projects, characters, flexible profile fields, Guide answers, relationships, life events and visual assets. Large image payloads use external binary storage where appropriate.
 
+The graphical family tree is derived at runtime from existing relationship records and adds no separate persistent family-tree entities.
+
 The system Photos picker should be used for selecting images so the author deliberately supplies the files the app needs.
 
 No private AI service API key should be embedded in the distributed app binary. The current Visual Studio uses Apple's system Image Playground on supported devices. If another provider is added later, credentials and provider access must be designed safely and separately from the core data model.
@@ -169,6 +186,7 @@ Story Library
         ├── Profile
         ├── Guide
         ├── People
+        │   └── Family Tree
         ├── History
         └── Visual
 ```

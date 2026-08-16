@@ -23,6 +23,14 @@ final class CharacterProfileTests: XCTestCase {
     }
 
     @MainActor
+    private func link(_ source: CharacterProfile, to target: CharacterProfile, as kind: RelationshipKind) -> CharacterRelationship {
+        let relationship = CharacterRelationship(kind: kind, source: source, target: target)
+        source.outgoingRelationships.append(relationship)
+        target.incomingRelationships.append(relationship)
+        return relationship
+    }
+
+    @MainActor
     func testDraftCreatesCharacterInsideStoryWithFlexibleSections() throws {
         let container = try makeContainer()
         let context = container.mainContext
@@ -65,13 +73,63 @@ final class CharacterProfileTests: XCTestCase {
 
     @MainActor
     func testRelationshipReadsFromBothDirections() throws {
+        let character = CharacterProfile(name: "Jon")
         let parent = CharacterProfile(name: "Mara")
-        let child = CharacterProfile(name: "Jon")
-        let relationship = CharacterRelationship(kind: .parent, source: parent, target: child)
-        XCTAssertEqual(relationship.kind(from: parent), .parent)
-        XCTAssertEqual(relationship.kind(from: child), .child)
+        let relationship = CharacterRelationship(kind: .parent, source: character, target: parent)
+        XCTAssertEqual(relationship.kind(from: character), .parent)
+        XCTAssertEqual(relationship.kind(from: parent), .child)
+        XCTAssertEqual(relationship.relatedCharacter(to: character)?.name, "Mara")
         XCTAssertEqual(relationship.relatedCharacter(to: parent)?.name, "Jon")
-        XCTAssertEqual(relationship.relatedCharacter(to: child)?.name, "Mara")
+    }
+
+    @MainActor
+    func testFamilyGraphPlacesGenerationsFromExistingRelationships() {
+        let root = CharacterProfile(name: "Elena")
+        let parent = CharacterProfile(name: "Mara")
+        let grandparent = CharacterProfile(name: "Iris")
+        let sibling = CharacterProfile(name: "Tomas")
+        let partner = CharacterProfile(name: "Ari")
+        let child = CharacterProfile(name: "Nia")
+
+        _ = link(root, to: parent, as: .parent)
+        _ = link(parent, to: grandparent, as: .parent)
+        _ = link(root, to: sibling, as: .sibling)
+        _ = link(root, to: partner, as: .partner)
+        _ = link(root, to: child, as: .child)
+
+        let graph = FamilyGraphSnapshot(root: root)
+        XCTAssertEqual(graph.generation(of: grandparent), -2)
+        XCTAssertEqual(graph.generation(of: parent), -1)
+        XCTAssertEqual(graph.generation(of: root), 0)
+        XCTAssertEqual(graph.generation(of: sibling), 0)
+        XCTAssertEqual(graph.generation(of: partner), 0)
+        XCTAssertEqual(graph.generation(of: child), 1)
+        XCTAssertEqual(graph.characters.count, 6)
+        XCTAssertEqual(graph.edges.count, 5)
+    }
+
+    @MainActor
+    func testFamilyRelationshipRulesRejectAncestryCycle() {
+        let child = CharacterProfile(name: "Child")
+        let parent = CharacterProfile(name: "Parent")
+        let grandparent = CharacterProfile(name: "Grandparent")
+        _ = link(child, to: parent, as: .parent)
+        _ = link(parent, to: grandparent, as: .parent)
+
+        XCTAssertNotNil(FamilyRelationshipRules.validationMessage(source: parent, target: child, kind: .parent))
+        XCTAssertNotNil(FamilyRelationshipRules.validationMessage(source: grandparent, target: child, kind: .parent))
+        XCTAssertNotNil(FamilyRelationshipRules.validationMessage(source: child, target: parent, kind: .child))
+    }
+
+    @MainActor
+    func testFamilyRelationshipRulesRejectDuplicateLink() {
+        let child = CharacterProfile(name: "Child")
+        let parent = CharacterProfile(name: "Parent")
+        _ = link(child, to: parent, as: .parent)
+        XCTAssertEqual(
+            FamilyRelationshipRules.validationMessage(source: child, target: parent, kind: .parent),
+            "That relationship already exists."
+        )
     }
 
     func testVisualAnglesCoverFullTurnaround() {
