@@ -21,6 +21,8 @@ The application deliberately stops at the character boundary. It is not a scene 
 - Visual generation is optional and availability-gated.
 - Provider-specific AI code must not become the owner of core character data.
 - Existing story data must survive model evolution through compatible defaults or explicit migrations.
+- Portable backups are application-owned, versioned interchange documents rather than raw persistence-store copies.
+- Import must fail safely: unsupported or structurally invalid archives must be rejected rather than partially guessed into the data model.
 
 ## Persistent model
 
@@ -149,11 +151,66 @@ The searchable corpus is assembled from summary, role, visual description, profi
 
 ### Explanation and limits
 
-Each rich suggestion carries a reason such as genre relevance, an underdeveloped category or a specific recorded context trigger. This keeps the selection process inspectable.
+Each rich suggestion carries a reason such as genre relevance, an underdeveloped category or a specific recorded context trigger. Version 0.5.1 exposes that explanation directly in the Guide UI while keeping it separate from persisted canonical prompt/answer data.
 
 Version 0.5 does **not** claim deep semantic contradiction detection. Recognising that two arbitrary prose facts cannot both be true would require a separately designed reasoning layer and remains future work.
 
 Answered prompt IDs remain suppressed from the unanswered suggestion queue. Prompt selection can evolve without a SwiftData migration as long as stable prompt identifiers are preserved.
+
+## Portable project archive
+
+Version 0.6 introduces `ProjectArchive.swift`, a non-SwiftData support layer for explicit project backup and restore.
+
+### Why an application archive exists
+
+A raw SwiftData store is an implementation detail and is not a stable interchange contract. The portable archive instead serialises the author-visible project graph into an application-owned `Codable` structure.
+
+Archive format version 1 contains:
+
+- project metadata and timestamps;
+- all characters and commonly used metadata;
+- arbitrary profile sections and fields;
+- life events;
+- saved Guide prompt responses;
+- relationship edges between characters in the project;
+- profile images;
+- author reference images;
+- canonical generated visual data;
+- turnaround frames and their `VisualAngle` values.
+
+`JSONEncoder` produces a deterministic, human-inspectable document with sorted keys and millisecond timestamps. Binary `Data` values are represented by Codable's JSON data encoding and remain part of the single project document.
+
+### Archive identifiers versus local identifiers
+
+Every archived record carries its source UUID so relationships can refer to character records inside that archive. Those UUIDs are **not** replayed as the new SwiftData object IDs during restore.
+
+Restore creates a new `StoryProject` and new local model objects. A temporary map from archived character UUID to newly created `CharacterProfile` is used to rebuild relationship edges after every character exists.
+
+This design has two important properties:
+
+1. importing the same backup multiple times does not violate the model's unique-ID constraints;
+2. archive identity remains a reconstruction mechanism rather than making a portable document dependent on one local SwiftData store.
+
+### Validation and failure handling
+
+`ProjectArchive.validate()` rejects:
+
+- unsupported archive format versions;
+- missing/blank project or character identity where required;
+- duplicate archived character IDs;
+- duplicate archived relationship IDs;
+- self-referential relationship endpoints;
+- relationship endpoints that do not exist in the archived cast.
+
+Restore validates before inserting data. Characters and their owned content are created first, relationships second. If restore throws after creating the destination project, the implementation deletes that partially created project and attempts to save the cleanup before propagating the error.
+
+Unsupported future archive formats are rejected explicitly. A future format change should either add compatible optional/defaulted fields or introduce a deliberate version migration path; it must not rely on accidentally decoding a structurally different document.
+
+### Document UI boundary
+
+`ProjectArchiveDocument` conforms to SwiftUI `FileDocument`. Export uses the system file exporter and restore uses the system file importer. The author chooses where a backup is written and explicitly chooses which backup to restore.
+
+The Story Library owns restore because restoring creates a new story. `ProjectDetailView` owns export because a backup is scoped to the currently open story.
 
 ## Character Visual Studio
 
@@ -181,11 +238,22 @@ The turnaround viewer maps horizontal drag input across available frames. With a
 
 This is deliberately an inspection tool, not an animation or posing system.
 
+## Destructive-action safety
+
+Version 0.6 changes list deletion from immediate model deletion to a staged destructive confirmation.
+
+Project deletion calculates the selected project's character and relationship impact and reminds the author that profile, history, Guide and visual content is contained within that story. Character deletion reports linked relationship, history, Guide-answer and visual-asset counts.
+
+These summaries are safeguards, not an undo system. Once the author confirms deletion, the SwiftData cascade rules remain responsible for owned records. Portable backup exists as the durable recovery mechanism.
+
 ## UI flow
 
 ```text
 ProjectListView
+├── Restore Backup
 └── ProjectDetailView
+    ├── Project overview metrics
+    ├── Export Backup
     └── CharacterDetailView
         ├── Profile
         ├── Guide
@@ -202,23 +270,34 @@ ProjectListView
             ├── Appearance Notes
             ├── AI Character
             └── 360° Turnaround
+
+ProjectArchiveDocument
+└── ProjectArchive format v1
+    ├── encode / validate / decode
+    └── fresh-ID project graph reconstruction
 ```
 
 A broader non-family relationship network may later build on the same graph concept, but it should remain distinct from the family tree so friends, enemies and professional links do not make genealogy unreadable.
 
-## Compatibility
+## Compatibility and CI
 
-The core application retains its iOS 17 deployment target. Visual AI is availability-gated so devices without Image Playground can continue using story, profile, Guide, relationship, family-tree and history features.
+The core application retains its iOS 17 deployment target. Visual AI is availability-gated so devices without Image Playground can continue using story, profile, Guide, relationship, family-tree, history and backup features.
 
 CI builds and tests the iOS simulator target using Xcode on GitHub Actions. A green CI run is a release requirement.
+
+Hosted macOS runner images do not always expose the same named simulator at job start, so version 0.6 no longer hard-codes `iPhone 16`. The workflow initialises CoreSimulator, selects an available iPhone simulator UUID, and if necessary downloads the default iOS runtime for the selected Xcode before running tests.
 
 ## Migration strategy
 
 Version 0.4 added no persistent model entities or fields for the family tree. Existing relationship data is projected at runtime.
 
-Version 0.5 also adds no new persistent model fields for Guide scoring. It derives depth and adaptive context from existing character data and preserves `PromptResponse` storage, so the Guide upgrade itself requires no SwiftData migration.
+Version 0.5 also added no new persistent model fields for Guide scoring. It derives depth and adaptive context from existing character data and preserves `PromptResponse` storage.
 
-New optional features should prefer optional fields, empty defaults or explicit migration steps that preserve prior story data.
+Version 0.6 likewise adds no new SwiftData model entity or field. `ProjectArchive` is a separate Codable projection of the existing model, so backup/restore does not require a SwiftData schema migration.
+
+The archive itself now has an independent format version. SwiftData schema evolution and archive-format evolution are related but separate compatibility concerns: a future app must be able to migrate local data safely and must also decide how older portable archive versions are decoded or upgraded.
+
+New optional persistent features should prefer optional fields, empty defaults or explicit migration steps that preserve prior story data.
 
 Visual fields are optional. Existing characters do not require reference images or generated visuals. The earlier migration that places pre-project characters into `Imported Characters` remains in place.
 
