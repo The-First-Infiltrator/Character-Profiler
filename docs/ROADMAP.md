@@ -6,47 +6,60 @@ The roadmap follows the product specification rather than adding features simply
 
 ## 0.3.1 — Stabilisation and definition
 
-Goal: make the current application build-clean and make the repository the source of truth for what Character Profiler is intended to become.
+Status: complete.
 
-Work:
+Goal: make the application build-clean and make the repository the source of truth for what Character Profiler is intended to become.
 
-- fix the UIKit renderer compile regression exposed by the first real Xcode CI run;
-- run the complete GitHub Actions Xcode build and unit tests;
-- formalise `PRODUCT_SPEC.md`;
-- maintain `FEATURE_STATUS.md` as an implementation audit;
-- strengthen architecture documentation and product boundaries;
-- document the development sequence in this roadmap;
-- avoid adding unrelated functionality during stabilisation.
+Delivered:
 
-Exit criterion: CI is green and the documentation accurately describes both the intended product and the implementation that exists.
+- fixed the UIKit renderer compile regression exposed by the first real Xcode CI run;
+- completed the GitHub Actions Xcode build and unit tests;
+- formalised `PRODUCT_SPEC.md`;
+- established `FEATURE_STATUS.md` as an implementation audit;
+- strengthened architecture documentation and product boundaries;
+- documented the development sequence in this roadmap.
 
-## 0.4 — Family and relationship map
+## 0.4 — Family tree
 
-Goal: turn the existing relationship graph into a useful author-facing visual tool.
+Status: implemented on the 0.4.0 feature branch, subject to final CI validation and release integration.
 
-Priority behaviour:
+Goal: turn the existing relationship graph into a useful author-facing visual family tool without creating a second family database.
 
-- graphical family tree from existing parent/child/sibling/partner links;
-- tap a person to open their character record;
-- visually distinguish family from non-family relationships;
-- support larger families without making the view unreadable;
-- preserve the underlying relationship data model rather than duplicating relationship information solely for the diagram.
+Delivered scope:
 
-A broader relationship-network view may follow the family tree, but the first objective is a clear and dependable family view.
+- graphical family tree generated from existing parent/child/sibling/spouse/partner links;
+- generation placement derived from parent/child direction;
+- connected-family traversal so grandparents, grandchildren and larger family structures can appear;
+- tappable family members that open their existing character records;
+- distinct visual connector treatment for ancestry, partners and siblings;
+- two-axis scrolling for large layouts;
+- pinch zoom plus explicit zoom controls;
+- duplicate-link validation;
+- ancestry-cycle protection for parent/child links;
+- protection against recording a direct ancestor/descendant pair as siblings;
+- unit coverage for family-graph generation and structural validation.
+
+The family tree remains a projection of `CharacterRelationship` data. It does not persist a parallel tree model.
+
+A broader non-family relationship network for friends, rivals, enemies, mentors and colleagues remains future work. It should be designed separately so genealogy does not become visually unreadable.
 
 ## 0.5 — Character Guide depth
 
-Goal: improve how well the app helps an author discover missing dimensions of a character.
+Status: next major development target after 0.4.0 is integrated.
+
+Goal: improve how well the app helps an author discover missing dimensions of a character rather than merely presenting a questionnaire.
 
 Planned work:
 
-- increase prompt coverage within existing genres;
-- improve distribution so the Guide does not over-focus on one category;
-- add better follow-ups from life events and relationship patterns;
+- substantially increase prompt coverage within existing genres;
+- improve category distribution so suggestions do not over-focus on one dimension;
+- add deeper follow-ups from life events and relationship patterns;
+- connect multiple known facts when suggesting a question;
 - identify obviously underdeveloped profile areas;
-- improve explanation of why a prompt is being suggested where useful.
+- improve explanation of why a prompt is being suggested where useful;
+- preserve stable prompt IDs so existing answers remain valid as the catalogue grows.
 
-The Guide remains advisory. It should not silently turn AI or prompt output into character canon.
+The Guide remains advisory. It should not silently turn generated suggestions or prompt output into character canon.
 
 ## 0.6 — Author workflow and portability
 
@@ -85,6 +98,7 @@ Release criteria are defined in `PRODUCT_SPEC.md` and include build/test stabili
 
 The following ideas may be useful but require an explicit product decision before they enter a numbered release:
 
+- broader non-family relationship network;
 - iCloud synchronisation;
 - provider abstraction for additional visual AI services;
 - project-level JSON or archive formats beyond basic backup needs;
