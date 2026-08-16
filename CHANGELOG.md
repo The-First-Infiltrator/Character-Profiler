@@ -2,6 +2,24 @@
 
 # Changelog
 
+## [0.3.1] - 2026-08-16
+
+### Fixed
+
+- Removed a `UIGraphicsImageRendererContext.fill(_:)` compatibility extension that collided with UIKit and caused the first real Xcode CI build to fail during Swift module emission.
+- Restored image normalisation to use the renderer API directly without shadowing UIKit methods.
+
+### Documentation
+
+- Added a formal product specification describing the author-focused story-bible goal and explicit product boundaries.
+- Added a feature-status audit separating implemented, partial, planned and candidate capabilities.
+- Added a staged roadmap beginning with the graphical family/relationship view after stabilisation.
+- Strengthened architecture documentation, data invariants, migration expectations and the distinction between the eight-view turnaround and a true 3D model.
+
+### Scope
+
+- 0.3.1 is a stabilisation release and deliberately adds no unrelated feature scope.
+
 ## [0.3.0] - 2026-08-16
 
 ### Added
