@@ -29,11 +29,11 @@ The family tree remains a projection of `CharacterRelationship` data rather than
 
 ## 0.5 — Character Guide depth
 
-Status: implemented on the 0.5.0 feature branch, subject to final Xcode CI validation and integration.
+Status: complete and integrated through 0.5.1.
 
 Goal: make the Guide behave more like an author-development assistant and less like a fixed questionnaire.
 
-Delivered scope:
+Delivered:
 
 - prompt catalogue expanded from the initial small set to well over 100 stable prompts;
 - deeper coverage for every existing built-in genre;
@@ -43,16 +43,17 @@ Delivered scope:
 - expanded adaptive follow-ups from trauma/loss, family, multiple life events and relationship patterns;
 - context triggers for magic, combat/war, secrecy, faith, money, family, romance and revenge;
 - human-readable reasons attached to `GuideSuggestion` results;
+- 0.5.1 presentation of those reasons directly on Guide cards and inside the answer sheet;
 - preservation of stable prompt IDs and answered-prompt suppression;
 - unit tests for catalogue uniqueness/size, genre filtering, category diversity, adaptive context and development-depth detection.
 
-The Guide remains deterministic and advisory. It does not silently change character canon.
+The Guide remains deterministic and advisory. It does not silently change character canon. Suggestion explanations are presentation metadata rather than character facts.
 
 True semantic contradiction checking—such as recognising that two independently written facts cannot both be true—is not claimed by 0.5 and remains future work.
 
 ## 0.6 — Author workflow and portability
 
-Status: next major development target after 0.5.0 is integrated.
+Status: next major development target.
 
 Goal: make a developed story bible easier to maintain, protect and move.
 
@@ -60,12 +61,13 @@ Planned work to design and implement:
 
 - project-level backup/export and restore/import;
 - a versioned portable project format rather than an undocumented database dump;
-- safer deletion flows for heavily linked characters;
+- round-trip tests proving characters, flexible fields, Guide answers, life events and relationship links survive export/import;
+- clear handling of profile pictures, reference images, canonical visuals and turnaround frames in backups;
+- safer deletion flows for heavily linked characters and projects;
 - project summaries and cast overview improvements;
-- migration tests as the SwiftData model evolves;
-- clear handling of visual assets during backup and restore.
+- migration tests as the SwiftData model evolves.
 
-Export/import format and sync behaviour should be designed before implementation so story data is not trapped in a brittle format.
+Export/import format and sync behaviour should be designed before implementation so story data is not trapped in a brittle format. The archive should be owned by Character Profiler and explicitly versioned from its first release.
 
 ## 0.7 — Visual Studio hardening
 
