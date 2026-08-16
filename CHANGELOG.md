@@ -2,6 +2,32 @@
 
 # Changelog
 
+## [0.5.0] - 2026-08-16
+
+### Added
+
+- Dedicated `CharacterGuide.swift` support source for Guide selection and catalogue content.
+- Prompt catalogue expanded to well over 100 stable prompts across the existing built-in genres.
+- Development-depth scoring from profile fields, saved Guide answers, relationships, story role and life history.
+- Underdeveloped-area prioritisation so sparse character dimensions receive more attention.
+- Category balancing so the visible Guide spans multiple dimensions before repeating the same category.
+- Expanded adaptive follow-ups for trauma/loss, family relationships, multiple life events and recorded story role.
+- Context-sensitive follow-ups for magic, drinking-place behaviour, war/combat, secrecy, faith, money, family, romance and revenge.
+- `GuideSuggestion` metadata with a human-readable explanation of why a question was selected.
+- Unit tests for catalogue size and unique IDs, genre filtering, category diversity, adaptive trauma/combat context and profile development-depth recognition.
+
+### Changed
+
+- Guide selection is now scored and deterministic rather than simply taking the first matching questions from a fixed list.
+- Existing `PromptEngine.suggestions` remains available for compatibility while richer selection is exposed through `detailedSuggestions`.
+- Stable prompt IDs and answered-prompt suppression are preserved so existing saved answers remain valid.
+- App version is now 0.5.0 build 6.
+
+### Scope
+
+- 0.5 remains a local deterministic character-development engine. It does not silently create canon or claim deep semantic contradiction checking.
+- Semantic consistency analysis remains future work.
+
 ## [0.4.0] - 2026-08-16
 
 ### Added
@@ -55,7 +81,7 @@
 - Author-written appearance notes.
 - AI-assisted canonical character creation using Apple's Image Playground on supported devices.
 - Character profile and reference-image context supplied to visual generation.
-- Ability to use the approved AI character image as the normal profile portrait.
+- Ability to use the approved AI image as the normal profile portrait.
 - Eight standard turn-around angles at 45-degree intervals.
 - Independent generation/regeneration for each angle using the canonical character as source reference.
 - Drag-to-rotate turntable viewer across available angle frames.
