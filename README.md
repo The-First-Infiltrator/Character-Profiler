@@ -4,13 +4,17 @@
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, structured relationships, life history, genre-aware development questions and a focused visual studio for establishing what a character looks like.
 
-## Version 0.5.0
+## Version 0.5.1
 
-Version 0.5.0 substantially deepens the **Character Guide**. The Guide is no longer a simple first-match questionnaire: it now scores what is already known about a character, looks for lightly developed areas, mixes genre-specific and general questions, reacts to recorded history and relationships, and deliberately balances the visible suggestions across several character dimensions.
+Version 0.5.1 finishes the visible presentation of the deeper **Character Guide** introduced in 0.5.0. Every suggested question now shows a concise, human-readable reason for why it was selected, and opening the question repeats that explanation above the author's answer field.
 
-The prompt catalogue is now well over 100 questions with stable IDs across Fantasy, Science Fiction, Romance, Mystery/Thriller, Horror, Historical Fiction, Contemporary, Adventure/Crime and Young Adult, plus universal character-development prompts.
+The explanation remains advisory metadata. Saving an answer stores the original canonical question and the author's answer; it does not copy the explanation into character canon or mutate the stable prompt identity.
 
-Adaptive follow-ups can react to recorded trauma/loss, family and other relationships, multiple life events, story role and contextual language around subjects such as magic, combat, secrecy, faith, money, romance and revenge. Rich `GuideSuggestion` results also carry a human-readable reason explaining why a question was selected.
+Version 0.5.0 substantially deepened the Guide itself: it scores what is already known about a character, looks for lightly developed areas, mixes genre-specific and general questions, reacts to recorded history and relationships, and deliberately balances visible suggestions across several character dimensions.
+
+The prompt catalogue is well over 100 questions with stable IDs across Fantasy, Science Fiction, Romance, Mystery/Thriller, Horror, Historical Fiction, Contemporary, Adventure/Crime and Young Adult, plus universal character-development prompts.
+
+Adaptive follow-ups can react to recorded trauma/loss, family and other relationships, multiple life events, story role and contextual language around subjects such as magic, combat, secrecy, faith, money, romance and revenge.
 
 The Guide remains local, deterministic and advisory. It does not silently rewrite the character record and does not claim full semantic contradiction checking.
 
@@ -48,7 +52,7 @@ The Guide combines:
 - adaptive follow-ups from relationships and life history;
 - contextual follow-ups from profile/answer/history text;
 - stable prompt IDs and suppression of already answered questions;
-- human-readable selection reasons in richer Guide suggestion metadata.
+- human-readable selection reasons shown directly on suggestion cards and in the answer sheet.
 
 Fantasy prompts include everyday world-building choices that reveal personality: taverns, adventuring, magic, travel, creatures, faith, quests, oaths, status, ruins and life on the road. Other genres use their own appropriate prompt sets rather than simply rewording Fantasy questions.
 
