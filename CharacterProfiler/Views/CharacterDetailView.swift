@@ -99,26 +99,32 @@ private struct CharacterGuidePanel: View {
     @Environment(\.modelContext) private var modelContext
     let character: CharacterProfile
     let project: StoryProject
-    @State private var selectedPrompt: CharacterPrompt?
+    @State private var selectedSuggestion: GuideSuggestion?
     @State private var answer = ""
 
-    var prompts: [CharacterPrompt] { PromptEngine.suggestions(for: character, in: project, limit: 10) }
+    var suggestions: [GuideSuggestion] { PromptEngine.detailedSuggestions(for: character, in: project, limit: 10) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Character Guide", systemImage: "sparkles").font(.title3.bold())
-            Text("Questions change with the story genre and what you have already recorded.").foregroundStyle(.secondary)
-            ForEach(prompts) { prompt in
+            Text("Questions change with the story genre and what you have already recorded. Each suggestion explains why it may be useful now.").foregroundStyle(.secondary)
+            ForEach(suggestions) { suggestion in
                 Button {
-                    selectedPrompt = prompt
-                    answer = character.response(for: prompt.id)?.answer ?? ""
+                    selectedSuggestion = suggestion
+                    answer = character.response(for: suggestion.id)?.answer ?? ""
                 } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label(prompt.category.displayName, systemImage: prompt.category.icon).font(.caption.weight(.semibold))
-                        Text(prompt.question).foregroundStyle(.primary).multilineTextAlignment(.leading)
+                    VStack(alignment: .leading, spacing: 7) {
+                        Label(suggestion.category.displayName, systemImage: suggestion.category.icon).font(.caption.weight(.semibold))
+                        Text(suggestion.question).foregroundStyle(.primary).multilineTextAlignment(.leading)
+                        Label(suggestion.reason, systemImage: "lightbulb")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
                     }
                     .padding().frame(maxWidth: .infinity, alignment: .leading).background(.thinMaterial).clipShape(RoundedRectangle(cornerRadius: 14))
-                }.buttonStyle(.plain)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(suggestion.reason)
             }
             let answers = PromptEngine.savedAnswers(for: character)
             if !answers.isEmpty {
@@ -131,15 +137,20 @@ private struct CharacterGuidePanel: View {
                 }
             }
         }
-        .sheet(item: $selectedPrompt) { prompt in
+        .sheet(item: $selectedSuggestion) { suggestion in
+            let prompt = suggestion.prompt
             NavigationStack {
                 Form {
                     Section { Text(prompt.question) }
+                    Section("Why this question") {
+                        Label(suggestion.reason, systemImage: "lightbulb")
+                            .foregroundStyle(.secondary)
+                    }
                     Section("Answer") { TextField("Write what is true for this character", text: $answer, axis: .vertical).lineLimit(4...12) }
                 }
                 .navigationTitle(prompt.category.displayName)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { selectedPrompt = nil } }
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { selectedSuggestion = nil } }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
                             if let existing = character.response(for: prompt.id) {
@@ -148,7 +159,7 @@ private struct CharacterGuidePanel: View {
                                 let response = PromptResponse(promptID: prompt.id, question: prompt.question, category: prompt.category, answer: answer, character: character)
                                 modelContext.insert(response); character.promptResponses.append(response)
                             }
-                            character.updatedAt = .now; try? modelContext.save(); selectedPrompt = nil
+                            character.updatedAt = .now; try? modelContext.save(); selectedSuggestion = nil
                         }
                     }
                 }
