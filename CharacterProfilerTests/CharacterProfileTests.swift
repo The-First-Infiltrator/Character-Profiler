@@ -121,7 +121,8 @@ final class CharacterProfileTests: XCTestCase {
 
     @MainActor
     func testRelationshipReadsFromBothDirections() throws {
-        let character = CharacterProfile(name: "Jon")n        let parent = CharacterProfile(name: "Mara")
+        let character = CharacterProfile(name: "Jon")
+        let parent = CharacterProfile(name: "Mara")
         let relationship = CharacterRelationship(kind: .parent, source: character, target: parent)
         XCTAssertEqual(relationship.kind(from: character), .parent)
         XCTAssertEqual(relationship.kind(from: parent), .child)
