@@ -180,6 +180,155 @@ final class CharacterProfileTests: XCTestCase {
         )
     }
 
+    @MainActor
+    func testProjectArchiveRoundTripPreservesWholeStoryAndCanRestoreTwice() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let project = StoryProject(
+            title: "Ashes of the Crown",
+            genre: .fantasy,
+            premise: "A broken kingdom is forced to choose who should rebuild it."
+        )
+        context.insert(project)
+
+        let elena = CharacterProfile(
+            name: "Elena Vale",
+            nickname: "Len",
+            summary: "A former mercenary who distrusts magic.",
+            storyRole: "Reluctant heir",
+            pronouns: "she/her",
+            ageText: "27",
+            profileImageData: Data([1, 2, 3, 4]),
+            visualDescription: "Black hair, weathered coat, scar through the left eyebrow.",
+            generatedVisualData: Data([5, 6, 7]),
+            project: project
+        )
+        let mara = CharacterProfile(name: "Mara Vale", storyRole: "Mother", project: project)
+        context.insert(elena)
+        context.insert(mara)
+        project.characters.append(contentsOf: [elena, mara])
+
+        let appearance = ProfileSection(title: "Appearance", sortOrder: 0, character: elena)
+        let hair = ProfileField(label: "Hair", value: "Black, shoulder-length", sortOrder: 0, section: appearance)
+        context.insert(appearance)
+        context.insert(hair)
+        appearance.fields.append(hair)
+        elena.sections.append(appearance)
+
+        let loss = LifeEvent(
+            title: "Father killed in the border war",
+            kind: .loss,
+            whenText: "Age 21",
+            details: "He died during the retreat from Grey Ford.",
+            impact: "She stopped believing rank made anyone competent.",
+            sortOrder: 0,
+            character: elena
+        )
+        context.insert(loss)
+        elena.lifeEvents.append(loss)
+
+        let answer = PromptResponse(
+            promptID: "fantasy.magic-attitude",
+            question: "How does she feel about magic?",
+            category: .world,
+            answer: "Useful, dangerous, and never free.",
+            character: elena
+        )
+        context.insert(answer)
+        elena.promptResponses.append(answer)
+
+        let reference = CharacterReferenceImage(
+            label: "Face reference",
+            sortOrder: 0,
+            imageData: Data([9, 8, 7, 6]),
+            character: elena
+        )
+        context.insert(reference)
+        elena.referenceImages.append(reference)
+
+        let frame = CharacterVisualFrame(
+            angle: .frontRight,
+            imageData: Data([4, 3, 2, 1]),
+            character: elena
+        )
+        context.insert(frame)
+        elena.visualFrames.append(frame)
+
+        let relationship = CharacterRelationship(
+            kind: .parent,
+            notes: "Close, but they argue about duty.",
+            source: elena,
+            target: mara
+        )
+        context.insert(relationship)
+        elena.outgoingRelationships.append(relationship)
+        mara.incomingRelationships.append(relationship)
+        try context.save()
+
+        let originalProjectID = project.id
+        let originalElenaID = elena.id
+        let archive = ProjectArchive(project: project)
+        XCTAssertEqual(archive.formatVersion, 1)
+        XCTAssertEqual(archive.project.characters.count, 2)
+        XCTAssertEqual(archive.project.relationships.count, 1)
+
+        let data = try archive.encodedData()
+        let decoded = try ProjectArchive.decode(data)
+        let firstRestore = try decoded.restore(in: context)
+        let secondRestore = try decoded.restore(in: context)
+
+        XCTAssertNotEqual(firstRestore.id, originalProjectID)
+        XCTAssertNotEqual(secondRestore.id, originalProjectID)
+        XCTAssertNotEqual(firstRestore.id, secondRestore.id)
+        XCTAssertEqual(firstRestore.title, project.title)
+        XCTAssertEqual(firstRestore.genre, .fantasy)
+        XCTAssertEqual(firstRestore.premise, project.premise)
+        XCTAssertEqual(firstRestore.characters.count, 2)
+        XCTAssertEqual(secondRestore.characters.count, 2)
+
+        guard let restoredElena = firstRestore.characters.first(where: { $0.name == "Elena Vale" }),
+              let restoredMara = firstRestore.characters.first(where: { $0.name == "Mara Vale" }) else {
+            return XCTFail("Expected both archived characters to be restored")
+        }
+
+        XCTAssertNotEqual(restoredElena.id, originalElenaID)
+        XCTAssertEqual(restoredElena.nickname, "Len")
+        XCTAssertEqual(restoredElena.storyRole, "Reluctant heir")
+        XCTAssertEqual(restoredElena.pronouns, "she/her")
+        XCTAssertEqual(restoredElena.ageText, "27")
+        XCTAssertEqual(restoredElena.profileImageData, Data([1, 2, 3, 4]))
+        XCTAssertEqual(restoredElena.generatedVisualData, Data([5, 6, 7]))
+        XCTAssertEqual(restoredElena.visualDescription, elena.visualDescription)
+        XCTAssertEqual(restoredElena.sortedSections.first?.title, "Appearance")
+        XCTAssertEqual(restoredElena.sortedSections.first?.sortedFields.first?.value, "Black, shoulder-length")
+        XCTAssertEqual(restoredElena.sortedLifeEvents.first?.kind, .loss)
+        XCTAssertEqual(restoredElena.sortedLifeEvents.first?.whenText, "Age 21")
+        XCTAssertEqual(restoredElena.promptResponses.first?.answer, "Useful, dangerous, and never free.")
+        XCTAssertEqual(restoredElena.sortedReferenceImages.first?.imageData, Data([9, 8, 7, 6]))
+        XCTAssertEqual(restoredElena.sortedVisualFrames.first?.angle, .frontRight)
+        XCTAssertEqual(restoredElena.sortedVisualFrames.first?.imageData, Data([4, 3, 2, 1]))
+
+        XCTAssertEqual(restoredElena.allRelationships.count, 1)
+        let restoredRelationship = restoredElena.allRelationships[0]
+        XCTAssertEqual(restoredRelationship.kind(from: restoredElena), .parent)
+        XCTAssertEqual(restoredRelationship.relatedCharacter(to: restoredElena)?.id, restoredMara.id)
+        XCTAssertEqual(restoredRelationship.notes, "Close, but they argue about duty.")
+    }
+
+    @MainActor
+    func testProjectArchiveRejectsUnsupportedFormatVersion() throws {
+        let project = StoryProject(title: "Future Story", genre: .scienceFiction)
+        var archive = ProjectArchive(project: project)
+        archive.formatVersion = ProjectArchive.currentFormatVersion + 1
+
+        XCTAssertThrowsError(try archive.validate()) { error in
+            guard case ProjectArchiveError.unsupportedFormatVersion(let version) = error else {
+                return XCTFail("Expected unsupported archive format error")
+            }
+            XCTAssertEqual(version, ProjectArchive.currentFormatVersion + 1)
+        }
+    }
+
     func testVisualAnglesCoverFullTurnaround() {
         XCTAssertEqual(VisualAngle.allCases.count, 8)
         XCTAssertEqual(VisualAngle.front.degrees, 0)

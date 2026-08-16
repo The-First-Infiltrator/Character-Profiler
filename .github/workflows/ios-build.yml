@@ -18,12 +18,40 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Prepare iOS Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Initialise CoreSimulator first. Some hosted macOS images expose only
+          # the placeholder destination until simctl has started the service.
+          xcrun simctl list devices available >/tmp/available-simulators.txt || true
+          cat /tmp/available-simulators.txt
+
+          simulator_id="$(grep -m1 -E 'iPhone .*[0-9A-Fa-f-]{36}' /tmp/available-simulators.txt | grep -oE '[0-9A-Fa-f-]{36}' | head -1 || true)"
+
+          if [[ -z "$simulator_id" ]]; then
+            echo "No bootable iPhone simulator is currently installed; downloading the default iOS runtime for this Xcode."
+            xcodebuild -downloadPlatform iOS
+            xcrun simctl list devices available >/tmp/available-simulators.txt
+            cat /tmp/available-simulators.txt
+            simulator_id="$(grep -m1 -E 'iPhone .*[0-9A-Fa-f-]{36}' /tmp/available-simulators.txt | grep -oE '[0-9A-Fa-f-]{36}' | head -1 || true)"
+          fi
+
+          if [[ -z "$simulator_id" ]]; then
+            echo "No bootable iPhone simulator is available after runtime preparation." >&2
+            exit 1
+          fi
+
+          echo "Using simulator $simulator_id"
+          echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+
       - name: Build and test
         run: >-
           xcodebuild
           -project CharacterProfiler.xcodeproj
           -scheme CharacterProfiler
           -sdk iphonesimulator
-          -destination 'platform=iOS Simulator,name=iPhone 16'
+          -destination "platform=iOS Simulator,id=${SIMULATOR_ID}"
           CODE_SIGNING_ALLOWED=NO
           test
