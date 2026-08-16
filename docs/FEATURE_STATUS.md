@@ -20,7 +20,7 @@ Status meanings:
 | Story/project library | Implemented | Projects own a cast and store genre/premise. |
 | Built-in genres plus custom genre | Implemented | Used by the Character Guide. |
 | Migration of pre-project characters | Implemented | Earlier characters can be placed into Imported Characters. |
-| CI build and unit-test workflow | Partial | Workflow exists; 0.3.0 exposed a compile failure that 0.3.1 is stabilising. |
+| CI build and unit-test workflow | Implemented | 0.3.1 passed the full Xcode simulator build and unit-test workflow after fixing the renderer regression exposed by 0.3.0. |
 
 ## Character profile
 
@@ -92,12 +92,12 @@ Status meanings:
 | JSON/project export and import | Candidate | Useful for backup/portability but not yet committed to a release. |
 | iCloud sync | Candidate | Requires a deliberate design and migration strategy. |
 
-## Immediate completion criteria for 0.3.1
+## 0.3.1 stabilisation result
 
-0.3.1 is considered complete when:
+The 0.3.1 stabilisation criteria have now been met on the feature branch:
 
 1. the renderer compile regression is fixed;
-2. GitHub Actions completes the Xcode build and tests successfully;
+2. GitHub Actions completed the Xcode simulator build and unit tests successfully;
 3. product intent, implementation status and roadmap are documented;
-4. version/build metadata reflects 0.3.1;
-5. no new feature scope is introduced during the stabilisation pass.
+4. version/build metadata is 0.3.1 / build 4;
+5. no unrelated feature scope was added during stabilisation.
