@@ -19,8 +19,10 @@ Status meanings:
 | SwiftData local persistence | Implemented | Core entities and visual assets persist locally. |
 | Story/project library | Implemented | Projects own a cast and store genre/premise. |
 | Built-in genres plus custom genre | Implemented | Used by the Character Guide. |
+| Project overview metrics | Implemented | 0.6 shows cast, relationship, life-event, Guide-answer and average-development counts. |
 | Migration of pre-project characters | Implemented | Earlier characters can be placed into Imported Characters. |
 | CI build and unit-test workflow | Implemented | Xcode simulator build and unit tests are the release gate. |
+| Resilient hosted-runner simulator preparation | Implemented | CI discovers an available iPhone simulator and can download the default iOS runtime when needed. |
 
 ## Character profile
 
@@ -32,6 +34,7 @@ Status meanings:
 | Starter author-oriented profile template | Implemented | Identity, appearance, personality, motivation, background and secrets. |
 | Search within a story cast | Implemented | Searches character data in the active project. |
 | Character development completion indicator | Implemented | Current heuristic only; may be refined later. |
+| Character deletion impact confirmation | Implemented | 0.6 reports linked relationships, history, Guide answers and visual assets before permanent deletion. |
 
 ## Character Guide
 
@@ -68,6 +71,7 @@ Status meanings:
 | Large-family navigation | Implemented | Two-axis scrolling, pinch zoom and explicit zoom controls. |
 | Duplicate family-link prevention | Implemented | Equivalent family links are blocked while adding relationships. |
 | Ancestry-cycle prevention | Implemented | Parent/child cycles and ancestor/descendant sibling contradictions are rejected. |
+| Relationship preservation in project backups | Implemented | 0.6 archives endpoint IDs and reconstructs edges only after all characters exist. |
 | Broader non-family relationship network | Planned | Friends, rivals, enemies, mentors and colleagues remain separate future work. |
 
 ## History and trauma
@@ -77,6 +81,7 @@ Status meanings:
 | Structured life events | Implemented | Title, kind, timing, details and impact. |
 | Trauma and loss event types | Implemented | Used by adaptive Guide questions. |
 | General formative event categories | Implemented | Milestones and other life events supported. |
+| Life-history backup/restore | Implemented | 0.6 project archives include every stored life event. |
 | Chronological visual timeline | Partial | Events are displayed as history entries; richer timeline presentation can improve later. |
 
 ## Character Visual Studio
@@ -92,28 +97,38 @@ Status meanings:
 | Eight angle definitions | Implemented | 45-degree turnaround positions. |
 | Independent angle generation | Implemented | Each angle can be generated/regenerated. |
 | Drag-to-rotate turnaround viewer | Implemented | Steps through available angle frames. |
+| Visual asset backup/restore | Implemented | 0.6 archives profile images, references, canonical generated visual and turnaround frames. |
 | True continuous 3D mesh | Not planned | Explicitly outside current product design. |
 | Scene generation | Not planned | Explicitly outside product scope. |
 | Animation/cinematics | Not planned | Explicitly outside product scope. |
 
-## Data portability and sync
+## Data portability and safety
 
 | Capability | Status | Notes |
 | --- | --- | --- |
 | Local persistent data | Implemented | Current primary storage model. |
-| Versioned project backup/export and restore/import | Planned | 0.6 target; should include relationships, Guide answers, history and visual assets. |
+| Versioned project backup/export | Implemented | 0.6 writes Character Profiler JSON archive format v1. |
+| Project restore/import | Implemented | 0.6 validates and rebuilds the complete local project graph. |
+| Restore without identifier collision | Implemented | Restored SwiftData objects receive fresh IDs; archived IDs are reconstruction keys only. |
+| Archive format validation | Implemented | Unsupported versions and malformed relationship references are rejected. |
+| Whole-story round-trip test | Implemented | Test includes flexible profile data, Guide answers, history, visual assets and relationships and restores the same backup twice. |
+| Project deletion impact confirmation | Implemented | 0.6 reports project/cast/relationship impact and recommends backing up first. |
 | iCloud sync | Candidate | Requires a deliberate design and migration strategy. |
 
-## 0.5.1 completion criteria
+## 0.6.0 completion criteria
 
-0.5.1 is considered complete when:
+0.6.0 is considered complete when:
 
-1. Guide cards display the reason attached to each `GuideSuggestion`;
-2. the answer sheet repeats the reason in a dedicated explanatory section;
-3. the reason remains presentation metadata and is not persisted into the canonical prompt text;
-4. accessibility exposes the reason for the suggestion button;
-5. version/build metadata is 0.5.1 / build 7;
-6. the full Xcode simulator build and unit-test workflow passes;
-7. README, changelog and feature status describe the behaviour accurately.
+1. project export produces an explicitly versioned portable archive rather than a raw SwiftData store copy;
+2. the archive includes project metadata, characters, arbitrary profile data, Guide answers, life events, relationships and all current visual assets;
+3. restore validates archive format/version and reconstructs a new usable project;
+4. restoring the same archive more than once does not collide with existing SwiftData identifiers;
+5. relationship links survive a complete encode/decode/restore round trip;
+6. story and character deletion require a destructive confirmation that describes affected linked data;
+7. story detail exposes useful project/cast development metrics;
+8. round-trip and unsupported-version tests pass in Xcode CI;
+9. CI reliably prepares an iOS simulator instead of depending on one hard-coded simulator name;
+10. version/build metadata is 0.6.0 / build 8;
+11. product spec, feature status, roadmap, changelog, README and architecture describe the implemented behaviour accurately.
 
-With 0.5.1 complete, 0.6 becomes the next major development target: portable project backup/restore, safer destructive actions and migration/data-safety work.
+After 0.6.0 is integrated, Visual Studio hardening and other remaining 1.0 reliability work become the next major focus.
