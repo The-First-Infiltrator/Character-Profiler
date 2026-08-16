@@ -49,7 +49,7 @@ Status meanings:
 | Adaptive prompts from relationships/history/profile text | Implemented | Expanded in 0.5 with family, multiple life events, role and keyword-triggered follow-ups. |
 | Adaptive combat/magic/secrecy/faith/money/relationship/revenge follow-ups | Implemented | Rule-based context can trigger more specific questions. |
 | Human-readable suggestion reason | Implemented | `GuideSuggestion` records why a prompt was selected. |
-| Explicit reason presentation in the Guide card UI | Partial | Reason metadata exists; presentation can be refined without changing stored answers. |
+| Explicit reason presentation in the Guide UI | Implemented | 0.5.1 shows the reason on suggestion cards and in the answer sheet without altering canonical prompt data. |
 | Deep semantic consistency/contradiction checking | Planned | Requires a deliberately designed reasoning layer beyond the current deterministic rule engine. |
 | Explicit promotion of Guide answer into profile field | Candidate | Must remain author-controlled if added. |
 
@@ -101,19 +101,19 @@ Status meanings:
 | Capability | Status | Notes |
 | --- | --- | --- |
 | Local persistent data | Implemented | Current primary storage model. |
-| JSON/project export and import | Candidate | Useful for backup/portability but not yet committed to a release. |
+| Versioned project backup/export and restore/import | Planned | 0.6 target; should include relationships, Guide answers, history and visual assets. |
 | iCloud sync | Candidate | Requires a deliberate design and migration strategy. |
 
-## 0.5.0 completion criteria
+## 0.5.1 completion criteria
 
-0.5.0 is considered complete when:
+0.5.1 is considered complete when:
 
-1. the expanded catalogue retains unique stable prompt IDs;
-2. genre filtering continues to exclude prompts from unrelated genres;
-3. answered prompts remain suppressed;
-4. visible suggestions are balanced across multiple development categories;
-5. profile/history/relationship context can raise appropriate adaptive follow-ups;
-6. suggestion reasons are generated without modifying character canon;
-7. the new Guide tests pass in Xcode CI;
-8. version/build metadata is 0.5.0 / build 6;
-9. feature status, roadmap, changelog, README and architecture describe the implemented behaviour accurately.
+1. Guide cards display the reason attached to each `GuideSuggestion`;
+2. the answer sheet repeats the reason in a dedicated explanatory section;
+3. the reason remains presentation metadata and is not persisted into the canonical prompt text;
+4. accessibility exposes the reason for the suggestion button;
+5. version/build metadata is 0.5.1 / build 7;
+6. the full Xcode simulator build and unit-test workflow passes;
+7. README, changelog and feature status describe the behaviour accurately.
+
+With 0.5.1 complete, 0.6 becomes the next major development target: portable project backup/restore, safer destructive actions and migration/data-safety work.
