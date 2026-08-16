@@ -2,6 +2,21 @@
 
 # Changelog
 
+## [0.5.1] - 2026-08-16
+
+### Changed
+
+- Character Guide suggestion cards now show the human-readable reason produced by `GuideSuggestion`.
+- Opening a Guide question shows a dedicated **Why this question** section before the answer field.
+- Guide introductory copy now makes the adaptive explanation behaviour explicit.
+- Suggestion reasons are also exposed as accessibility hints on the question buttons.
+- App version is now 0.5.1 build 7.
+
+### Data integrity
+
+- Selection reasons remain presentation metadata only.
+- Saving a Guide answer continues to persist the stable prompt ID, canonical question and author-written answer; the explanation is not copied into character canon.
+
 ## [0.5.0] - 2026-08-16
 
 ### Added
