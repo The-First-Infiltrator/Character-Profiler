@@ -56,7 +56,7 @@ final class CharacterProfileTests: XCTestCase {
     func testFantasyGuideContainsGenreSpecificQuestion() throws {
         let project = StoryProject(title: "Quest", genre: .fantasy)
         let character = CharacterProfile(name: "Elena", project: project)
-        let prompts = PromptEngine.suggestions(for: character, in: project, limit: 100)
+        let prompts = PromptEngine.suggestions(for: character, in: project, limit: 200)
         XCTAssertTrue(prompts.contains { $0.id == "fantasy.tavern" })
         XCTAssertFalse(prompts.contains { $0.id == "scifi.ai" })
     }
@@ -67,8 +67,56 @@ final class CharacterProfileTests: XCTestCase {
         let character = CharacterProfile(name: "Elena", project: project)
         let response = PromptResponse(promptID: "fantasy.tavern", question: "Question", category: .lifestyle, answer: "She would rather explore outside the walls.", character: character)
         character.promptResponses.append(response)
-        let prompts = PromptEngine.suggestions(for: character, in: project, limit: 100)
+        let prompts = PromptEngine.suggestions(for: character, in: project, limit: 200)
         XCTAssertFalse(prompts.contains { $0.id == "fantasy.tavern" })
+    }
+
+    @MainActor
+    func testGuideCatalogueIsSubstantiallyExpandedAndIDsAreUnique() {
+        let ids = PromptEngine.catalogue.map(\.id)
+        XCTAssertGreaterThanOrEqual(ids.count, 120)
+        XCTAssertEqual(Set(ids).count, ids.count)
+    }
+
+    @MainActor
+    func testGuideBalancesCategoriesInsteadOfRepeatingOneTheme() {
+        let project = StoryProject(title: "Quest", genre: .fantasy)
+        let character = CharacterProfile(name: "Elena", project: project)
+        let suggestions = PromptEngine.detailedSuggestions(for: character, in: project, limit: 8)
+        XCTAssertEqual(suggestions.count, 8)
+        XCTAssertGreaterThanOrEqual(Set(suggestions.map(\.category)).count, 5)
+        XCTAssertTrue(suggestions.allSatisfy { !$0.reason.isEmpty })
+    }
+
+    @MainActor
+    func testGuideExplainsAdaptiveTraumaSuggestion() {
+        let project = StoryProject(title: "Ashes", genre: .fantasy)
+        let character = CharacterProfile(name: "Elena", project: project)
+        character.lifeEvents.append(LifeEvent(title: "Lost her father", kind: .loss, details: "Killed during the war", character: character))
+        let suggestions = PromptEngine.detailedSuggestions(for: character, in: project, limit: 12)
+        let traumaSuggestion = suggestions.first { $0.id == "adaptive.after-trauma" }
+        XCTAssertNotNil(traumaSuggestion)
+        XCTAssertTrue(traumaSuggestion?.reason.lowercased().contains("trauma") == true || traumaSuggestion?.reason.lowercased().contains("loss") == true)
+    }
+
+    @MainActor
+    func testGuideUsesRecordedCombatContextForFollowUp() {
+        let project = StoryProject(title: "Ashes", genre: .fantasy)
+        let character = CharacterProfile(name: "Elena", summary: "A former mercenary who survived a brutal war.", project: project)
+        let suggestions = PromptEngine.detailedSuggestions(for: character, in: project, limit: 20)
+        XCTAssertTrue(suggestions.contains { $0.id == "adaptive.after-battle" })
+        XCTAssertTrue(suggestions.contains { $0.id == "adaptive.violence-line" })
+    }
+
+    @MainActor
+    func testDevelopmentDepthRecognisesProfileDetail() {
+        let character = CharacterProfile(name: "Elena")
+        let appearance = ProfileSection(title: "Appearance", sortOrder: 0, character: character)
+        let hair = ProfileField(label: "Hair", value: "Black, shoulder-length", sortOrder: 0, section: appearance)
+        appearance.fields.append(hair)
+        character.sections.append(appearance)
+        let depth = PromptEngine.developmentDepths(for: character)
+        XCTAssertGreaterThan(depth[.appearance, default: 0], 0)
     }
 
     @MainActor
