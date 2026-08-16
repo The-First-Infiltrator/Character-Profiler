@@ -53,23 +53,31 @@ True semantic contradiction checking—such as recognising that two independentl
 
 ## 0.6 — Author workflow and portability
 
-Status: next major development target.
+Status: implemented on the 0.6.0 feature branch, subject to exact final-head CI validation and integration.
 
 Goal: make a developed story bible easier to maintain, protect and move.
 
-Planned work to design and implement:
+Delivered scope:
 
-- project-level backup/export and restore/import;
-- a versioned portable project format rather than an undocumented database dump;
-- round-trip tests proving characters, flexible fields, Guide answers, life events and relationship links survive export/import;
-- clear handling of profile pictures, reference images, canonical visuals and turnaround frames in backups;
-- safer deletion flows for heavily linked characters and projects;
-- project summaries and cast overview improvements;
-- migration tests as the SwiftData model evolves.
+- application-owned project archive format with explicit format version 1;
+- system document export for complete story backups;
+- system document import for restoring a backup into the Story Library;
+- archive coverage for project metadata, characters, flexible fields, Guide answers, life events, relationships and every current visual asset;
+- fresh SwiftData object identifiers on restore, with archived IDs used only as temporary graph reconstruction keys;
+- ability to restore the same backup multiple times without unique-ID collisions;
+- archive validation for unsupported versions and malformed relationship references;
+- relationship reconstruction after every character has been created;
+- failed-restore cleanup rather than intentionally leaving a partial project;
+- round-trip tests that include profile, history, Guide, relationship and binary visual data;
+- safer destructive confirmations for story and character deletion with affected-data counts;
+- project overview metrics for cast, relationships, history, Guide progress and average character development;
+- CI simulator discovery/provisioning so hosted-runner variability does not create a false app failure merely because a particular simulator name is absent.
 
-Export/import format and sync behaviour should be designed before implementation so story data is not trapped in a brittle format. The archive should be owned by Character Profiler and explicitly versioned from its first release.
+The archive is deliberately not a raw SwiftData/database dump. Future archive-format changes must increment or explicitly migrate the format rather than depending on accidental decoder compatibility.
 
 ## 0.7 — Visual Studio hardening
+
+Status: next major development target after 0.6.0 is integrated, with some validation dependent on access to a supported physical iPhone.
 
 Goal: improve reliability and consistency of the existing focused visual workflow without expanding its scope.
 
@@ -79,15 +87,32 @@ Work to evaluate:
 - clearer handling when Apple Intelligence/Image Playground is unavailable;
 - reference-image management improvements;
 - stronger consistency between canonical image and turnaround angles;
-- better detection and replacement of missing angle frames.
+- better detection and replacement of missing angle frames;
+- clearer visual-workspace state when only some turnaround views exist.
 
 This phase does not add scenes, animation or filmmaking.
+
+## 0.8 — Remaining author-release hardening
+
+Status: planned after the parts of 0.7 that can be validated without a physical device.
+
+Likely work:
+
+- richer chronological history presentation;
+- editing existing life events rather than delete/recreate only;
+- editing existing relationships while preserving graph invariants;
+- broader migration regression coverage as the SwiftData model evolves;
+- large-cast usability and accessibility passes;
+- final destructive-flow and empty-state review;
+- release-quality error handling and copy consistency.
+
+This phase may be adjusted after real-device testing exposes concrete usability issues.
 
 ## 1.0 — First stable author release
 
 Goal: a dependable character-development application an author can use for a real writing project without treating it as a prototype.
 
-Release criteria are defined in `PRODUCT_SPEC.md` and include build/test stability, robust persistence, a usable family/relationship view, useful genre-aware development guidance, dependable history/relationship handling and a clearly bounded visual workflow.
+Release criteria are defined in `PRODUCT_SPEC.md` and include build/test stability, robust persistence, portable backup/restore, safe destructive actions, a usable family/relationship view, useful genre-aware development guidance, dependable history/relationship handling and a clearly bounded visual workflow.
 
 ## Future candidates, not commitments
 
@@ -97,7 +122,7 @@ The following ideas may be useful but require an explicit product decision befor
 - broader non-family relationship network;
 - iCloud synchronisation;
 - provider abstraction for additional visual AI services;
-- project-level JSON or archive formats beyond basic backup needs;
+- richer archive management such as backup history/comparison;
 - iPad-specific multi-column layouts;
 - Mac companion application.
 
