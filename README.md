@@ -4,32 +4,32 @@
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, structured relationships, life history, genre-aware development questions and a focused visual studio for establishing what a character looks like.
 
-## Version 0.5.1
+## Version 0.6.0
 
-Version 0.5.1 finishes the visible presentation of the deeper **Character Guide** introduced in 0.5.0. Every suggested question now shows a concise, human-readable reason for why it was selected, and opening the question repeats that explanation above the author's answer field.
+Version 0.6.0 makes Character Profiler much safer to use for serious long-term writing work. A complete story can now be exported as an explicitly versioned Character Profiler backup and later restored through the iOS document picker.
 
-The explanation remains advisory metadata. Saving an answer stores the original canonical question and the author's answer; it does not copy the explanation into character canon or mutate the stable prompt identity.
+The format begins at **archive version 1** and is owned by Character Profiler rather than being a copy of the SwiftData database. A backup includes story metadata, every character, flexible profile sections and fields, saved Guide answers, life events, relationships, profile/reference/generated images and turnaround frames.
 
-Version 0.5.0 substantially deepened the Guide itself: it scores what is already known about a character, looks for lightly developed areas, mixes genre-specific and general questions, reacts to recorded history and relationships, and deliberately balances visible suggestions across several character dimensions.
+Restore creates fresh local SwiftData identifiers and uses archived character IDs only while rebuilding links inside the imported story. That means the same backup can be restored more than once without colliding with an existing copy. Relationship edges are recreated only after every archived character exists.
 
-The prompt catalogue is well over 100 questions with stable IDs across Fantasy, Science Fiction, Romance, Mystery/Thriller, Horror, Historical Fiction, Contemporary, Adventure/Crime and Young Adult, plus universal character-development prompts.
+0.6 also makes destructive actions more deliberate. Deleting stories or characters now shows an impact summary before anything is removed, and story detail includes quick metrics for cast size, relationships, life events, Guide answers and average character development.
 
-Adaptive follow-ups can react to recorded trauma/loss, family and other relationships, multiple life events, story role and contextual language around subjects such as magic, combat, secrecy, faith, money, romance and revenge.
-
-The Guide remains local, deterministic and advisory. It does not silently rewrite the character record and does not claim full semantic contradiction checking.
+The archive implementation is covered by round-trip tests that encode a developed story, decode it and restore it twice while checking profile, history, Guide, visual and relationship data.
 
 ### Product documentation
 
 - `docs/PRODUCT_SPEC.md` — source of truth for what Character Profiler is intended to do.
 - `docs/FEATURE_STATUS.md` — implemented vs partial vs planned capability audit.
 - `docs/ROADMAP.md` — development order through the first stable author release.
-- `ARCHITECTURE.md` — persistent model, invariants and subsystem boundaries.
+- `ARCHITECTURE.md` — persistent model, archive format, invariants and subsystem boundaries.
 
 ## Story projects
 
 - Multiple story projects.
 - Fantasy, Science Fiction, Romance, Mystery, Thriller, Horror, Historical Fiction, Contemporary, Adventure, Crime, Young Adult and custom genres.
 - Story premise and project-scoped character library.
+- Project overview metrics for cast, relationships, history, Guide answers and average development.
+- Full project backup/export and restore/import using Character Profiler archive format v1.
 - Existing version 0.1.0 characters without a project migrate into `Imported Characters`.
 
 ## Character profiles
@@ -40,8 +40,11 @@ The Guide remains local, deterministic and advisory. It does not silently rewrit
 - Starter sections for identity, appearance, personality, motivation, background and secrets.
 - Search across character data.
 - Development-completion indicator.
+- Destructive deletion confirmation that reports linked relationship/history/Guide/visual impact before removal.
 
 ## Character Guide
+
+Version 0.5 substantially deepened the Character Guide, and 0.5.1 made its reasoning visible to the author.
 
 The Guide combines:
 
@@ -56,6 +59,8 @@ The Guide combines:
 
 Fantasy prompts include everyday world-building choices that reveal personality: taverns, adventuring, magic, travel, creatures, faith, quests, oaths, status, ruins and life on the road. Other genres use their own appropriate prompt sets rather than simply rewording Fantasy questions.
 
+The Guide remains local, deterministic and advisory. It does not silently rewrite the character record and does not claim full semantic contradiction checking.
+
 ## Relationships and family
 
 Relationships link real character records rather than storing names as plain text. Parent/child and mentor/student links automatically read correctly from the opposite character's perspective.
@@ -69,11 +74,13 @@ Version 0.4.0 added a graphical family tree that:
 - supports scrolling and zoom for larger families;
 - prevents duplicate family links and ancestry loops while adding relationships.
 
+The 0.6 archive preserves the relationship graph as links between archived character identifiers and reconstructs those edges after the characters are restored.
+
 A broader visual network for friends, rivals, mentors, colleagues and enemies remains future work rather than being mixed into the family tree.
 
 ## Life history
 
-Characters can record trauma, loss, milestones, achievements, relationships, conflict, education, career, adventures, relocation, secrets and custom formative events. Each event can record when it happened and how it changed the character. Version 0.5 makes those events more influential when the Guide chooses follow-up questions.
+Characters can record trauma, loss, milestones, achievements, relationships, conflict, education, career, adventures, relocation, secrets and custom formative events. Each event can record when it happened and how it changed the character. Life history is included in project backups and also influences adaptive Guide questions.
 
 ## Character Visual Studio
 
@@ -92,6 +99,8 @@ It provides:
 - independent regeneration for each angle;
 - no scene creation, character animation, posing system or movie generation.
 
+Profile pictures, reference images, the accepted canonical visual and turnaround frames are all included in the 0.6 portable project backup.
+
 ### AI implementation
 
 Character Visual Studio uses Apple's **Image Playground** framework on supported devices. The system-provided generation interface receives the character description plus selected visual references and returns the image chosen by the author.
@@ -99,6 +108,18 @@ Character Visual Studio uses Apple's **Image Playground** framework on supported
 This avoids embedding a third-party API secret in the iPhone application. Character Profiler does not contain an OpenAI API key or other private service credential.
 
 On a device where Image Playground is unavailable, the rest of Character Profiler continues to work and the Visual workspace explains that AI generation is unavailable.
+
+## Backup and restore
+
+A story backup is a human-inspectable JSON document with a filename such as:
+
+`Ashes-of-the-Crown.characterprofiler.json`
+
+The file contains a `formatVersion` field. Version 0.6.0 writes and reads archive format 1 and refuses unsupported versions rather than guessing how to interpret them.
+
+Restoring a backup creates another complete story in the local library. It does not overwrite an existing project merely because the archived source identifiers match. This keeps backup/restore behaviour predictable and allows an author to retain multiple restored snapshots.
+
+The backup is an application interchange format, not a raw database dump. Future format evolution must be explicit and migration-aware.
 
 ## Requirements
 
@@ -118,9 +139,13 @@ On a device where Image Playground is unavailable, the rest of Character Profile
 
 No personal Apple Team ID is committed to the repository.
 
+GitHub Actions prepares an available iOS simulator dynamically rather than relying on a single hard-coded device name. If a hosted macOS runner has no bootable iPhone simulator, the workflow can download the default iOS runtime before running the tests.
+
 ## Data and privacy
 
-Story data, profiles, reference images, generated visuals and turnaround frames are persisted with SwiftData. Large image data uses SwiftData external binary storage. The app does not contain advertising or analytics SDKs.
+Story data, profiles, reference images, generated visuals and turnaround frames are persisted locally with SwiftData. Large image data uses SwiftData external binary storage. The app does not contain advertising or analytics SDKs.
+
+Portable project backups are created only when the author explicitly exports them. Restored files are read only when the author explicitly chooses them through the system document picker.
 
 The system Photos picker is used for user-selected reference pictures. Character Visual Studio delegates image generation to Apple's system Image Playground interface rather than shipping a private AI service key in the app.
 
@@ -146,6 +171,12 @@ CharacterGuide.swift
 ├── development-depth scoring
 ├── category balancing
 └── adaptive context rules
+
+ProjectArchive.swift
+├── formatVersion
+├── complete project snapshot
+├── JSON encode/decode + validation
+└── fresh-ID SwiftData reconstruction
 ```
 
 See `ARCHITECTURE.md` for design details.
