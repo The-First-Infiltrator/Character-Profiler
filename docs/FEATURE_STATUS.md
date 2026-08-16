@@ -20,7 +20,7 @@ Status meanings:
 | Story/project library | Implemented | Projects own a cast and store genre/premise. |
 | Built-in genres plus custom genre | Implemented | Used by the Character Guide. |
 | Migration of pre-project characters | Implemented | Earlier characters can be placed into Imported Characters. |
-| CI build and unit-test workflow | Implemented | 0.3.1 passed the full Xcode simulator build and unit-test workflow; 0.4 continues to use the same release gate. |
+| CI build and unit-test workflow | Implemented | Xcode simulator build and unit tests are the release gate. |
 
 ## Character profile
 
@@ -37,13 +37,20 @@ Status meanings:
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| General development prompts | Implemented | Foundation prompt catalogue. |
-| Genre-specific prompt sets | Implemented | Includes Fantasy, SF, Romance, Mystery/Thriller, Horror, Historical, Contemporary, Adventure/Crime and YA. |
+| Large general development catalogue | Implemented | 0.5 expands the catalogue to well over 100 stable prompts. |
+| Genre-specific prompt sets | Implemented | Fantasy, SF, Romance, Mystery/Thriller, Horror, Historical, Contemporary, Adventure/Crime and YA all have expanded coverage. |
 | Fantasy tavern/adventure/world questions | Implemented | Directly reflects the original product concept. |
 | Persisted Guide answers | Implemented | Answers are stored per character. |
+| Stable prompt identifiers | Implemented | Catalogue growth does not invalidate saved answers. |
 | Hide answered prompts from normal suggestions | Implemented | Answered prompt IDs are suppressed. |
-| Adaptive prompts from relationships/history/profile text | Implemented | Initial rule-based version. |
-| Deep semantic consistency checking | Planned | Future Guide work. |
+| Development-depth scoring | Implemented | Existing profile fields, answers, relationships, role and history contribute to category depth. |
+| Underdeveloped-area prioritisation | Implemented | Lightly developed categories receive a higher suggestion score. |
+| Category balancing | Implemented | Visible suggestions deliberately span several categories before repeating a theme. |
+| Adaptive prompts from relationships/history/profile text | Implemented | Expanded in 0.5 with family, multiple life events, role and keyword-triggered follow-ups. |
+| Adaptive combat/magic/secrecy/faith/money/relationship/revenge follow-ups | Implemented | Rule-based context can trigger more specific questions. |
+| Human-readable suggestion reason | Implemented | `GuideSuggestion` records why a prompt was selected. |
+| Explicit reason presentation in the Guide card UI | Partial | Reason metadata exists; presentation can be refined without changing stored answers. |
+| Deep semantic consistency/contradiction checking | Planned | Requires a deliberately designed reasoning layer beyond the current deterministic rule engine. |
 | Explicit promotion of Guide answer into profile field | Candidate | Must remain author-controlled if added. |
 
 ## Relationships and family
@@ -97,15 +104,16 @@ Status meanings:
 | JSON/project export and import | Candidate | Useful for backup/portability but not yet committed to a release. |
 | iCloud sync | Candidate | Requires a deliberate design and migration strategy. |
 
-## 0.4.0 completion criteria
+## 0.5.0 completion criteria
 
-0.4.0 is considered complete when:
+0.5.0 is considered complete when:
 
-1. the graphical family tree is generated only from existing relationship data;
-2. parent/child generation placement and same-generation family links behave correctly;
-3. large families can be navigated through scrolling and zoom;
-4. family cards open the existing linked character records;
-5. invalid duplicate/cyclic family links are blocked;
-6. the new relationship tests pass in Xcode CI;
-7. version/build metadata is 0.4.0 / build 5;
-8. product specification, architecture, README, changelog and roadmap reflect the implemented behaviour.
+1. the expanded catalogue retains unique stable prompt IDs;
+2. genre filtering continues to exclude prompts from unrelated genres;
+3. answered prompts remain suppressed;
+4. visible suggestions are balanced across multiple development categories;
+5. profile/history/relationship context can raise appropriate adaptive follow-ups;
+6. suggestion reasons are generated without modifying character canon;
+7. the new Guide tests pass in Xcode CI;
+8. version/build metadata is 0.5.0 / build 6;
+9. feature status, roadmap, changelog, README and architecture describe the implemented behaviour accurately.

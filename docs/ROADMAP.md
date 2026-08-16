@@ -8,69 +8,62 @@ The roadmap follows the product specification rather than adding features simply
 
 Status: complete.
 
-Goal: make the application build-clean and make the repository the source of truth for what Character Profiler is intended to become.
-
-Delivered:
-
-- fixed the UIKit renderer compile regression exposed by the first real Xcode CI run;
-- completed the GitHub Actions Xcode build and unit tests;
-- formalised `PRODUCT_SPEC.md`;
-- established `FEATURE_STATUS.md` as an implementation audit;
-- strengthened architecture documentation and product boundaries;
-- documented the development sequence in this roadmap.
+Delivered the first build-clean baseline, formal product specification, feature-status audit, architecture boundaries and development roadmap.
 
 ## 0.4 — Family tree
 
-Status: implemented on the 0.4.0 feature branch, subject to final CI validation and release integration.
+Status: complete and integrated.
 
-Goal: turn the existing relationship graph into a useful author-facing visual family tool without creating a second family database.
+Delivered:
 
-Delivered scope:
+- graphical family tree generated from existing family relationships;
+- generation placement from parent/child direction;
+- connected-family traversal across multiple generations;
+- tappable character cards;
+- distinct ancestry/partner/sibling connectors;
+- scrolling and zoom for larger families;
+- duplicate-link and ancestry-cycle validation;
+- Xcode unit coverage for graph generation and structural validation.
 
-- graphical family tree generated from existing parent/child/sibling/spouse/partner links;
-- generation placement derived from parent/child direction;
-- connected-family traversal so grandparents, grandchildren and larger family structures can appear;
-- tappable family members that open their existing character records;
-- distinct visual connector treatment for ancestry, partners and siblings;
-- two-axis scrolling for large layouts;
-- pinch zoom plus explicit zoom controls;
-- duplicate-link validation;
-- ancestry-cycle protection for parent/child links;
-- protection against recording a direct ancestor/descendant pair as siblings;
-- unit coverage for family-graph generation and structural validation.
-
-The family tree remains a projection of `CharacterRelationship` data. It does not persist a parallel tree model.
-
-A broader non-family relationship network for friends, rivals, enemies, mentors and colleagues remains future work. It should be designed separately so genealogy does not become visually unreadable.
+The family tree remains a projection of `CharacterRelationship` data rather than a second family database.
 
 ## 0.5 — Character Guide depth
 
-Status: next major development target after 0.4.0 is integrated.
+Status: implemented on the 0.5.0 feature branch, subject to final Xcode CI validation and integration.
 
-Goal: improve how well the app helps an author discover missing dimensions of a character rather than merely presenting a questionnaire.
+Goal: make the Guide behave more like an author-development assistant and less like a fixed questionnaire.
 
-Planned work:
+Delivered scope:
 
-- substantially increase prompt coverage within existing genres;
-- improve category distribution so suggestions do not over-focus on one dimension;
-- add deeper follow-ups from life events and relationship patterns;
-- connect multiple known facts when suggesting a question;
-- identify obviously underdeveloped profile areas;
-- improve explanation of why a prompt is being suggested where useful;
-- preserve stable prompt IDs so existing answers remain valid as the catalogue grows.
+- prompt catalogue expanded from the initial small set to well over 100 stable prompts;
+- deeper coverage for every existing built-in genre;
+- deterministic suggestion scoring based on genre and how developed each category already is;
+- category balancing so the visible list spans several dimensions before repeating one;
+- development-depth signals derived from profile fields, Guide answers, relationships, role and life history;
+- expanded adaptive follow-ups from trauma/loss, family, multiple life events and relationship patterns;
+- context triggers for magic, combat/war, secrecy, faith, money, family, romance and revenge;
+- human-readable reasons attached to `GuideSuggestion` results;
+- preservation of stable prompt IDs and answered-prompt suppression;
+- unit tests for catalogue uniqueness/size, genre filtering, category diversity, adaptive context and development-depth detection.
 
-The Guide remains advisory. It should not silently turn generated suggestions or prompt output into character canon.
+The Guide remains deterministic and advisory. It does not silently change character canon.
+
+True semantic contradiction checking—such as recognising that two independently written facts cannot both be true—is not claimed by 0.5 and remains future work.
 
 ## 0.6 — Author workflow and portability
 
-Goal: make a developed story bible easier to maintain and protect.
+Status: next major development target after 0.5.0 is integrated.
 
-Likely work to evaluate:
+Goal: make a developed story bible easier to maintain, protect and move.
+
+Planned work to design and implement:
 
 - project-level backup/export and restore/import;
+- a versioned portable project format rather than an undocumented database dump;
 - safer deletion flows for heavily linked characters;
 - project summaries and cast overview improvements;
-- migration tests as the SwiftData model evolves.
+- migration tests as the SwiftData model evolves;
+- clear handling of visual assets during backup and restore.
 
 Export/import format and sync behaviour should be designed before implementation so story data is not trapped in a brittle format.
 
@@ -98,6 +91,7 @@ Release criteria are defined in `PRODUCT_SPEC.md` and include build/test stabili
 
 The following ideas may be useful but require an explicit product decision before they enter a numbered release:
 
+- semantic contradiction/consistency analysis across character facts;
 - broader non-family relationship network;
 - iCloud synchronisation;
 - provider abstraction for additional visual AI services;

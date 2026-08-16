@@ -17,6 +17,7 @@ The application deliberately stops at the character boundary. It is not a scene 
 - Flexible profile data is preferred over continually expanding a rigid database schema.
 - Relationships link real character records and have meaningful inverse views.
 - Visual family/network presentations are derived projections of relationship edges, never a second relationship database.
+- Character Guide selection remains deterministic and explainable unless a future product decision deliberately introduces another reasoning layer.
 - Visual generation is optional and availability-gated.
 - Provider-specific AI code must not become the owner of core character data.
 - Existing story data must survive model evolution through compatible defaults or explicit migrations.
@@ -71,7 +72,7 @@ Important invariants:
 
 ### Family graph projection
 
-Version 0.4 introduces `FamilyGraphSnapshot`, an in-memory projection rooted on the currently selected character. It walks only family relationship kinds and assigns a generation offset relative to the root:
+Version 0.4 introduced `FamilyGraphSnapshot`, an in-memory projection rooted on the currently selected character. It walks only family relationship kinds and assigns a generation offset relative to the root:
 
 - parent = -1 generation;
 - child = +1 generation;
@@ -91,13 +92,68 @@ The family view supports two-axis scrolling and zoom. The selected root is visua
 
 History is character data, not AI-generated narrative. The Guide can react to it but does not rewrite it.
 
-### Character Guide
+## Character Guide
 
-Prompt definitions are application content. `PromptResponse` stores the author's answers.
+Version 0.5 moves Guide logic into `CharacterGuide.swift`. Prompt definitions remain application content, while `PromptResponse` stores the author's accepted answers.
 
-The local engine mixes universal prompts, genre-specific prompts and adaptive follow-ups triggered by existing profile text, life events and relationships.
+The Guide has two public selection layers:
 
-Answered prompt IDs are normally suppressed from the unanswered suggestion queue. Prompt selection can be refined without migrating stored answers as long as stable prompt identifiers are preserved.
+- `PromptEngine.suggestions(...)` preserves the original simple `[CharacterPrompt]` API for compatibility;
+- `PromptEngine.detailedSuggestions(...)` returns richer `GuideSuggestion` values containing the prompt, a human-readable reason and an internal relevance score.
+
+### Prompt catalogue
+
+The catalogue contains universal prompts plus expanded built-in genre sets. Prompt IDs are stable storage keys. Changing wording or ranking must not casually rename an existing ID because saved `PromptResponse` records use that identifier to suppress already answered questions.
+
+### Development depth
+
+`developmentDepths(for:)` builds a lightweight score for each `PromptCategory`. Signals include:
+
+- answered Guide prompts;
+- common profile sections and field labels;
+- nickname, age and pronouns for identity;
+- story role;
+- summary content;
+- linked relationships;
+- life events, including extra weight for trauma/loss.
+
+The score is deliberately heuristic rather than pretending to be semantic understanding. Its job is to notice obviously sparse areas and give them more opportunity to appear.
+
+### Candidate scoring and balance
+
+For every applicable catalogue prompt, the engine combines genre relevance with the current depth of that category. Genre-specific prompts receive a relevance advantage, while categories with little recorded detail receive an underdevelopment bonus.
+
+Adaptive suggestions use higher explicit scores when an existing fact creates a strong follow-up opportunity.
+
+After duplicate IDs and answered prompts are removed, `balancedSelection` first aims for category diversity and then fills remaining slots by score with a soft cap on repeated categories. This prevents a character with one strong theme—such as trauma or relationships—from receiving a whole screen of nearly identical questions.
+
+### Adaptive context rules
+
+The deterministic adaptive layer can react to:
+
+- trauma or loss;
+- existing relationships and family links;
+- multiple life events;
+- recorded story role;
+- fantasy magic terminology;
+- taverns/drinking-place behaviour;
+- war, battle, soldiers, combat or mercenary history;
+- secrecy/deception;
+- faith/religion;
+- money/wealth/poverty/debt;
+- family terminology;
+- romance/partnership language;
+- revenge/vengeance.
+
+The searchable corpus is assembled from summary, role, visual description, profile fields, saved Guide answers, life-event text and relationship notes. These rules generate questions only; they do not alter the character record.
+
+### Explanation and limits
+
+Each rich suggestion carries a reason such as genre relevance, an underdeveloped category or a specific recorded context trigger. This keeps the selection process inspectable.
+
+Version 0.5 does **not** claim deep semantic contradiction detection. Recognising that two arbitrary prose facts cannot both be true would require a separately designed reasoning layer and remains future work.
+
+Answered prompt IDs remain suppressed from the unanswered suggestion queue. Prompt selection can evolve without a SwiftData migration as long as stable prompt identifiers are preserved.
 
 ## Character Visual Studio
 
@@ -133,6 +189,7 @@ ProjectListView
     └── CharacterDetailView
         ├── Profile
         ├── Guide
+        │   └── PromptEngine / GuideSuggestion
         ├── People
         │   ├── Family / other relationship rows
         │   ├── AddRelationshipView
@@ -157,7 +214,9 @@ CI builds and tests the iOS simulator target using Xcode on GitHub Actions. A gr
 
 ## Migration strategy
 
-Version 0.4 adds no persistent model entities or fields for the family tree. Existing relationship data is projected at runtime, so no SwiftData migration is required for the graphical family feature itself.
+Version 0.4 added no persistent model entities or fields for the family tree. Existing relationship data is projected at runtime.
+
+Version 0.5 also adds no new persistent model fields for Guide scoring. It derives depth and adaptive context from existing character data and preserves `PromptResponse` storage, so the Guide upgrade itself requires no SwiftData migration.
 
 New optional features should prefer optional fields, empty defaults or explicit migration steps that preserve prior story data.
 
