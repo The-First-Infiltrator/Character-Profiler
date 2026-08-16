@@ -20,6 +20,8 @@
 		A1000000000000000000000B /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* XCTest.framework */; };
 		A20000000000000000000001 /* CharacterGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* CharacterGuide.swift */; };
 		A30000000000000000000001 /* ProjectArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000001 /* ProjectArchive.swift */; };
+		A40000000000000000000001 /* CharacterVisualWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000001 /* CharacterVisualWorkspaceView.swift */; };
+		A40000000000000000000002 /* VisualStudioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000002 /* VisualStudioTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +50,8 @@
 		B1000000000000000000000D /* CharacterProfilerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CharacterProfilerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000001 /* CharacterGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterGuide.swift; sourceTree = "<group>"; };
 		B30000000000000000000001 /* ProjectArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArchive.swift; sourceTree = "<group>"; };
+		B40000000000000000000001 /* CharacterVisualWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterVisualWorkspaceView.swift; sourceTree = "<group>"; };
+		B40000000000000000000002 /* VisualStudioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualStudioTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +119,7 @@
 				B10000000000000000000007 /* CharacterListView.swift */,
 				B10000000000000000000008 /* CharacterDetailView.swift */,
 				B10000000000000000000009 /* CharacterEditorView.swift */,
+				B40000000000000000000001 /* CharacterVisualWorkspaceView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -133,6 +138,7 @@
 			isa = PBXGroup;
 			children = (
 				B1000000000000000000000A /* CharacterProfileTests.swift */,
+				B40000000000000000000002 /* VisualStudioTests.swift */,
 			);
 			path = CharacterProfilerTests;
 			sourceTree = "<group>";
@@ -263,6 +269,7 @@
 				A10000000000000000000007 /* CharacterListView.swift in Sources */,
 				A10000000000000000000008 /* CharacterDetailView.swift in Sources */,
 				A10000000000000000000009 /* CharacterEditorView.swift in Sources */,
+				A40000000000000000000001 /* CharacterVisualWorkspaceView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -271,6 +278,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000000000000000000000A /* CharacterProfileTests.swift in Sources */,
+				A40000000000000000000002 /* VisualStudioTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -325,14 +333,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Character Profiler";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.firstinfiltrator.CharacterProfiler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -347,14 +355,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Character Profiler";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.firstinfiltrator.CharacterProfiler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
