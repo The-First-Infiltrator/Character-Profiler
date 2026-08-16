@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [0.6.0] - 2026-08-16
+
+### Added
+
+- Versioned Character Profiler project archive format, beginning with format version 1.
+- Story-level **Export Backup** through the system document exporter.
+- Story Library **Restore Backup** through the system document importer.
+- Full backup coverage for story metadata, characters, flexible profile sections and fields, life events, Guide answers, relationships, profile/reference/generated images and turnaround frames.
+- Archive validation for unsupported versions, duplicate identifiers, missing relationship endpoints and structurally invalid self-relationships.
+- Project overview metrics for cast size, relationships, life events, Guide answers and average development.
+- Round-trip tests that encode a developed story, decode it, restore it twice and verify profile, history, Guide, visual and relationship data.
+
+### Data safety
+
+- Restores create fresh SwiftData model identifiers; archived IDs are used only as internal reconstruction keys, so restoring the same backup more than once does not collide with existing local data.
+- Relationship edges are reconstructed only after every archived character has been restored.
+- Story and character swipe deletion now stages a destructive confirmation with counts describing linked data that will be removed.
+- Story deletion explicitly reminds the author to export a backup first when the work may be needed again.
+- Failed archive restores remove the partially created project rather than intentionally leaving an incomplete restored story.
+
+### Changed
+
+- Story detail now includes an at-a-glance project-development overview.
+- App version is now 0.6.0 build 8.
+- GitHub Actions no longer assumes a hard-coded `iPhone 16` simulator exists. CI initialises CoreSimulator, selects an available iPhone simulator by identifier, and can download the default iOS runtime when a hosted runner has no bootable iPhone simulator.
+
+### Scope
+
+- The portable archive is an application-owned, explicitly versioned interchange format rather than a raw SwiftData/database copy.
+- Version 0.6 adds no new SwiftData entities or persistent fields and does not introduce cloud synchronisation.
+
 ## [0.5.1] - 2026-08-16
 
 ### Changed
