@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [0.7.0] - 2026-08-16
+
+### Added
+
+- Dedicated `CharacterVisualWorkspaceView.swift` for the Visual Studio workflow instead of embedding the implementation in `CharacterDetailView`.
+- `VisualWorkspaceSnapshot` derived state for canonical-image presence, reference count, unique available angles, missing angles, duplicate stored angles and turnaround completion.
+- Runtime Image Playground support detection using the system availability environment value.
+- Reference-image editor with labels, deterministic ordering and explicit deletion.
+- Canonical visual replacement choices that make stale-turnaround risk explicit.
+- Eight fixed turnaround slots with completion progress and named missing-angle reporting.
+- Arrow and drag navigation through all eight positions, including positions that have not yet been generated.
+- Generate-next-missing, per-angle regeneration/deletion and whole-turnaround reset controls.
+- Duplicate stored-angle detection in the Visual Studio UI.
+- Unit tests for visual-state completeness, duplicate-angle handling, eight-angle wraparound navigation and reference ordering.
+
+### Reliability and consistency
+
+- Turnaround generation uses the accepted canonical image as the identity source rather than falling back to unrelated source references.
+- Replacing a canonical image can reset existing turnaround frames only after a replacement is successfully accepted, so cancelling generation does not destroy the current turnaround.
+- Resetting the turnaround preserves the canonical image, reference pictures and written appearance notes.
+- Clearing the visual set preserves author reference pictures and appearance notes.
+- Existing visual assets remain viewable/manageable when image generation is unavailable.
+- Reference import and visual-save failures are surfaced rather than silently ignored.
+- App version is now 0.7.0 build 9.
+
+### Validation boundary
+
+- Simulator CI validates the SwiftUI/Image Playground SDK integration and deterministic Visual Studio state logic.
+- Actual generated-image quality and character-identity consistency across canonical and turnaround views still require validation on a supported physical device.
+- Version 0.7 adds no new SwiftData entity or persistent field; the existing archive v1 visual payload remains structurally sufficient.
+
 ## [0.6.0] - 2026-08-16
 
 ### Added
