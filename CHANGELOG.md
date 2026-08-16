@@ -2,6 +2,32 @@
 
 # Changelog
 
+## [0.4.0] - 2026-08-16
+
+### Added
+
+- Graphical family tree launched from a character's People workspace.
+- Root-centred generation layout derived from existing parent/child relationship direction.
+- Siblings, spouses and partners placed on the same generation as appropriate.
+- Scrollable family canvas for larger connected families.
+- Pinch zoom plus explicit zoom-out, reset and zoom-in controls.
+- Tappable family-tree character cards that navigate directly to the linked character record.
+- Distinct connector treatment for ancestry, partners and siblings without duplicating relationship data for the diagram.
+- Family graph traversal across connected relatives rather than only direct relationships.
+- Duplicate relationship validation when adding a relationship.
+- Ancestry-cycle protection for parent/child links and ancestor/descendant sibling contradictions.
+- Unit tests covering multi-generation placement, duplicate detection and ancestry-loop rejection.
+
+### Changed
+
+- Relationship rows now open the related character while retaining direct delete control.
+- Adding a relationship shows an explanatory validation message when the proposed link would be structurally invalid.
+
+### Scope
+
+- The family tree is generated entirely from `CharacterRelationship` records; it does not create a second family-tree database.
+- Version 0.4.0 focuses on family relationships. A broader friends/rivals/mentors relationship-network view remains future work.
+
 ## [0.3.1] - 2026-08-16
 
 ### Fixed
