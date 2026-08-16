@@ -4,11 +4,22 @@
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, structured relationships, life history, genre-aware development questions and a focused visual studio for establishing what a character looks like.
 
-## Version 0.3.0
+## Version 0.3.1
 
-Version 0.3.0 adds **Character Visual Studio** without turning the app into a scene generator or animation package.
+Version 0.3.1 is a stabilisation and definition release. It fixes the first Xcode CI compile regression found after publishing 0.3.0 and formalises the product specification, feature-status audit and development roadmap.
 
-### Character Visual Studio
+The feature set remains the focused 0.3 Character Visual Studio and author story-bible workflow; 0.3.1 deliberately does not add unrelated scope.
+
+### Product documentation
+
+- `docs/PRODUCT_SPEC.md` — source of truth for what Character Profiler is intended to do.
+- `docs/FEATURE_STATUS.md` — implemented vs partial vs planned capability audit.
+- `docs/ROADMAP.md` — development order from stabilisation through the first stable author release.
+- `ARCHITECTURE.md` — persistent model, invariants and subsystem boundaries.
+
+## Character Visual Studio
+
+Version 0.3 introduced **Character Visual Studio** without turning the app into a scene generator or animation package.
 
 The Visual workspace is the fifth area of a character record alongside Profile, Guide, People and History.
 
@@ -29,7 +40,7 @@ It provides:
 
 Character Visual Studio uses Apple's **Image Playground** framework on supported devices. The system-provided generation interface receives the character description plus the selected visual references and returns the image chosen by the author.
 
-This keeps version 0.3.0 focused and avoids embedding a third-party API secret in the iPhone application. Character Profiler does not contain an OpenAI API key or other private service credential.
+This keeps the visual feature focused and avoids embedding a third-party API secret in the iPhone application. Character Profiler does not contain an OpenAI API key or other private service credential.
 
 On a device where Image Playground is unavailable, the rest of Character Profiler continues to work and the Visual workspace explains that AI generation is unavailable.
 
@@ -58,6 +69,8 @@ Fantasy prompts include the sort of everyday world-building choices that reveal 
 ### Relationships and family
 
 Relationships link real character records rather than storing names as plain text. Parent/child and mentor/student links automatically read correctly from the opposite character's perspective, while the family summary shows parents, siblings, partners and children.
+
+A graphical family/relationship view is the next major feature after 0.3.1 stabilisation.
 
 ### Life history
 
