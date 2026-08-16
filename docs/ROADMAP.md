@@ -31,72 +31,81 @@ The family tree remains a projection of `CharacterRelationship` data rather than
 
 Status: complete and integrated through 0.5.1.
 
-Goal: make the Guide behave more like an author-development assistant and less like a fixed questionnaire.
-
 Delivered:
 
-- prompt catalogue expanded from the initial small set to well over 100 stable prompts;
-- deeper coverage for every existing built-in genre;
-- deterministic suggestion scoring based on genre and how developed each category already is;
-- category balancing so the visible list spans several dimensions before repeating one;
-- development-depth signals derived from profile fields, Guide answers, relationships, role and life history;
-- expanded adaptive follow-ups from trauma/loss, family, multiple life events and relationship patterns;
-- context triggers for magic, combat/war, secrecy, faith, money, family, romance and revenge;
-- human-readable reasons attached to `GuideSuggestion` results;
-- 0.5.1 presentation of those reasons directly on Guide cards and inside the answer sheet;
+- prompt catalogue expanded to well over 100 stable prompts;
+- deeper coverage for every built-in genre;
+- deterministic suggestion scoring based on genre and existing character development;
+- category balancing;
+- development-depth signals from profile fields, Guide answers, relationships, role and history;
+- adaptive follow-ups from trauma/loss, family, multiple life events and contextual text;
+- human-readable suggestion reasons;
+- 0.5.1 presentation of those reasons in Guide cards and the answer sheet;
 - preservation of stable prompt IDs and answered-prompt suppression;
 - unit tests for catalogue uniqueness/size, genre filtering, category diversity, adaptive context and development-depth detection.
 
-The Guide remains deterministic and advisory. It does not silently change character canon. Suggestion explanations are presentation metadata rather than character facts.
-
-True semantic contradiction checking—such as recognising that two independently written facts cannot both be true—is not claimed by 0.5 and remains future work.
+The Guide remains deterministic and advisory. True semantic contradiction checking is a separate future feature candidate.
 
 ## 0.6 — Author workflow and portability
 
-Status: implemented on the 0.6.0 feature branch, subject to exact final-head CI validation and integration.
+Status: complete and integrated.
 
-Goal: make a developed story bible easier to maintain, protect and move.
+Delivered:
 
-Delivered scope:
-
-- application-owned project archive format with explicit format version 1;
+- Character Profiler archive format v1;
 - system document export for complete story backups;
-- system document import for restoring a backup into the Story Library;
-- archive coverage for project metadata, characters, flexible fields, Guide answers, life events, relationships and every current visual asset;
-- fresh SwiftData object identifiers on restore, with archived IDs used only as temporary graph reconstruction keys;
-- ability to restore the same backup multiple times without unique-ID collisions;
-- archive validation for unsupported versions and malformed relationship references;
-- relationship reconstruction after every character has been created;
-- failed-restore cleanup rather than intentionally leaving a partial project;
-- round-trip tests that include profile, history, Guide, relationship and binary visual data;
-- safer destructive confirmations for story and character deletion with affected-data counts;
-- project overview metrics for cast, relationships, history, Guide progress and average character development;
-- CI simulator discovery/provisioning so hosted-runner variability does not create a false app failure merely because a particular simulator name is absent.
+- Story Library restore/import;
+- archive coverage for project metadata, characters, flexible fields, Guide answers, life events, relationships and all current visual assets;
+- fresh local SwiftData identifiers on restore;
+- ability to restore the same backup multiple times without identifier collisions;
+- archive validation and safe failed-restore cleanup;
+- relationship reconstruction after all restored characters exist;
+- whole-project round-trip tests;
+- safer story and character deletion confirmations with affected-data counts;
+- project overview metrics;
+- resilient CI simulator discovery/provisioning.
 
-The archive is deliberately not a raw SwiftData/database dump. Future archive-format changes must increment or explicitly migrate the format rather than depending on accidental decoder compatibility.
+The archive is an application-owned interchange format, not a raw SwiftData/database dump.
 
 ## 0.7 — Visual Studio hardening
 
-Status: next major development target after 0.6.0 is integrated, with some validation dependent on access to a supported physical iPhone.
+Status: simulator-testable scope implemented and Xcode-green on the 0.7.0 feature branch; physical-device output-quality validation remains outstanding.
 
-Goal: improve reliability and consistency of the existing focused visual workflow without expanding its scope.
+Goal: improve reliability and consistency of the focused character-appearance workflow without expanding its product scope.
 
-Work to evaluate:
+Delivered in 0.7.0:
 
-- real-device Image Playground testing;
-- clearer handling when Apple Intelligence/Image Playground is unavailable;
-- reference-image management improvements;
-- stronger consistency between canonical image and turnaround angles;
-- better detection and replacement of missing angle frames;
-- clearer visual-workspace state when only some turnaround views exist.
+- dedicated Visual Studio view implementation separated from the general character-detail screen;
+- runtime Image Playground availability handling using the system support environment value;
+- labelled/reorderable/deletable reference-image management;
+- explicit canonical-image replacement and clearing lifecycle;
+- canonical replacement can reset stale turnaround frames only after a replacement is successfully accepted;
+- canonical visual enforced as the source identity image for turnaround generation;
+- fixed eight-slot turnaround navigation instead of silently skipping missing positions;
+- completion progress and named missing-angle reporting;
+- next-missing generation action;
+- independent regeneration/deletion of angle frames;
+- whole-turnaround reset that preserves canonical/reference source material;
+- duplicate-angle detection;
+- surfaced image-import/save errors;
+- deterministic Xcode tests for visual completeness, duplicate detection, angle wraparound and reference ordering;
+- app version 0.7.0 build 9.
 
-This phase does not add scenes, animation or filmmaking.
+Still requiring a supported physical device:
+
+- real Image Playground generation testing;
+- judgement of whether canonical identity, proportions, clothing and equipment remain acceptably consistent across generated angles;
+- confirmation of device-specific Image Playground availability/user-flow behaviour that simulator CI cannot reproduce.
+
+This phase does not add scenes, animation, posing, filmmaking or a true 3D mesh.
 
 ## 0.8 — Remaining author-release hardening
 
-Status: planned after the parts of 0.7 that can be validated without a physical device.
+Status: **next major development target**.
 
-Likely work:
+Goal: remove the remaining everyday author-workflow rough edges before the 1.0 stability pass.
+
+Planned work:
 
 - richer chronological history presentation;
 - editing existing life events rather than delete/recreate only;
@@ -104,9 +113,10 @@ Likely work:
 - broader migration regression coverage as the SwiftData model evolves;
 - large-cast usability and accessibility passes;
 - final destructive-flow and empty-state review;
-- release-quality error handling and copy consistency.
+- release-quality error handling and copy consistency;
+- review of any non-device-dependent issues discovered while auditing Visual Studio 0.7.
 
-This phase may be adjusted after real-device testing exposes concrete usability issues.
+Physical-device findings from 0.7 may add targeted visual fixes here without expanding Visual Studio beyond character appearance/inspection.
 
 ## 1.0 — First stable author release
 

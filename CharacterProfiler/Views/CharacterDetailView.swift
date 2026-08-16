@@ -2,11 +2,6 @@
 
 import SwiftUI
 import SwiftData
-import PhotosUI
-import UIKit
-#if canImport(ImagePlayground)
-import ImagePlayground
-#endif
 
 private enum CharacterDetailSection: String, CaseIterable, Identifiable {
     case profile, guide, people, history, visual
@@ -37,7 +32,7 @@ struct CharacterDetailView: View {
                     else { Text("Assign this character to a story before linking people.").foregroundStyle(.secondary) }
                 case .history: CharacterTimelinePanel(character: character)
                 case .visual:
-                    if #available(iOS 18.1, *) { CharacterVisualPanel(character: character) }
+                    if #available(iOS 18.1, *) { CharacterVisualWorkspaceView(character: character) }
                     else { VisualFeatureUnavailableView() }
                 }
             }.padding()
@@ -652,177 +647,5 @@ private struct AddLifeEventView: View {
 struct VisualFeatureUnavailableView: View {
     var body: some View {
         ContentUnavailableView("Visual AI Requires a Newer System", systemImage: "sparkles", description: Text("Character profiles, relationships, history and the Character Guide remain fully available. Visual AI uses Apple's Image Playground on supported devices."))
-    }
-}
-
-@available(iOS 18.1, *)
-private struct CharacterVisualPanel: View {
-    @Environment(\.modelContext) private var modelContext
-    let character: CharacterProfile
-    @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var showingGenerator = false
-    @State private var generationAngle: VisualAngle?
-    @State private var viewerIndex = 0
-
-    private var sourceImage: Image? {
-        if let angle = generationAngle, character.generatedVisualData != nil, let data = character.generatedVisualData, let image = UIImage(data: data) {
-            _ = angle
-            return Image(uiImage: image)
-        }
-        if let board = referenceBoardImage() { return Image(uiImage: board) }
-        if let data = character.profileImageData, let image = UIImage(data: data) { return Image(uiImage: image) }
-        return nil
-    }
-
-    private var concept: String {
-        if let angle = generationAngle { return baseDescription + " " + angle.generationInstruction }
-        return baseDescription + " Create a single consistent full-body character reference on a plain unobtrusive background. Do not create a scene."
-    }
-
-    private var baseDescription: String {
-        var parts = ["Character named \(character.name)."]
-        if let project = character.project { parts.append("Genre: \(project.genreDisplayName).") }
-        if !character.storyRole.isEmpty { parts.append("Story role: \(character.storyRole).") }
-        if !character.summary.isEmpty { parts.append(character.summary) }
-        if !character.visualDescription.isEmpty { parts.append("Appearance instructions: \(character.visualDescription)") }
-        let fields = character.sections.flatMap { section in section.fields.compactMap { field in
-            let value = field.value.trimmingCharacters(in: .whitespacesAndNewlines)
-            return value.isEmpty ? nil : "\(field.label): \(value)"
-        }}
-        if !fields.isEmpty { parts.append("Known appearance/profile facts: " + fields.joined(separator: "; ")) }
-        return parts.joined(separator: " ")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Label("Character Visual Studio", systemImage: "person.crop.rectangle.stack").font(.title3.bold())
-            Text("Use reference pictures and the written profile to establish one canonical look, then optionally build eight views for a simple 360° turn-around.").foregroundStyle(.secondary)
-
-            GroupBox("Reference Pictures") {
-                VStack(alignment: .leading, spacing: 10) {
-                    if character.referenceImages.isEmpty { Text("Add face, full-body, clothing, hair or other visual references.").font(.subheadline).foregroundStyle(.secondary) }
-                    ScrollView(.horizontal) {
-                        HStack {
-                            ForEach(character.sortedReferenceImages) { ref in
-                                if let image = UIImage(data: ref.imageData) {
-                                    ZStack(alignment: .topTrailing) {
-                                        Image(uiImage: image).resizable().scaledToFill().frame(width: 105, height: 130).clipShape(RoundedRectangle(cornerRadius: 10))
-                                        Button(role: .destructive) { modelContext.delete(ref); try? modelContext.save() } label: { Image(systemName: "xmark.circle.fill").symbolRenderingMode(.palette).foregroundStyle(.white, .black.opacity(0.55)) }.padding(4)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if character.referenceImages.count < 6 {
-                        PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 6 - character.referenceImages.count, matching: .images) { Label("Add References", systemImage: "photo.on.rectangle.angled") }
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            GroupBox("Appearance Notes") {
-                TextField("Details the pictures do not show—height, build, scars, clothing, equipment, colours…", text: Binding(get: { character.visualDescription }, set: { character.visualDescription = $0; character.updatedAt = .now }), axis: .vertical)
-                    .lineLimit(4...10).onSubmit { try? modelContext.save() }
-            }
-
-            GroupBox("AI Character") {
-                VStack(alignment: .leading, spacing: 12) {
-                    if let data = character.generatedVisualData, let image = UIImage(data: data) {
-                        Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 420).clipShape(RoundedRectangle(cornerRadius: 14))
-                        HStack {
-                            Button("Regenerate", systemImage: "sparkles") { generationAngle = nil; showingGenerator = true }
-                            Button("Use as Portrait", systemImage: "person.crop.circle") { character.profileImageData = data; try? modelContext.save() }
-                        }
-                    } else {
-                        ContentUnavailableView("No Canonical Visual Yet", systemImage: "person.crop.rectangle.badge.plus", description: Text("Generate one from the profile and your reference pictures."))
-                        Button("Create Character Visual", systemImage: "sparkles") { generationAngle = nil; showingGenerator = true }.buttonStyle(.borderedProminent)
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            GroupBox("360° Turn-Around") {
-                VStack(alignment: .leading, spacing: 12) {
-                    if let frame = currentFrame, let image = UIImage(data: frame.imageData) {
-                        Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 420).frame(maxWidth: .infinity)
-                            .contentShape(Rectangle())
-                            .gesture(DragGesture(minimumDistance: 12).onEnded { value in rotate(by: value.translation.width) })
-                        Text("\(frame.angle.displayName) • \(frame.angle.degrees)° — drag left or right to rotate").font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .center)
-                    } else {
-                        Text("Generate angle views after creating the canonical character. Each frame remains editable and can be regenerated independently.").foregroundStyle(.secondary)
-                    }
-                    ScrollView(.horizontal) {
-                        HStack {
-                            ForEach(VisualAngle.allCases) { angle in
-                                let existing = character.visualFrames.first { $0.angle == angle }
-                                Button {
-                                    if let existing, let index = character.sortedVisualFrames.firstIndex(where: { $0.id == existing.id }) { viewerIndex = index }
-                                    else if character.generatedVisualData != nil { generationAngle = angle; showingGenerator = true }
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        if let existing, let image = UIImage(data: existing.imageData) { Image(uiImage: image).resizable().scaledToFill().frame(width: 72, height: 88).clipShape(RoundedRectangle(cornerRadius: 8)) }
-                                        else { RoundedRectangle(cornerRadius: 8).fill(.quaternary).frame(width: 72, height: 88).overlay(Image(systemName: "plus")) }
-                                        Text("\(angle.degrees)°").font(.caption2)
-                                    }
-                                }.buttonStyle(.plain)
-                            }
-                        }
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .onChange(of: selectedPhotos) { _, items in importReferences(items) }
-        .imagePlaygroundSheet(isPresented: $showingGenerator, concept: concept, sourceImage: sourceImage) { url in
-            guard let data = try? Data(contentsOf: url), let normalised = CharacterImageProcessor.normalisedJPEGData(from: data, maxDimension: 1600) else { return }
-            if let angle = generationAngle {
-                if let existing = character.visualFrames.first(where: { $0.angle == angle }) { existing.imageData = normalised; existing.generatedAt = .now }
-                else { let frame = CharacterVisualFrame(angle: angle, imageData: normalised, character: character); modelContext.insert(frame); character.visualFrames.append(frame) }
-            } else { character.generatedVisualData = normalised }
-            character.updatedAt = .now; try? modelContext.save(); generationAngle = nil
-        }
-    }
-
-    private var currentFrame: CharacterVisualFrame? {
-        let frames = character.sortedVisualFrames
-        guard !frames.isEmpty else { return nil }
-        return frames[min(viewerIndex, frames.count - 1)]
-    }
-
-    private func rotate(by translation: CGFloat) {
-        let frames = character.sortedVisualFrames
-        guard frames.count > 1 else { return }
-        let step = translation < 0 ? 1 : -1
-        viewerIndex = (viewerIndex + step + frames.count) % frames.count
-    }
-
-    private func importReferences(_ items: [PhotosPickerItem]) {
-        Task {
-            for item in items.prefix(max(0, 6 - character.referenceImages.count)) {
-                if let data = try? await item.loadTransferable(type: Data.self), let normalised = CharacterImageProcessor.normalisedJPEGData(from: data) {
-                    await MainActor.run {
-                        let ref = CharacterReferenceImage(label: "Reference \(character.referenceImages.count + 1)", sortOrder: character.referenceImages.count, imageData: normalised, character: character)
-                        modelContext.insert(ref); character.referenceImages.append(ref)
-                    }
-                }
-            }
-            await MainActor.run { selectedPhotos = []; character.updatedAt = .now; try? modelContext.save() }
-        }
-    }
-
-    private func referenceBoardImage() -> UIImage? {
-        let images = character.sortedReferenceImages.compactMap { UIImage(data: $0.imageData) }
-        guard !images.isEmpty else { return nil }
-        let canvas = CGSize(width: 1200, height: 1200)
-        let cols = images.count == 1 ? 1 : 2
-        let rows = Int(ceil(Double(images.count) / Double(cols)))
-        let cell = CGSize(width: canvas.width / CGFloat(cols), height: canvas.height / CGFloat(rows))
-        return UIGraphicsImageRenderer(size: canvas).image { context in
-            UIColor.systemBackground.setFill(); context.fill(CGRect(origin: .zero, size: canvas))
-            for (index, image) in images.enumerated() {
-                let col = index % cols, row = index / cols
-                let rect = CGRect(x: CGFloat(col) * cell.width, y: CGFloat(row) * cell.height, width: cell.width, height: cell.height)
-                let scale = min(rect.width / image.size.width, rect.height / image.size.height)
-                let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-                image.draw(in: CGRect(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2, width: size.width, height: size.height))
-            }
-        }
     }
 }
