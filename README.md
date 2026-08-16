@@ -4,17 +4,19 @@
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, structured relationships, life history, genre-aware development questions and a focused visual studio for establishing what a character looks like.
 
-## Version 0.3.1
+## Version 0.4.0
 
-Version 0.3.1 is a stabilisation and definition release. It fixes the first Xcode CI compile regression found after publishing 0.3.0 and formalises the product specification, feature-status audit and development roadmap.
+Version 0.4.0 turns the existing relationship data into an author-facing graphical family tree.
 
-The feature set remains the focused 0.3 Character Visual Studio and author story-bible workflow; 0.3.1 deliberately does not add unrelated scope.
+The People workspace now opens a root-centred family map generated from the same `CharacterRelationship` records already used elsewhere in the app. Parents and earlier generations appear above the selected character, children and later generations below, while siblings, spouses and partners share the appropriate generation. Family members remain tappable character records rather than duplicate diagram-only objects.
+
+The tree supports scrolling, pinch zoom and explicit zoom controls for larger families. Version 0.4.0 also adds validation against duplicate family links and ancestry cycles when relationships are created.
 
 ### Product documentation
 
 - `docs/PRODUCT_SPEC.md` — source of truth for what Character Profiler is intended to do.
 - `docs/FEATURE_STATUS.md` — implemented vs partial vs planned capability audit.
-- `docs/ROADMAP.md` — development order from stabilisation through the first stable author release.
+- `docs/ROADMAP.md` — development order through the first stable author release.
 - `ARCHITECTURE.md` — persistent model, invariants and subsystem boundaries.
 
 ## Character Visual Studio
@@ -68,9 +70,18 @@ Fantasy prompts include the sort of everyday world-building choices that reveal 
 
 ### Relationships and family
 
-Relationships link real character records rather than storing names as plain text. Parent/child and mentor/student links automatically read correctly from the opposite character's perspective, while the family summary shows parents, siblings, partners and children.
+Relationships link real character records rather than storing names as plain text. Parent/child and mentor/student links automatically read correctly from the opposite character's perspective.
 
-A graphical family/relationship view is the next major feature after 0.3.1 stabilisation.
+Version 0.4.0 adds a graphical family tree that:
+
+- walks the connected family graph rather than showing only direct relatives;
+- derives generations from parent/child direction;
+- keeps siblings, spouses and partners on the corresponding generation;
+- draws relationship connectors behind normal tappable character cards;
+- supports scrolling and zoom for larger families;
+- prevents duplicate family links and ancestry loops while adding relationships.
+
+A broader visual network for friends, rivals, mentors, colleagues and enemies remains future work rather than being mixed into the family tree.
 
 ### Life history
 
@@ -110,6 +121,7 @@ StoryProject
     ├── LifeEvent[]
     ├── PromptResponse[]
     ├── CharacterRelationship[] -> CharacterProfile
+    │   └── derived FamilyGraphSnapshot / FamilyTreeView
     ├── CharacterReferenceImage[]
     ├── generatedVisualData
     └── CharacterVisualFrame[]
