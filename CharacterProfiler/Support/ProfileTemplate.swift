@@ -179,9 +179,3 @@ enum CharacterImageProcessor {
         #endif
     }
 }
-
-#if canImport(UIKit)
-extension UIGraphicsImageRendererContext {
-    func fill(_ rect: CGRect) { cgContext.fill(rect) }
-}
-#endif
