@@ -53,7 +53,7 @@ struct ProjectEditorView: View {
     private func saveProject() {
         _ = draft.save(to: project, in: modelContext)
         do {
-            try modelContext.save()
+            try modelContext.saveOrRollback()
             dismiss()
         } catch {
             saveErrorMessage = error.localizedDescription
@@ -81,8 +81,15 @@ struct CharacterEditorView: View {
             Section("Character") {
                 HStack(spacing: 16) {
                     portraitPreview
-                    PhotosPicker(selection: $photoItem, matching: .images) {
-                        Label("Choose Portrait", systemImage: "photo")
+                    VStack(alignment: .leading, spacing: 8) {
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Label("Choose Portrait", systemImage: "photo")
+                        }
+                        if draft.profileImageData != nil {
+                            Button("Remove Portrait", systemImage: "trash", role: .destructive) {
+                                draft.profileImageData = nil
+                            }
+                        }
                     }
                 }
                 TextField("Name", text: $draft.name)
@@ -111,6 +118,13 @@ struct CharacterEditorView: View {
             .onDelete { draft.sections.remove(atOffsets: $0) }
 
             Section { Button("Add Section") { draft.addSection() } }
+
+            if let validationMessage = draft.validationMessage {
+                Section("Cannot Save") {
+                    Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
+            }
         }
         .navigationTitle(character == nil ? "New Character" : "Edit Character")
         .navigationBarTitleDisplayMode(.inline)
@@ -135,9 +149,14 @@ struct CharacterEditorView: View {
     }
 
     private func saveCharacter() {
+        guard draft.validationMessage == nil else {
+            errorMessage = draft.validationMessage
+            return
+        }
+
         _ = draft.save(to: character, project: project, in: modelContext)
         do {
-            try modelContext.save()
+            try modelContext.saveOrRollback()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
