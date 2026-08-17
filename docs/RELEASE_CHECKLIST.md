@@ -51,9 +51,9 @@ This checklist is the release-readiness gate for the first stable Character Prof
 
 - [x] Source files and project documentation identify `GPL-3.0-or-later` through SPDX headers/notices.
 - [x] Repository includes the complete GNU General Public License version 3 text.
-- [ ] App metadata is 1.0.0 with the next build number.
-- [ ] README, changelog, architecture, feature-status audit and roadmap describe the final 1.0 state accurately.
-- [ ] 1.0 release notes identify known validation boundaries rather than claiming unsupported behavior.
+- [x] App metadata is 1.0.0 build 11.
+- [x] README, changelog, architecture, feature-status audit and roadmap describe the final 1.0 state accurately.
+- [x] 1.0 release notes identify known validation boundaries rather than claiming unsupported behavior.
 - [ ] A GitHub tag/release is created only after explicit release authorization and after the final `main` gate is green.
 
 ## Physical-device Visual Studio validation
