@@ -150,6 +150,31 @@ final class AuthorWorkflowTests: XCTestCase {
     }
 
     @MainActor
+    func testFamilyGraphReportsConflictingGenerationPaths() {
+        let root = CharacterProfile(name: "Root")
+        let parent = CharacterProfile(name: "Parent")
+        let grandparent = CharacterProfile(name: "Grandparent")
+
+        let first = CharacterRelationship(kind: .parent, source: root, target: parent)
+        root.outgoingRelationships.append(first)
+        parent.incomingRelationships.append(first)
+
+        let second = CharacterRelationship(kind: .parent, source: parent, target: grandparent)
+        parent.outgoingRelationships.append(second)
+        grandparent.incomingRelationships.append(second)
+
+        // Deliberately construct contradictory stored data to prove the derived graph does not
+        // silently accept whichever traversal path happens to run first.
+        let conflicting = CharacterRelationship(kind: .spouse, source: root, target: grandparent)
+        root.outgoingRelationships.append(conflicting)
+        grandparent.incomingRelationships.append(conflicting)
+
+        let snapshot = FamilyGraphSnapshot(root: root)
+        XCTAssertTrue(snapshot.hasGenerationConflicts)
+        XCTAssertFalse(snapshot.generationConflicts.isEmpty)
+    }
+
+    @MainActor
     func testLegacyMigrationCreatesOneImportedProjectAndIsIdempotent() throws {
         let container = try makeContainer()
         let context = container.mainContext
@@ -184,6 +209,31 @@ final class AuthorWorkflowTests: XCTestCase {
     }
 
     @MainActor
+    func testLegacyMigrationDoesNotHijackAuthorStoryWithImportedCharactersTitle() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let authorStory = StoryProject(title: "Imported Characters", genre: .fantasy)
+        let orphan = CharacterProfile(name: "Legacy Orphan")
+        context.insert(authorStory)
+        context.insert(orphan)
+        try context.save()
+
+        let imported = try XCTUnwrap(
+            LegacyDataMigration.assignUnassignedCharacters(
+                [orphan],
+                projects: [authorStory],
+                in: context
+            )
+        )
+
+        XCTAssertNotEqual(imported.id, authorStory.id)
+        XCTAssertEqual(imported.genre, .other)
+        XCTAssertEqual(imported.customGenre, "Unassigned")
+        XCTAssertTrue(authorStory.characters.isEmpty)
+        XCTAssertEqual(orphan.project?.id, imported.id)
+    }
+
+    @MainActor
     func testCharacterSearchIncludesRelationshipNamesKindsAndNotes() {
         let elena = CharacterProfile(name: "Elena")
         let mara = CharacterProfile(name: "Mara Vale")
@@ -200,5 +250,84 @@ final class AuthorWorkflowTests: XCTestCase {
         XCTAssertTrue(CharacterSearch.matches(elena, term: "mentor"))
         XCTAssertTrue(CharacterSearch.matches(elena, term: "dangerous debt"))
         XCTAssertFalse(CharacterSearch.matches(elena, term: "spaceship"))
+    }
+
+    @MainActor
+    func testProfileDraftRejectsBlankSectionAndFieldLabels() {
+        var draft = ProfileDraft()
+        draft.name = "Elena"
+        draft.sections = [SectionDraft(title: " ", fields: [])]
+        XCTAssertNotNil(draft.validationMessage)
+
+        draft.sections = [SectionDraft(title: "Appearance", fields: [FieldDraft(label: "  ", value: "Scar")])]
+        XCTAssertNotNil(draft.validationMessage)
+    }
+
+    @MainActor
+    func testProfileDraftPreservesSectionAndFieldIDsAcrossEdit() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let project = StoryProject(title: "Story")
+        let character = CharacterProfile(name: "Elena", project: project)
+        let section = ProfileSection(title: "Appearance", sortOrder: 0, character: character)
+        let field = ProfileField(label: "Hair", value: "Black", sortOrder: 0, section: section)
+        context.insert(project)
+        context.insert(character)
+        context.insert(section)
+        context.insert(field)
+        project.characters.append(character)
+        character.sections.append(section)
+        section.fields.append(field)
+        try context.save()
+
+        let sectionID = section.id
+        let fieldID = field.id
+        var draft = ProfileDraft(character: character)
+        draft.sections[0].fields[0].value = "Silver"
+        _ = draft.save(to: character, project: project, in: context)
+        try context.saveOrRollback()
+
+        XCTAssertEqual(character.sortedSections.first?.id, sectionID)
+        XCTAssertEqual(character.sortedSections.first?.sortedFields.first?.id, fieldID)
+        XCTAssertEqual(character.sortedSections.first?.sortedFields.first?.value, "Silver")
+    }
+
+    @MainActor
+    func testCharacterModificationPropagatesToStoryActivityTimestamp() {
+        let oldDate = Date(timeIntervalSince1970: 100)
+        let newDate = Date(timeIntervalSince1970: 200)
+        let project = StoryProject(title: "Story", updatedAt: oldDate)
+        let character = CharacterProfile(name: "Elena", updatedAt: oldDate, project: project)
+
+        character.markModified(at: newDate)
+
+        XCTAssertEqual(character.updatedAt, newDate)
+        XCTAssertEqual(project.updatedAt, newDate)
+    }
+
+    @MainActor
+    func testArchiveRejectsDuplicateNestedProfileIdentifiers() {
+        let repeatedID = UUID()
+        let project = StoryProject(title: "Story")
+        let character = CharacterProfile(name: "Elena", project: project)
+        let first = ProfileSection(id: repeatedID, title: "Appearance", sortOrder: 0, character: character)
+        let second = ProfileSection(id: repeatedID, title: "Secrets", sortOrder: 1, character: character)
+        character.sections = [first, second]
+        project.characters = [character]
+
+        XCTAssertThrowsError(try ProjectArchive(project: project).validate())
+    }
+
+    @MainActor
+    func testArchiveRejectsDuplicateTurnaroundAngles() {
+        let project = StoryProject(title: "Story")
+        let character = CharacterProfile(name: "Elena", project: project)
+        character.visualFrames = [
+            CharacterVisualFrame(angle: .front, imageData: Data([1]), character: character),
+            CharacterVisualFrame(angle: .front, imageData: Data([2]), character: character)
+        ]
+        project.characters = [character]
+
+        XCTAssertThrowsError(try ProjectArchive(project: project).validate())
     }
 }
