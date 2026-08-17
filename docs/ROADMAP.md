@@ -60,7 +60,7 @@ This release is a focused corrective pass over the complete codebase. It address
 - Story Library activity timestamps for character-scoped work;
 - Visual Studio persistence debounce and stronger identity-reference handling;
 - stricter archive validation and cleanup behavior;
-- explicit large-family traversal-limit reporting;
+- removal of the old arbitrary family-tree traversal cap plus explicit detection of conflicting generation paths;
 - source decomposition and invariant comments around the Guide, relationship and history subsystems;
 - real application asset/AppIcon wiring;
 - simulator tests plus optimized simulator and `iphoneos` device Release builds;
