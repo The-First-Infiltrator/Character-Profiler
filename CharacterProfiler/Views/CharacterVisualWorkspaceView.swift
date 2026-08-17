@@ -89,6 +89,13 @@ struct CharacterVisualWorkspaceView: View {
     @State private var showingClearVisualSet = false
     @State private var showingResetTurnaround = false
     @State private var errorMessage: String?
+    @State private var appearanceNotesDraft: String
+    @State private var appearanceSaveTask: Task<Void, Never>?
+
+    init(character: CharacterProfile) {
+        self.character = character
+        _appearanceNotesDraft = State(initialValue: character.visualDescription)
+    }
 
     private var snapshot: VisualWorkspaceSnapshot { VisualWorkspaceSnapshot(character: character) }
 
@@ -98,7 +105,6 @@ struct CharacterVisualWorkspaceView: View {
             return Image(uiImage: image)
         }
         if let board = referenceBoardImage() { return Image(uiImage: board) }
-        if let data = character.profileImageData, let image = UIImage(data: data) { return Image(uiImage: image) }
         return nil
     }
 
@@ -117,7 +123,7 @@ struct CharacterVisualWorkspaceView: View {
         if let project = character.project { parts.append("Genre: \(project.genreDisplayName).") }
         if !character.storyRole.isEmpty { parts.append("Story role: \(character.storyRole).") }
         if !character.summary.isEmpty { parts.append(character.summary) }
-        if !character.visualDescription.isEmpty { parts.append("Appearance instructions: \(character.visualDescription)") }
+        if !appearanceNotesDraft.isEmpty { parts.append("Appearance instructions: \(appearanceNotesDraft)") }
         let fields = character.sections.flatMap { section in
             section.fields.compactMap { field in
                 let value = field.value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -155,6 +161,8 @@ struct CharacterVisualWorkspaceView: View {
             turnaroundSection
         }
         .onChange(of: selectedPhotos) { _, items in importReferences(items) }
+        .onChange(of: appearanceNotesDraft) { _, _ in scheduleAppearanceNotesSave() }
+        .onDisappear { flushAppearanceNotes() }
         .sheet(item: $editingReference) { reference in
             VisualReferenceEditor(reference: reference, character: character)
         }
@@ -268,14 +276,7 @@ struct CharacterVisualWorkspaceView: View {
         GroupBox("Appearance Notes") {
             TextField(
                 "Details the pictures do not show—height, build, scars, clothing, equipment, colours…",
-                text: Binding(
-                    get: { character.visualDescription },
-                    set: {
-                        character.visualDescription = $0
-                        character.updatedAt = .now
-                        saveContext()
-                    }
-                ),
+                text: $appearanceNotesDraft,
                 axis: .vertical
             )
             .lineLimit(4...10)
@@ -298,7 +299,7 @@ struct CharacterVisualWorkspaceView: View {
                     HStack {
                         Button("Use as Portrait", systemImage: "person.crop.circle") {
                             character.profileImageData = data
-                            character.updatedAt = .now
+                            character.markModified()
                             saveContext()
                         }
                         Button("Replace", systemImage: "sparkles") {
@@ -319,9 +320,10 @@ struct CharacterVisualWorkspaceView: View {
                     ContentUnavailableView(
                         "No Canonical Visual Yet",
                         systemImage: "person.crop.rectangle.badge.plus",
-                        description: Text("Create one from the character record and reference pictures before generating turnaround angles.")
+                        description: Text("Create one from the character record, profile portrait and reference pictures before generating turnaround angles.")
                     )
                     Button("Create Canonical Visual", systemImage: "sparkles") {
+                        flushAppearanceNotes()
                         beginCanonicalGeneration(resetTurnaroundOnSuccess: false)
                     }
                     .buttonStyle(.borderedProminent)
@@ -353,9 +355,9 @@ struct CharacterVisualWorkspaceView: View {
                 ProgressView(value: state.turnaroundProgress)
 
                 if !state.duplicateAngles.isEmpty {
-                    Label("Duplicate stored frames detected for: \(state.duplicateAngles.map(\.displayName).joined(separator: ", ")). The viewer uses the first matching frame.", systemImage: "exclamationmark.triangle")
+                    Label("Duplicate stored frames detected for: \(state.duplicateAngles.map(\.displayName).joined(separator: ", ")). Delete or regenerate the duplicate views before relying on the turnaround.", systemImage: "exclamationmark.triangle")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.orange)
                 }
 
                 if let frame = frame(for: viewerAngle), let image = UIImage(data: frame.imageData) {
@@ -502,6 +504,7 @@ struct CharacterVisualWorkspaceView: View {
             errorMessage = "Image Playground is not available on this device or in its current system environment."
             return
         }
+        flushAppearanceNotes()
         generationAngle = nil
         resetTurnaroundAfterCanonicalSuccess = resetTurnaroundOnSuccess
         showingGenerator = true
@@ -523,8 +526,17 @@ struct CharacterVisualWorkspaceView: View {
     }
 
     private func acceptGeneratedImage(_ url: URL) {
-        guard let data = try? Data(contentsOf: url),
-              let normalised = CharacterImageProcessor.normalisedJPEGData(from: data, maxDimension: 1600) else {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            errorMessage = "The generated image could not be read. \(error.localizedDescription)"
+            generationAngle = nil
+            resetTurnaroundAfterCanonicalSuccess = false
+            return
+        }
+
+        guard let normalised = CharacterImageProcessor.normalisedJPEGData(from: data, maxDimension: 1600) else {
             errorMessage = "The generated image could not be imported into Character Profiler."
             generationAngle = nil
             resetTurnaroundAfterCanonicalSuccess = false
@@ -546,7 +558,7 @@ struct CharacterVisualWorkspaceView: View {
             character.generatedVisualData = normalised
         }
 
-        character.updatedAt = .now
+        character.markModified()
         saveContext()
         generationAngle = nil
         resetTurnaroundAfterCanonicalSuccess = false
@@ -562,14 +574,14 @@ struct CharacterVisualWorkspaceView: View {
         character.visualFrames.removeAll()
         for frame in frames { modelContext.delete(frame) }
         viewerAngle = .front
-        character.updatedAt = .now
+        character.markModified()
         if save { saveContext() }
     }
 
     private func clearVisualSet() {
         clearTurnaround(save: false)
         character.generatedVisualData = nil
-        character.updatedAt = .now
+        character.markModified()
         saveContext()
     }
 
@@ -577,37 +589,48 @@ struct CharacterVisualWorkspaceView: View {
         let matches = character.visualFrames.filter { $0.angle == angle }
         character.visualFrames.removeAll { $0.angle == angle }
         for frame in matches { modelContext.delete(frame) }
-        character.updatedAt = .now
+        character.markModified()
         saveContext()
     }
 
     private func importReferences(_ items: [PhotosPickerItem]) {
         Task {
             let capacity = max(0, 6 - character.referenceImages.count)
+            var importedData: [Data] = []
             var failures = 0
+
             for item in items.prefix(capacity) {
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let normalised = CharacterImageProcessor.normalisedJPEGData(from: data) {
-                    await MainActor.run {
-                        let nextNumber = character.referenceImages.count + 1
-                        let reference = CharacterReferenceImage(
-                            label: "Reference \(nextNumber)",
-                            sortOrder: character.referenceImages.count,
-                            imageData: normalised,
-                            character: character
-                        )
-                        modelContext.insert(reference)
-                        character.referenceImages.append(reference)
+                do {
+                    guard let data = try await item.loadTransferable(type: Data.self),
+                          let normalised = CharacterImageProcessor.normalisedJPEGData(from: data) else {
+                        failures += 1
+                        continue
                     }
-                } else {
+                    importedData.append(normalised)
+                } catch {
                     failures += 1
                 }
             }
+
             await MainActor.run {
+                for normalised in importedData {
+                    let nextNumber = character.referenceImages.count + 1
+                    let reference = CharacterReferenceImage(
+                        label: "Reference \(nextNumber)",
+                        sortOrder: character.referenceImages.count,
+                        imageData: normalised,
+                        character: character
+                    )
+                    modelContext.insert(reference)
+                    character.referenceImages.append(reference)
+                }
+
                 VisualReferenceOrdering.normalize(in: character)
                 selectedPhotos = []
-                character.updatedAt = .now
-                saveContext()
+                if !importedData.isEmpty {
+                    character.markModified()
+                    saveContext()
+                }
                 if failures > 0 {
                     errorMessage = "\(failures) selected image\(failures == 1 ? "" : "s") could not be imported."
                 }
@@ -615,9 +638,16 @@ struct CharacterVisualWorkspaceView: View {
         }
     }
 
+    /// Builds one source board from the profile portrait plus author references. The portrait is
+    /// intentionally not discarded when reference images exist because it may be the strongest face/identity cue.
     private func referenceBoardImage() -> UIImage? {
-        let images = character.sortedReferenceImages.compactMap { UIImage(data: $0.imageData) }
+        var images: [UIImage] = []
+        if let data = character.profileImageData, let portrait = UIImage(data: data) {
+            images.append(portrait)
+        }
+        images.append(contentsOf: character.sortedReferenceImages.compactMap { UIImage(data: $0.imageData) })
         guard !images.isEmpty else { return nil }
+
         let canvas = CGSize(width: 1200, height: 1200)
         let columns = images.count == 1 ? 1 : 2
         let rows = Int(ceil(Double(images.count) / Double(columns)))
@@ -647,9 +677,41 @@ struct CharacterVisualWorkspaceView: View {
         }
     }
 
+    private func scheduleAppearanceNotesSave() {
+        appearanceSaveTask?.cancel()
+        appearanceSaveTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: 550_000_000)
+            } catch {
+                return
+            }
+            saveAppearanceNotesIfNeeded()
+        }
+    }
+
+    private func flushAppearanceNotes() {
+        appearanceSaveTask?.cancel()
+        appearanceSaveTask = nil
+        saveAppearanceNotesIfNeeded()
+    }
+
+    private func saveAppearanceNotesIfNeeded() {
+        let cleaned = appearanceNotesDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleaned != character.visualDescription else { return }
+        character.visualDescription = cleaned
+        character.markModified()
+        do {
+            try modelContext.saveOrRollback()
+            appearanceNotesDraft = character.visualDescription
+        } catch {
+            appearanceNotesDraft = character.visualDescription
+            errorMessage = "Character Profiler could not save the appearance notes. \(error.localizedDescription)"
+        }
+    }
+
     private func saveContext() {
         do {
-            try modelContext.save()
+            try modelContext.saveOrRollback()
         } catch {
             errorMessage = "Character Profiler could not save the visual changes. \(error.localizedDescription)"
         }
@@ -696,12 +758,14 @@ private struct VisualReferenceEditor: View {
                     HStack {
                         Button("Move Earlier", systemImage: "arrow.left") {
                             VisualReferenceOrdering.move(reference, by: -1, in: character)
+                            character.markModified()
                             save()
                         }
                         .disabled(currentIndex == 0)
                         Spacer()
                         Button("Move Later", systemImage: "arrow.right") {
                             VisualReferenceOrdering.move(reference, by: 1, in: character)
+                            character.markModified()
                             save()
                         }
                         .disabled(currentIndex == character.referenceImages.count - 1)
@@ -722,7 +786,7 @@ private struct VisualReferenceEditor: View {
                     Button("Save") {
                         let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
                         reference.label = trimmed.isEmpty ? "Reference" : trimmed
-                        character.updatedAt = .now
+                        character.markModified()
                         save()
                         if errorMessage == nil { dismiss() }
                     }
@@ -747,14 +811,14 @@ private struct VisualReferenceEditor: View {
         character.referenceImages.removeAll { $0.id == reference.id }
         modelContext.delete(reference)
         VisualReferenceOrdering.normalize(in: character)
-        character.updatedAt = .now
+        character.markModified()
         save()
         if errorMessage == nil { dismiss() }
     }
 
     private func save() {
         do {
-            try modelContext.save()
+            try modelContext.saveOrRollback()
         } catch {
             errorMessage = "Character Profiler could not save the reference changes. \(error.localizedDescription)"
         }
