@@ -2,6 +2,42 @@
 
 # Changelog
 
+## [1.0.1] - 2026-08-17
+
+### Fixed
+
+- SwiftData save failures now roll the current unit of work back instead of leaving failed edits, inserts or deletions pending for a later unrelated save.
+- Character-scoped Guide, relationship, history and Visual Studio work now updates the owning story activity timestamp so Story Library recency remains accurate.
+- Profile editing preserves existing section/field UUIDs instead of deleting and recreating every row on each save.
+- Blank profile section titles and field labels are now reported as validation errors rather than causing authored rows to be silently omitted.
+- Saved Character Guide answers can be viewed in full, edited and deliberately deleted; answered-prompt suppression no longer makes persisted answers effectively read-only.
+- Character portraits can be explicitly removed from the editor.
+- Visual Studio appearance notes are debounced instead of saving synchronously on every keystroke.
+- Canonical visual generation now keeps the profile portrait as an identity cue even when separate reference images are present.
+- Restore failure handling uses rollback-safe persistence rather than intentionally suppressing cleanup-save errors.
+- Archive validation now rejects duplicate nested identifiers, duplicate prompt IDs/turnaround angles, blank required nested labels/titles, empty required visual payloads and ancestry cycles before restore.
+- Large family-tree traversal reports when its safety limit truncates the graph instead of silently presenting an incomplete result as complete.
+- Legacy migration no longer identifies the imported bucket by title alone.
+
+### Code quality and packaging
+
+- Split Guide, relationship/family and history implementations out of the oversized character-detail source.
+- Added focused comments for persistence, relationship direction, archive reconstruction and other non-obvious invariants rather than commenting trivial syntax.
+- Added a real application asset catalogue and AppIcon target resource wiring.
+- App version is now 1.0.1 build 12.
+- No SwiftData entity/field was added and portable archive format remains version 1.
+
+### CI and release safety
+
+- GitHub Actions now runs the complete simulator tests, an optimized simulator Release build and an optimized unsigned generic `iphoneos` Release build.
+- Release-publisher JavaScript is stored in a normal source file and syntax-checked before execution.
+- A release request is rejected unless its exact target SHA is an ancestor of `main` and that exact SHA has a successful `iOS Build` workflow run.
+- README, architecture, feature-status, roadmap and release-checklist documentation were synchronized with the released 1.0.0 baseline and 1.0.1 hardening work.
+
+### Validation boundary
+
+- Hosted CI can compile the real-device target but still cannot prove Image Playground output quality or cross-angle visual identity consistency on a physical supported iPhone.
+
 ## [1.0.0] - 2026-08-17
 
 ### Stable-release readiness
@@ -41,8 +77,8 @@
 ### Safety and usability
 
 - Life-event and relationship deletion now require destructive confirmation and explain linked/derived effects.
-- Major story, character, Guide, relationship, history, migration and destructive save paths now surface SwiftData failures instead of silently swallowing them.
-- Character portrait import now reports unreadable/failed image conversion rather than failing silently.
+- Major story/character/Guide/relationship/history/migration/destructive save paths surface SwiftData failures instead of silently swallowing them.
+- Character portrait import reports unreadable/failed image conversion rather than failing silently.
 - Large-cast search shows useful result counts/guidance and no-results states.
 - Profile, Guide and unavailable-project empty states are clearer.
 - Accessibility labels/hints were strengthened across cast rows, project metrics, history, relationship actions and family-tree controls.
