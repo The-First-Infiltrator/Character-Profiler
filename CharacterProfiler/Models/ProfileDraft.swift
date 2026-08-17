@@ -58,9 +58,26 @@ struct ProfileDraft {
         sections = character.sortedSections.map(SectionDraft.init)
     }
 
-    var isValid: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    /// Returns the first author-fixable validation problem instead of silently dropping malformed rows.
+    var validationMessage: String? {
+        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "A character name is required."
+        }
+
+        for (sectionIndex, section) in sections.enumerated() {
+            if section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return "Section \(sectionIndex + 1) needs a name or must be removed."
+            }
+            for (fieldIndex, field) in section.fields.enumerated() {
+                if field.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return "Field \(fieldIndex + 1) in \(section.title) needs a name or must be removed."
+                }
+            }
+        }
+        return nil
     }
+
+    var isValid: Bool { validationMessage == nil }
 
     mutating func addSection() {
         sections.append(
@@ -71,18 +88,22 @@ struct ProfileDraft {
         )
     }
 
+    /// Reconciles the editable draft with existing SwiftData rows by stable UUID.
+    ///
+    /// Older versions deleted and recreated every profile section and field on each edit. Besides
+    /// unnecessary churn, that changed persistent IDs even when the author merely corrected text.
+    /// This implementation preserves existing rows, inserts only new rows, and deletes only rows
+    /// the author actually removed.
     func save(
         to character: CharacterProfile?,
         project: StoryProject,
         in modelContext: ModelContext
     ) -> CharacterProfile {
+        precondition(validationMessage == nil, "ProfileDraft.save called with invalid profile data")
+
         let target: CharacterProfile
         if let character {
             target = character
-            for section in character.sections {
-                modelContext.delete(section)
-            }
-            target.sections.removeAll()
         } else {
             target = CharacterProfile(name: name, project: project)
             modelContext.insert(target)
@@ -96,35 +117,73 @@ struct ProfileDraft {
         target.pronouns = pronouns.trimmingCharacters(in: .whitespacesAndNewlines)
         target.ageText = ageText.trimmingCharacters(in: .whitespacesAndNewlines)
         target.profileImageData = profileImageData
-        target.updatedAt = .now
-        project.updatedAt = .now
+        target.markModified()
+
+        let existingSections = Dictionary(uniqueKeysWithValues: target.sections.map { ($0.id, $0) })
+        var retainedSectionIDs = Set<UUID>()
+        var orderedSections: [ProfileSection] = []
 
         for (sectionIndex, sectionDraft) in sections.enumerated() {
             let trimmedTitle = sectionDraft.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmedTitle.isEmpty else { continue }
+            let section: ProfileSection
 
-            let section = ProfileSection(
-                title: trimmedTitle,
-                sortOrder: sectionIndex,
-                character: target
-            )
-            modelContext.insert(section)
-            target.sections.append(section)
+            if let existing = existingSections[sectionDraft.id] {
+                section = existing
+            } else {
+                section = ProfileSection(
+                    id: sectionDraft.id,
+                    title: trimmedTitle,
+                    sortOrder: sectionIndex,
+                    character: target
+                )
+                modelContext.insert(section)
+            }
+
+            retainedSectionIDs.insert(section.id)
+            section.title = trimmedTitle
+            section.sortOrder = sectionIndex
+            section.character = target
+
+            let existingFields = Dictionary(uniqueKeysWithValues: section.fields.map { ($0.id, $0) })
+            var retainedFieldIDs = Set<UUID>()
+            var orderedFields: [ProfileField] = []
 
             for (fieldIndex, fieldDraft) in sectionDraft.fields.enumerated() {
                 let trimmedLabel = fieldDraft.label.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmedLabel.isEmpty else { continue }
+                let field: ProfileField
 
-                let field = ProfileField(
-                    label: trimmedLabel,
-                    value: fieldDraft.value.trimmingCharacters(in: .whitespacesAndNewlines),
-                    sortOrder: fieldIndex,
-                    section: section
-                )
-                modelContext.insert(field)
-                section.fields.append(field)
+                if let existing = existingFields[fieldDraft.id] {
+                    field = existing
+                } else {
+                    field = ProfileField(
+                        id: fieldDraft.id,
+                        label: trimmedLabel,
+                        value: fieldDraft.value.trimmingCharacters(in: .whitespacesAndNewlines),
+                        sortOrder: fieldIndex,
+                        section: section
+                    )
+                    modelContext.insert(field)
+                }
+
+                retainedFieldIDs.insert(field.id)
+                field.label = trimmedLabel
+                field.value = fieldDraft.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                field.sortOrder = fieldIndex
+                field.section = section
+                orderedFields.append(field)
             }
+
+            for field in section.fields where !retainedFieldIDs.contains(field.id) {
+                modelContext.delete(field)
+            }
+            section.fields = orderedFields
+            orderedSections.append(section)
         }
+
+        for section in target.sections where !retainedSectionIDs.contains(section.id) {
+            modelContext.delete(section)
+        }
+        target.sections = orderedSections
 
         return target
     }
