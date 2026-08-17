@@ -10,26 +10,30 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Native SwiftUI iPhone application | Implemented | iOS 17+ core target. |
+| Native SwiftUI iPhone application | Implemented | iOS 17+ core target with application asset catalogue/AppIcon definition. |
 | SwiftData local persistence | Implemented | Projects, characters, profiles, Guide, history, relationships and visual assets. |
+| Transactional save failure handling | Implemented | 1.0.1 uses save-or-rollback semantics so failed edits/deletes do not remain pending for later accidental persistence. |
 | Story/project library | Implemented | Projects own cast plus genre/premise context. |
+| Project activity ordering | Implemented | Character-scoped work propagates `updatedAt` to the owning story. |
 | Built-in/custom genres | Implemented | Genre feeds Character Guide selection. |
 | Project overview metrics | Implemented | Cast, relationships, history, Guide answers and average development. |
 | Legacy orphan-character migration | Implemented | Idempotent migration into one `Imported Characters` project with regression coverage. |
-| Startup store-open failure handling | Implemented | 1.0 replaces startup `fatalError` with a non-destructive recovery screen and does not automatically replace the local store. |
-| CI test gate | Implemented | Hosted Xcode workflow dynamically prepares a simulator and runs the complete test suite. |
-| CI Release-configuration gate | Implemented | 1.0 additionally compiles the optimized Release configuration with signing disabled. |
-| Release-quality error surfacing | Implemented | Major story/character/Guide/history/relationship/import/destructive flows surface relevant failures. |
+| Startup store-open failure handling | Implemented | Non-destructive recovery screen; the local store is not automatically erased/replaced. |
+| CI simulator test gate | Implemented | Hosted Xcode workflow dynamically prepares a simulator and runs the complete unit-test suite. |
+| CI optimized simulator Release gate | Implemented | Release configuration compiles with signing disabled. |
+| CI optimized iPhoneOS Release gate | Implemented | 1.0.1 separately compiles a generic real-device iOS target with signing disabled. |
+| Release target verification | Implemented | Publisher requires exact target SHA on `main` plus a successful exact-SHA `iOS Build`. |
 
 ## Character profile and cast workflow
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Core metadata and portrait | Implemented | Name, nickname, age, pronouns, role, summary and portrait. |
+| Core metadata and portrait | Implemented | Name, nickname, age, pronouns, role, summary; portrait can be chosen, replaced or removed. |
 | Flexible sections/fields | Implemented | Arbitrary author-defined profile content. |
+| Stable profile row identifiers | Implemented | 1.0.1 reconciles edits by section/field UUID instead of recreating every row. |
+| Blank profile-label safety | Implemented | Blank section/field labels block save with an author-fixable validation message instead of silently discarding data. |
 | Starter profile template | Implemented | Common development areas. |
 | Search within story cast | Implemented | Profile content plus linked character names, relationship kinds and notes. |
-| Large-cast guidance/result counts | Implemented | Search feedback and searchable relationship cast picker. |
 | Completion indicator | Implemented | Heuristic development score. |
 | Character deletion impact confirmation | Implemented | Reports linked data before removal. |
 | Portrait import failure handling | Implemented | Unreadable/unsupported selected images are reported. |
@@ -41,6 +45,7 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | Large stable prompt catalogue | Implemented | More than 120 stable prompt IDs. |
 | Genre-specific coverage | Implemented | Expanded sets across built-in genres. |
 | Persisted answers / answered suppression | Implemented | Stable prompt IDs preserve saved answer behavior. |
+| Saved answer management | Implemented | 1.0.1 adds view-all, edit and deliberate delete flows for persisted answers. |
 | Development-depth scoring | Implemented | Uses profile, Guide, relationship, role and history signals. |
 | Category balancing | Implemented | Suggestions span several dimensions before repetition. |
 | Adaptive context | Implemented | Includes trauma/loss, family, life events and contextual follow-ups. |
@@ -54,14 +59,13 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | --- | --- | --- |
 | Real character-to-character links | Implemented | Shared `CharacterRelationship` graph edges. |
 | Parent/child and mentor/student inverse semantics | Implemented | Correct meaning from either endpoint. |
-| Family grouping and relationship notes | Implemented | People workspace. |
 | Add/edit/delete relationship | Implemented | Existing edges are edited in place; deletion is confirmed. |
 | Inverse-safe editing | Implemented | Editing from the target endpoint stores the correct inverse. |
 | Searchable cast picker | Implemented | Suitable for larger casts. |
 | Graphical family tree | Implemented | Derived from relationship data; no second family database. |
 | Multi-generation traversal/navigation | Implemented | Tappable members, scroll and zoom. |
+| Large-family traversal limit disclosure | Implemented | 1.0.1 reports when the safety cap truncates a graph instead of silently presenting an incomplete tree as complete. |
 | Duplicate/cycle validation | Implemented | Self-links, duplicate family links and ancestry contradictions are rejected. |
-| Edit-aware validation | Implemented | The edge under edit is excluded while validating its proposed replacement state. |
 | Relationship backup/restore | Implemented | Archive reconstructs direction/endpoints after characters exist. |
 | Broader non-family relationship network | Planned | Separate future graph-view candidate. |
 
@@ -83,12 +87,12 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | --- | --- | --- |
 | Dedicated Visual workspace | Implemented | `CharacterVisualWorkspaceView.swift`. |
 | Up to six labelled/reorderable references | Implemented | Photos picker, labels, ordering and deletion. |
-| Written appearance instructions | Implemented | Stored per character. |
+| Written appearance instructions | Implemented | Stored per character; 1.0.1 debounces persistence instead of saving on every keystroke. |
 | Runtime Image Playground availability handling | Implemented | Unsupported environments retain core/non-generation functionality. |
-| AI-assisted canonical character image | Partial | Workflow compiles and state is tested; real output quality/identity consistency still needs supported physical-device validation. |
+| AI-assisted canonical character image | Partial | Workflow compiles for simulator/device targets; real output quality/identity consistency still needs supported physical-device validation. |
+| Canonical identity inputs | Implemented | Canonical generation can use the existing portrait together with author reference imagery; angles use the accepted canonical image. |
 | Canonical replacement/portrait lifecycle | Implemented | Accepted canonical image is explicit and can become the portrait. |
 | Eight fixed turnaround angles | Implemented | 45° slots. |
-| Canonical identity source for angles | Implemented | Turnaround generation uses accepted canonical visual. |
 | Missing/duplicate/progress state | Implemented | Fixed slots remain visible even when missing. |
 | Per-angle recovery and whole reset | Implemented | Source references/notes can be retained. |
 | Visual asset backup/restore | Implemented | Archive v1 includes current visual data. |
@@ -104,28 +108,23 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | Fresh local IDs on restore | Implemented | Same backup can be restored repeatedly without identifier collision. |
 | Whole-story round-trip test | Implemented | Profile, Guide, history, relationships and visual assets; restores twice. |
 | Future archive-version rejection | Implemented | Unsupported format versions fail explicitly. |
-| Missing project/character identity rejection | Implemented | 1.0 negative validation coverage. |
-| Duplicate archived character-ID rejection | Implemented | 1.0 negative validation coverage. |
-| Duplicate archived relationship-ID rejection | Implemented | 1.0 negative validation coverage. |
-| Self/missing relationship endpoint rejection | Implemented | 1.0 tests also verify invalid restore inserts no destination story. |
+| Required/duplicate identifier validation | Implemented | 1.0.1 extends structural checks beyond top-level character/relationship IDs into nested archived records. |
+| Relationship endpoint validation | Implemented | Self/missing endpoints are rejected before restore. |
+| Restore cleanup failure handling | Implemented | Cleanup is no longer intentionally swallowed with `try?`; rollback protects the context if cleanup persistence also fails. |
 | Story/character destructive confirmations | Implemented | Impact summaries before deletion. |
-| SwiftData schema change in 1.0 | None | 1.0 reuses the 0.8 model. |
-| Archive-format change in 1.0 | None | Format remains v1. |
+| SwiftData schema change in 1.0.1 | None | 1.0.1 reuses the 0.8/1.0 model. |
+| Archive-format change in 1.0.1 | None | Format remains v1. |
+| Package-based external archive assets | Candidate | Consider if large image-heavy JSON archives become a practical memory/performance problem. |
 | iCloud sync | Candidate | Requires deliberate migration/conflict design. |
 
-## 1.0 release-readiness status
+## 1.0.1 validation status
 
-The 1.0 candidate is considered ready to integrate when:
+The 1.0.1 audit branch is ready to integrate only when the exact final head passes:
 
-1. the exact final candidate passes the complete simulator test suite;
-2. the same exact candidate compiles the Release configuration;
-3. local-store startup failure is non-destructive rather than a fatal crash;
-4. archive round-trip and hostile/malformed archive cases are regression-tested;
-5. migration behavior remains documented/tested and 1.0 adds no accidental persistence-format change;
-6. major destructive actions and author-facing save/import failures are deliberate and visible;
-7. the repository includes complete licensing and release documentation;
-8. app metadata is 1.0.0 build 11;
-9. README, changelog, architecture, roadmap and release checklist match the implementation;
-10. the physical-device Visual Studio validation gap remains explicitly disclosed rather than being inferred from simulator success.
+1. complete simulator unit tests;
+2. optimized simulator Release compilation;
+3. optimized unsigned `iphoneos` Release compilation;
+4. documentation/source-scope audit showing no accidental SwiftData/archive-format change;
+5. PR review with the exact head SHA fixed for merge approval.
 
-After merge, the exact `main` commit must pass the same CI workflow before a stable GitHub release should be considered. Tagging/publishing is a separate explicitly authorized action.
+After merge, the exact `main` commit must pass the same workflow before a stable 1.0.1 tag/release is requested. Physical-device Image Playground quality remains a separately disclosed validation boundary.
