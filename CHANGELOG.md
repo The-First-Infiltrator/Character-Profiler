@@ -2,6 +2,27 @@
 
 # Changelog
 
+## [1.0.0] - 2026-08-17
+
+### Stable-release readiness
+
+- App version advanced to 1.0.0 build 11 without changing the SwiftData schema or Character Profiler archive format v1.
+- Failure to open the local SwiftData story store now presents a non-destructive recovery screen instead of terminating through `fatalError`; Character Profiler does not automatically erase or replace the store.
+- Archive regression coverage now rejects missing story/character identity, duplicate character IDs, duplicate relationship IDs, self-relationships and relationship endpoints missing from the archived cast.
+- Invalid-archive restore tests verify validation occurs before a destination story is inserted.
+- Portable backup filename sanitisation is covered by regression tests.
+- GitHub Actions now runs the full simulator test suite and separately compiles the optimized Release configuration on release candidates.
+- Added `docs/RELEASE_CHECKLIST.md` to make automated, packaging and physical-device validation gates explicit.
+- Replaced the abbreviated repository license notice with the complete GNU General Public License version 3 text while retaining the project's `GPL-3.0-or-later` grant in SPDX/source notices.
+
+### Compatibility and scope
+
+- No new persistent entity or field is introduced by 1.0; local schema compatibility remains the same as 0.8.
+- Portable project backup remains archive format v1 and continues to preserve profile, Guide, history, relationship and visual data.
+- 1.0 is a stability/release pass over the feature set built through 0.8, not a broad new feature family.
+- Physical-device Image Playground output-quality and cross-angle identity consistency remain explicitly unvalidated by simulator CI.
+- A GitHub 1.0 tag/release is a separate action from merging this code and requires explicit release authorization.
+
 ## [0.8.0] - 2026-08-17
 
 ### Added
