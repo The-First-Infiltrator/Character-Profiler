@@ -61,6 +61,8 @@ struct ProjectArchive: Codable {
         return archive
     }
 
+    /// Validates every identifier/invariant that is required to reconstruct a coherent story graph.
+    /// Validation runs before restore inserts anything into SwiftData.
     func validate() throws {
         guard formatVersion == Self.currentFormatVersion else {
             throw ProjectArchiveError.unsupportedFormatVersion(formatVersion)
@@ -70,14 +72,43 @@ struct ProjectArchive: Codable {
         }
 
         let characterIDs = project.characters.map(\.sourceID)
-        guard Set(characterIDs).count == characterIDs.count else {
-            throw ProjectArchiveError.invalidArchive("The archive contains duplicate character identifiers.")
-        }
+        try requireUnique(characterIDs, description: "character identifiers")
         let characterIDSet = Set(characterIDs)
 
         for character in project.characters {
             guard !character.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw ProjectArchiveError.invalidArchive("One of the archived characters has no name.")
+            }
+
+            try requireUnique(character.sections.map(\.sourceID), description: "profile section identifiers for \(character.name)")
+            try requireUnique(character.lifeEvents.map(\.sourceID), description: "life-event identifiers for \(character.name)")
+            try requireUnique(character.promptResponses.map(\.sourceID), description: "Guide response identifiers for \(character.name)")
+            try requireUnique(character.referenceImages.map(\.sourceID), description: "reference-image identifiers for \(character.name)")
+            try requireUnique(character.visualFrames.map(\.sourceID), description: "turnaround-frame identifiers for \(character.name)")
+            try requireUnique(character.promptResponses.map(\.promptID), description: "Guide prompt identifiers for \(character.name)")
+            try requireUnique(character.visualFrames.map(\.angle), description: "turnaround angles for \(character.name)")
+
+            for section in character.sections {
+                guard !section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw ProjectArchiveError.invalidArchive("A profile section for \(character.name) has no title.")
+                }
+                try requireUnique(section.fields.map(\.sourceID), description: "profile field identifiers in \(section.title)")
+                for field in section.fields where field.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    throw ProjectArchiveError.invalidArchive("A profile field in \(section.title) has no label.")
+                }
+            }
+
+            for event in character.lifeEvents where event.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                throw ProjectArchiveError.invalidArchive("A life event for \(character.name) has no title.")
+            }
+            for response in character.promptResponses where response.promptID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                throw ProjectArchiveError.invalidArchive("A Guide response for \(character.name) has no prompt identifier.")
+            }
+            for reference in character.referenceImages where reference.imageData.isEmpty {
+                throw ProjectArchiveError.invalidArchive("A reference image for \(character.name) contains no image data.")
+            }
+            for frame in character.visualFrames where frame.imageData.isEmpty {
+                throw ProjectArchiveError.invalidArchive("A turnaround frame for \(character.name) contains no image data.")
             }
         }
 
@@ -94,19 +125,61 @@ struct ProjectArchive: Codable {
                 throw ProjectArchiveError.invalidArchive("A relationship points to a character that is not present in this story archive.")
             }
         }
+
+        try validateArchivedFamilyGraph()
+    }
+
+    private func requireUnique<T: Hashable>(_ values: [T], description: String) throws {
+        guard Set(values).count == values.count else {
+            throw ProjectArchiveError.invalidArchive("The archive contains duplicate \(description).")
+        }
+    }
+
+    /// Protects restore from hand-edited/corrupt archives containing direct ancestry loops.
+    private func validateArchivedFamilyGraph() throws {
+        var parentsByChild: [UUID: Set<UUID>] = [:]
+        for relationship in project.relationships {
+            switch relationship.kind {
+            case .parent:
+                parentsByChild[relationship.sourceCharacterID, default: []].insert(relationship.targetCharacterID)
+            case .child:
+                parentsByChild[relationship.targetCharacterID, default: []].insert(relationship.sourceCharacterID)
+            default:
+                continue
+            }
+        }
+
+        func visitsAncestor(_ current: UUID, origin: UUID, visiting: inout Set<UUID>) -> Bool {
+            guard visiting.insert(current).inserted else { return current == origin }
+            defer { visiting.remove(current) }
+            for parent in parentsByChild[current, default: []] {
+                if parent == origin { return true }
+                if visitsAncestor(parent, origin: origin, visiting: &visiting) { return true }
+            }
+            return false
+        }
+
+        for characterID in project.characters.map(\.sourceID) {
+            var visiting = Set<UUID>()
+            if visitsAncestor(characterID, origin: characterID, visiting: &visiting) {
+                throw ProjectArchiveError.invalidArchive("The archived family graph contains an ancestry cycle.")
+            }
+        }
     }
 
     @MainActor
     func restore(in modelContext: ModelContext) throws -> StoryProject {
         try validate()
 
+        // Restore is one unit of work. Callers should invoke it with a committed ModelContext so a
+        // rollback can remove every staged object if reconstruction or persistence fails.
         let restoredProject = StoryProject(
             title: project.title,
             genre: project.genre,
             customGenre: project.customGenre,
             premise: project.premise,
             createdAt: project.createdAt,
-            updatedAt: project.updatedAt
+            updatedAt: .now
         )
         modelContext.insert(restoredProject)
 
@@ -222,11 +295,10 @@ struct ProjectArchive: Codable {
                 target.incomingRelationships.append(relationship)
             }
 
-            try modelContext.save()
+            try modelContext.saveOrRollback()
             return restoredProject
         } catch {
-            modelContext.delete(restoredProject)
-            try? modelContext.save()
+            modelContext.rollback()
             throw error
         }
     }
