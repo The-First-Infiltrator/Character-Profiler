@@ -16,7 +16,7 @@ Key hardening in 1.0.1 includes:
 - saved Character Guide answers now have a complete view/edit/delete workflow;
 - Visual Studio appearance notes are debounced rather than saved on every keystroke, and canonical generation can incorporate the existing portrait together with author references;
 - archive validation is stricter and restore cleanup no longer intentionally suppresses persistence failures;
-- large family graphs report truncation rather than silently hiding that a traversal limit was reached;
+- family-tree projection no longer has the old arbitrary 120-character traversal cap and now surfaces conflicting generation paths instead of depending silently on traversal order;
 - the Xcode target now contains a real asset catalogue/AppIcon definition;
 - CI tests the simulator, builds an optimized simulator Release and separately compiles an unsigned optimized `iphoneos` Release;
 - release publishing now syntax-checks its script and refuses to tag a commit unless the exact SHA is on `main` and has a successful exact-SHA `iOS Build` run.
