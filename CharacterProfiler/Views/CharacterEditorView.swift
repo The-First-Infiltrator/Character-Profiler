@@ -9,6 +9,7 @@ struct ProjectEditorView: View {
     @Environment(\.modelContext) private var modelContext
     let project: StoryProject?
     @State private var draft: ProjectDraft
+    @State private var saveErrorMessage: String?
 
     init(project: StoryProject?) {
         self.project = project
@@ -25,18 +26,37 @@ struct ProjectEditorView: View {
                 if draft.genre == .other { TextField("Custom genre", text: $draft.customGenre) }
                 TextField("Premise or story summary", text: $draft.premise, axis: .vertical).lineLimit(3...8)
             }
-            Section { Text("The genre controls the development questions suggested to authors. You can change it later without losing character data.").font(.footnote).foregroundStyle(.secondary) }
+            Section {
+                Text("The genre controls the development questions suggested to authors. You can change it later without losing character data.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
         .navigationTitle(project == nil ? "New Story" : "Edit Story")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
-                    _ = draft.save(to: project, in: modelContext)
-                    try? modelContext.save(); dismiss()
-                }.disabled(!draft.isValid)
+                Button("Save") { saveProject() }.disabled(!draft.isValid)
             }
+        }
+        .alert("Story Could Not Be Saved", isPresented: Binding(
+            get: { saveErrorMessage != nil },
+            set: { if !$0 { saveErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { saveErrorMessage = nil }
+        } message: {
+            Text(saveErrorMessage ?? "Unknown save error.")
+        }
+    }
+
+    private func saveProject() {
+        _ = draft.save(to: project, in: modelContext)
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            saveErrorMessage = error.localizedDescription
         }
     }
 }
@@ -48,6 +68,7 @@ struct CharacterEditorView: View {
     let character: CharacterProfile?
     @State private var draft: ProfileDraft
     @State private var photoItem: PhotosPickerItem?
+    @State private var errorMessage: String?
 
     init(project: StoryProject, character: CharacterProfile?) {
         self.project = project
@@ -60,7 +81,9 @@ struct CharacterEditorView: View {
             Section("Character") {
                 HStack(spacing: 16) {
                     portraitPreview
-                    PhotosPicker(selection: $photoItem, matching: .images) { Label("Choose Portrait", systemImage: "photo") }
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        Label("Choose Portrait", systemImage: "photo")
+                    }
                 }
                 TextField("Name", text: $draft.name)
                 TextField("Nickname", text: $draft.nickname)
@@ -81,7 +104,9 @@ struct CharacterEditorView: View {
                     }
                     .onDelete { section.fields.remove(atOffsets: $0) }
                     Button("Add Field") { section.fields.append(FieldDraft(label: "New Field", value: "")) }
-                } header: { Text(section.title.isEmpty ? "Section" : section.title) }
+                } header: {
+                    Text(section.title.isEmpty ? "Section" : section.title)
+                }
             }
             .onDelete { draft.sections.remove(atOffsets: $0) }
 
@@ -92,27 +117,79 @@ struct CharacterEditorView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
-                    _ = draft.save(to: character, project: project, in: modelContext)
-                    try? modelContext.save(); dismiss()
-                }.disabled(!draft.isValid)
+                Button("Save") { saveCharacter() }.disabled(!draft.isValid)
             }
         }
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
-            Task {
-                if let data = try? await item.loadTransferable(type: Data.self), let normalised = CharacterImageProcessor.normalisedJPEGData(from: data) {
-                    await MainActor.run { draft.profileImageData = normalised }
+            importPortrait(item)
+        }
+        .alert("Character Change Could Not Be Completed", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "Unknown error.")
+        }
+    }
+
+    private func saveCharacter() {
+        _ = draft.save(to: character, project: project, in: modelContext)
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func importPortrait(_ item: PhotosPickerItem) {
+        Task {
+            do {
+                guard let data = try await item.loadTransferable(type: Data.self) else {
+                    await MainActor.run {
+                        errorMessage = "The selected photo could not be read. Choose another image and try again."
+                        photoItem = nil
+                    }
+                    return
+                }
+                guard let normalised = CharacterImageProcessor.normalisedJPEGData(from: data) else {
+                    await MainActor.run {
+                        errorMessage = "The selected photo could not be converted into a usable portrait. Choose another image and try again."
+                        photoItem = nil
+                    }
+                    return
+                }
+                await MainActor.run {
+                    draft.profileImageData = normalised
+                    photoItem = nil
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    photoItem = nil
                 }
             }
         }
     }
 
-    @ViewBuilder private var portraitPreview: some View {
+    @ViewBuilder
+    private var portraitPreview: some View {
         if let data = draft.profileImageData, let image = UIImage(data: data) {
-            Image(uiImage: image).resizable().scaledToFill().frame(width: 72, height: 72).clipShape(Circle())
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 72, height: 72)
+                .clipShape(Circle())
+                .accessibilityLabel("Current character portrait")
         } else {
-            Image(systemName: "person.crop.circle.fill").resizable().scaledToFit().foregroundStyle(.secondary).frame(width: 72, height: 72)
+            Image(systemName: "person.crop.circle.fill")
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.secondary)
+                .frame(width: 72, height: 72)
+                .accessibilityLabel("No character portrait selected")
         }
     }
 }
