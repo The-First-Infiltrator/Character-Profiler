@@ -8,144 +8,97 @@ The roadmap follows the product specification rather than adding features simply
 
 Status: complete.
 
-Delivered the first build-clean baseline, formal product specification, feature-status audit, architecture boundaries and development roadmap.
+Established the first build-clean baseline, product specification, feature-status audit, architecture boundaries and development roadmap.
 
 ## 0.4 — Family tree
 
 Status: complete and integrated.
 
-Delivered:
+Delivered a graphical family tree projected from the existing relationship graph, multi-generation traversal, navigation, zoom/scroll and structural validation for duplicate links and ancestry contradictions.
 
-- graphical family tree generated from existing family relationships;
-- generation placement from parent/child direction;
-- connected-family traversal across multiple generations;
-- tappable character cards;
-- distinct ancestry/partner/sibling connectors;
-- scrolling and zoom for larger families;
-- duplicate-link and ancestry-cycle validation;
-- Xcode unit coverage for graph generation and structural validation.
+## 0.5 / 0.5.1 — Character Guide depth
 
-The family tree remains a projection of `CharacterRelationship` data rather than a second family database.
+Status: complete and integrated.
 
-## 0.5 — Character Guide depth
+Delivered more than 120 stable prompts, broad genre coverage, deterministic development-depth scoring, category balancing, adaptive context, stable answered-prompt suppression and visible human-readable reasons for suggestions.
 
-Status: complete and integrated through 0.5.1.
-
-Delivered:
-
-- prompt catalogue expanded to well over 100 stable prompts;
-- deeper coverage for every built-in genre;
-- deterministic suggestion scoring based on genre and existing character development;
-- category balancing;
-- development-depth signals from profile fields, Guide answers, relationships, role and history;
-- adaptive follow-ups from trauma/loss, family, multiple life events and contextual text;
-- human-readable suggestion reasons;
-- 0.5.1 presentation of those reasons in Guide cards and the answer sheet;
-- preservation of stable prompt IDs and answered-prompt suppression;
-- unit tests for catalogue uniqueness/size, genre filtering, category diversity, adaptive context and development-depth detection.
-
-The Guide remains deterministic and advisory. True semantic contradiction checking is a separate future feature candidate.
+The Guide remains advisory and does not silently change canon. Full semantic contradiction detection remains a future candidate.
 
 ## 0.6 — Author workflow and portability
 
 Status: complete and integrated.
 
-Delivered:
-
-- Character Profiler archive format v1;
-- system document export for complete story backups;
-- Story Library restore/import;
-- archive coverage for project metadata, characters, flexible fields, Guide answers, life events, relationships and all current visual assets;
-- fresh local SwiftData identifiers on restore;
-- ability to restore the same backup multiple times without identifier collisions;
-- archive validation and safe failed-restore cleanup;
-- relationship reconstruction after all restored characters exist;
-- whole-project round-trip tests;
-- safer story and character deletion confirmations with affected-data counts;
-- project overview metrics;
-- resilient CI simulator discovery/provisioning.
-
-The archive is an application-owned interchange format, not a raw SwiftData/database dump.
+Delivered Character Profiler archive format v1, complete project backup/export and restore/import, fresh local IDs on restore, graph reconstruction, archive validation, round-trip tests, project metrics, safer story/character deletion and resilient hosted-runner simulator preparation.
 
 ## 0.7 — Visual Studio hardening
 
-Status: simulator-testable scope implemented and Xcode-green on the 0.7.0 feature branch; physical-device output-quality validation remains outstanding.
+Status: complete and integrated for everything simulator CI can validate. Physical-device Image Playground output-quality validation remains outstanding.
 
-Goal: improve reliability and consistency of the focused character-appearance workflow without expanding its product scope.
-
-Delivered in 0.7.0:
-
-- dedicated Visual Studio view implementation separated from the general character-detail screen;
-- runtime Image Playground availability handling using the system support environment value;
-- labelled/reorderable/deletable reference-image management;
-- explicit canonical-image replacement and clearing lifecycle;
-- canonical replacement can reset stale turnaround frames only after a replacement is successfully accepted;
-- canonical visual enforced as the source identity image for turnaround generation;
-- fixed eight-slot turnaround navigation instead of silently skipping missing positions;
-- completion progress and named missing-angle reporting;
-- next-missing generation action;
-- independent regeneration/deletion of angle frames;
-- whole-turnaround reset that preserves canonical/reference source material;
-- duplicate-angle detection;
-- surfaced image-import/save errors;
-- deterministic Xcode tests for visual completeness, duplicate detection, angle wraparound and reference ordering;
-- app version 0.7.0 build 9.
+Delivered runtime Image Playground availability handling, labelled/reorderable reference images, canonical-image lifecycle controls, canonical identity anchoring for turnaround generation, fixed eight-slot navigation, missing/duplicate angle reporting, progress, per-angle recovery/reset controls and deterministic visual-state tests.
 
 Still requiring a supported physical device:
 
 - real Image Playground generation testing;
-- judgement of whether canonical identity, proportions, clothing and equipment remain acceptably consistent across generated angles;
-- confirmation of device-specific Image Playground availability/user-flow behaviour that simulator CI cannot reproduce.
+- judgement of canonical/turnaround face, proportions, clothing and equipment consistency;
+- device-specific Image Playground availability/user-flow validation.
 
-This phase does not add scenes, animation, posing, filmmaking or a true 3D mesh.
+## 0.8 — Author-release hardening
 
-## 0.8 — Remaining author-release hardening
+Status: implemented on the 0.8.0 feature branch; final exact-head Xcode validation and integration are the release gates.
 
-Status: **next major development target**.
+Goal: remove the remaining everyday author-workflow rough edges before 1.0.
 
-Goal: remove the remaining everyday author-workflow rough edges before the 1.0 stability pass.
+Delivered in 0.8.0:
 
-Planned work:
+- editable existing life events without delete/recreate;
+- a richer chronological History presentation with explicit author-controlled ordering;
+- move-earlier/move-later controls for free-text ages/dates that cannot be safely machine-sorted;
+- destructive confirmation and surfaced save errors for life-event removal/changes;
+- editing existing relationship type and notes on the existing shared graph edge;
+- inverse-safe relationship editing from either character's perspective;
+- family-graph validation that evaluates edits while excluding the edge currently being changed;
+- destructive confirmation for relationship removal, including family-tree impact;
+- searchable cast selection when adding relationships;
+- project cast search expanded to relationship names, kinds and notes;
+- large-cast result counts and search guidance;
+- improved empty states and accessibility labels/hints across author workflows;
+- surfaced SwiftData save failures in story, character, Guide, relationship, history and destructive-action flows;
+- explicit portrait-import failure handling;
+- idempotent legacy orphan-character migration extracted into a testable helper;
+- regression tests for ordering, inverse relationship edits, edit-aware family validation, migration idempotency and relationship-aware search;
+- app version 0.8.0 build 10.
 
-- richer chronological history presentation;
-- editing existing life events rather than delete/recreate only;
-- editing existing relationships while preserving graph invariants;
-- broader migration regression coverage as the SwiftData model evolves;
-- large-cast usability and accessibility passes;
-- final destructive-flow and empty-state review;
-- release-quality error handling and copy consistency;
-- review of any non-device-dependent issues discovered while auditing Visual Studio 0.7.
-
-Physical-device findings from 0.7 may add targeted visual fixes here without expanding Visual Studio beyond character appearance/inspection.
+Version 0.8 adds no new SwiftData entity or persistent field and does not change portable archive format v1.
 
 ## 1.0 — First stable author release
 
+Status: **next major development target after 0.8 integration**.
+
 Goal: a dependable character-development application an author can use for a real writing project without treating it as a prototype.
 
-Release criteria are defined in `PRODUCT_SPEC.md` and include build/test stability, robust persistence, portable backup/restore, safe destructive actions, a usable family/relationship view, useful genre-aware development guidance, dependable history/relationship handling and a clearly bounded visual workflow.
+The 1.0 pass should concentrate on release readiness rather than broad new feature scope:
+
+- exact-head build/test stability;
+- migration and archive compatibility review;
+- final data-loss-path audit;
+- final accessibility and large-cast usability review;
+- copy/error consistency;
+- packaging/release documentation;
+- resolution of any concrete issues found during supported physical-device Visual Studio testing.
 
 ## Future candidates, not commitments
 
-The following ideas may be useful but require an explicit product decision before they enter a numbered release:
+These require a deliberate product decision before entering a numbered release:
 
 - semantic contradiction/consistency analysis across character facts;
 - broader non-family relationship network;
 - iCloud synchronisation;
 - provider abstraction for additional visual AI services;
-- richer archive management such as backup history/comparison;
-- iPad-specific multi-column layouts;
-- Mac companion application.
-
-A true 3D character mesh is also a separate future decision. The current eight-view turnaround should not be described as a true 3D model.
+- richer archive history/comparison;
+- iPad-specific layouts;
+- Mac companion app;
+- true 3D character mesh.
 
 ## Explicitly outside the roadmap
 
-Unless the product specification is deliberately changed, the roadmap does not include:
-
-- scene generation;
-- video or cinematic generation;
-- character animation;
-- a game engine;
-- RPG mechanics;
-- automatic chapter/story writing;
-- a large posing studio.
+Unless the product specification is deliberately changed, the roadmap does not include scene/video generation, character animation, a game engine, RPG mechanics, automatic chapter/story writing or a large posing studio.
