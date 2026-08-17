@@ -13,7 +13,7 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Show Xcode version
         run: xcodebuild -version
@@ -23,8 +23,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Initialise CoreSimulator first. Some hosted macOS images expose only
-          # the placeholder destination until simctl has started the service.
+          # Initialise CoreSimulator before choosing a destination. Hosted runners
+          # can briefly expose only placeholder destinations until simctl starts.
           xcrun simctl list devices available >/tmp/available-simulators.txt || true
           cat /tmp/available-simulators.txt
 
@@ -46,7 +46,7 @@ jobs:
           echo "Using simulator $simulator_id"
           echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
 
-      - name: Build and test
+      - name: Test on iOS Simulator
         run: >-
           xcodebuild
           -project CharacterProfiler.xcodeproj
@@ -56,7 +56,7 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
           test
 
-      - name: Build Release configuration
+      - name: Build optimized Simulator Release
         run: >-
           xcodebuild
           -project CharacterProfiler.xcodeproj
@@ -64,5 +64,16 @@ jobs:
           -configuration Release
           -sdk iphonesimulator
           -destination "platform=iOS Simulator,id=${SIMULATOR_ID}"
+          CODE_SIGNING_ALLOWED=NO
+          build
+
+      - name: Build optimized iPhoneOS Release
+        run: >-
+          xcodebuild
+          -project CharacterProfiler.xcodeproj
+          -scheme CharacterProfiler
+          -configuration Release
+          -sdk iphoneos
+          -destination "generic/platform=iOS"
           CODE_SIGNING_ALLOWED=NO
           build
