@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import XCTest
+import SwiftData
 @testable import CharacterProfiler
 
 final class VisualStudioTests: XCTestCase {
@@ -68,5 +69,136 @@ final class VisualStudioTests: XCTestCase {
         XCTAssertEqual(snapshot.completedAngleCount, 8)
         XCTAssertEqual(snapshot.turnaroundProgress, 1.0, accuracy: 0.0001)
         XCTAssertTrue(snapshot.missingAngles.isEmpty)
+    }
+}
+
+final class AuthorWorkflowTests: XCTestCase {
+    @MainActor
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema([
+            StoryProject.self,
+            CharacterProfile.self,
+            ProfileSection.self,
+            ProfileField.self,
+            LifeEvent.self,
+            PromptResponse.self,
+            CharacterReferenceImage.self,
+            CharacterVisualFrame.self,
+            CharacterRelationship.self
+        ])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        return try ModelContainer(for: schema, configurations: [configuration])
+    }
+
+    @MainActor
+    func testLifeEventOrderingMovesOneSlotAndClampsAtEnds() {
+        let character = CharacterProfile(name: "Elena")
+        let first = LifeEvent(title: "First", sortOrder: 0, character: character)
+        let second = LifeEvent(title: "Second", sortOrder: 1, character: character)
+        let third = LifeEvent(title: "Third", sortOrder: 2, character: character)
+        character.lifeEvents = [first, second, third]
+
+        LifeEventOrdering.move(second, by: 1, in: character)
+        XCTAssertEqual(character.sortedLifeEvents.map(\.title), ["First", "Third", "Second"])
+
+        LifeEventOrdering.move(first, by: -1, in: character)
+        XCTAssertEqual(character.sortedLifeEvents.map(\.title), ["First", "Third", "Second"])
+
+        LifeEventOrdering.normalize(in: character)
+        XCTAssertEqual(character.sortedLifeEvents.map(\.sortOrder), [0, 1, 2])
+    }
+
+    @MainActor
+    func testRelationshipEditingStoresCorrectInverseFromTargetPerspective() {
+        let child = CharacterProfile(name: "Child")
+        let parent = CharacterProfile(name: "Parent")
+        let relationship = CharacterRelationship(kind: .parent, source: child, target: parent)
+        child.outgoingRelationships.append(relationship)
+        parent.incomingRelationships.append(relationship)
+
+        XCTAssertEqual(relationship.kind(from: parent), .child)
+        let stored = RelationshipEditingRules.storedKind(
+            displayedKind: .mentor,
+            for: relationship,
+            viewedFrom: parent
+        )
+        XCTAssertEqual(stored, .student)
+        relationship.kind = stored
+        XCTAssertEqual(relationship.kind(from: parent), .mentor)
+        XCTAssertEqual(relationship.kind(from: child), .student)
+    }
+
+    @MainActor
+    func testFamilyValidationCanIgnoreTheRelationshipBeingEdited() {
+        let child = CharacterProfile(name: "Child")
+        let parent = CharacterProfile(name: "Parent")
+        let relationship = CharacterRelationship(kind: .parent, source: child, target: parent)
+        child.outgoingRelationships.append(relationship)
+        parent.incomingRelationships.append(relationship)
+
+        XCTAssertNotNil(
+            FamilyRelationshipRules.validationMessage(source: child, target: parent, kind: .child)
+        )
+        XCTAssertNil(
+            FamilyRelationshipRules.validationMessage(
+                source: child,
+                target: parent,
+                kind: .child,
+                excluding: relationship.id
+            )
+        )
+    }
+
+    @MainActor
+    func testLegacyMigrationCreatesOneImportedProjectAndIsIdempotent() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let existing = StoryProject(title: "Existing Story", genre: .fantasy)
+        let assigned = CharacterProfile(name: "Assigned", project: existing)
+        let orphanOne = CharacterProfile(name: "Orphan One")
+        let orphanTwo = CharacterProfile(name: "Orphan Two")
+        context.insert(existing)
+        context.insert(assigned)
+        context.insert(orphanOne)
+        context.insert(orphanTwo)
+        existing.characters.append(assigned)
+        try context.save()
+
+        var projects = try context.fetch(FetchDescriptor<StoryProject>())
+        var characters = try context.fetch(FetchDescriptor<CharacterProfile>())
+        let imported = try XCTUnwrap(
+            LegacyDataMigration.assignUnassignedCharacters(characters, projects: projects, in: context)
+        )
+
+        XCTAssertEqual(imported.title, "Imported Characters")
+        XCTAssertEqual(Set(imported.characters.map(\.name)), Set(["Orphan One", "Orphan Two"]))
+        XCTAssertEqual(assigned.project?.id, existing.id)
+
+        projects = try context.fetch(FetchDescriptor<StoryProject>())
+        characters = try context.fetch(FetchDescriptor<CharacterProfile>())
+        let secondRun = try LegacyDataMigration.assignUnassignedCharacters(characters, projects: projects, in: context)
+
+        XCTAssertNil(secondRun)
+        XCTAssertEqual(projects.filter { $0.title == "Imported Characters" }.count, 1)
+        XCTAssertTrue(characters.allSatisfy { $0.project != nil })
+    }
+
+    @MainActor
+    func testCharacterSearchIncludesRelationshipNamesKindsAndNotes() {
+        let elena = CharacterProfile(name: "Elena")
+        let mara = CharacterProfile(name: "Mara Vale")
+        let relationship = CharacterRelationship(
+            kind: .mentor,
+            notes: "Owes her a dangerous debt",
+            source: elena,
+            target: mara
+        )
+        elena.outgoingRelationships.append(relationship)
+        mara.incomingRelationships.append(relationship)
+
+        XCTAssertTrue(CharacterSearch.matches(elena, term: "Mara"))
+        XCTAssertTrue(CharacterSearch.matches(elena, term: "mentor"))
+        XCTAssertTrue(CharacterSearch.matches(elena, term: "dangerous debt"))
+        XCTAssertFalse(CharacterSearch.matches(elena, term: "spaceship"))
     }
 }

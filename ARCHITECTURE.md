@@ -2,28 +2,24 @@
 
 # Character Profiler Architecture
 
-## Purpose and source of truth
+## Purpose
 
-Character Profiler is an author-facing story bible. It remembers facts about a cast, helps an author discover missing character detail, links people to one another, records formative history, protects the author's work through portable backups and establishes a consistent visual reference for each character.
+Character Profiler is an author-facing, local-first story bible. Product intent lives in `docs/PRODUCT_SPEC.md`; implementation status and sequencing live in `docs/FEATURE_STATUS.md` and `docs/ROADMAP.md`.
 
-Product intent is defined in `docs/PRODUCT_SPEC.md`. Current implementation coverage is tracked in `docs/FEATURE_STATUS.md`, and sequencing is tracked in `docs/ROADMAP.md`.
+The app deliberately stops at the character boundary. It is not a scene generator, animation/film system, game engine or automatic story writer.
 
-The application deliberately stops at the character boundary. It is not a scene generator, animation system, filmmaking tool or game engine.
+## Core principles
 
-## Architectural principles
-
-- The core data model must remain useful without AI services.
-- Author-entered facts are persistent canon; suggestions do not silently overwrite them.
-- Flexible profile data is preferred over continually expanding a rigid database schema.
-- Relationships link real character records and have meaningful inverse views.
-- Visual graph presentations are derived projections of relationship edges, never second relationship databases.
-- Character Guide selection remains deterministic and explainable unless a future product decision deliberately introduces another reasoning layer.
+- Author-entered facts are canon; suggestions never silently overwrite them.
+- Flexible profile data is preferred to endlessly expanding a rigid schema.
+- Relationships are real graph edges between character records.
+- Family/relationship diagrams are derived views, never second databases.
+- Life history remains author data; the Guide may react to it but does not rewrite it.
 - Visual generation is optional and availability-gated.
-- The accepted canonical visual is the identity anchor for generated turnaround views.
-- Provider-specific AI code must not become the owner of core character data.
-- Existing story data must survive model evolution through compatible defaults or explicit migrations.
-- Portable backups are application-owned, versioned interchange documents rather than raw persistence-store copies.
-- Import must fail safely: unsupported or structurally invalid archives are rejected rather than guessed into the model.
+- The accepted canonical visual is the identity anchor for turnaround generation.
+- Portable backups are explicitly versioned application documents, not raw SwiftData stores.
+- Persistence changes and archive-format changes are separate compatibility contracts.
+- Major author workflows surface persistence/import failures rather than silently swallowing them.
 
 ## Persistent model
 
@@ -35,240 +31,174 @@ StoryProject
     ├── LifeEvent[]
     ├── PromptResponse[]
     ├── outgoing/incoming CharacterRelationship[]
-    │   └── derived FamilyGraphSnapshot / FamilyTreeView
     ├── CharacterReferenceImage[]
     ├── generatedVisualData
     └── CharacterVisualFrame[]
-        └── VisualAngle
 ```
 
-### StoryProject
+Version 0.8 adds no SwiftData entity or persistent field.
 
-Stores story title, genre, optional custom genre, premise and cast. Character search and ordinary navigation are scoped to the active project.
+## Story and legacy migration
 
-### CharacterProfile
+A `StoryProject` owns story metadata and a cast. A `CharacterProfile` normally belongs to exactly one project.
 
-Stores frequently used metadata and owns the expandable profile, life history, prompt answers, relationship edges and visual assets.
+Older pre-project characters may exist with `project == nil`. `LegacyDataMigration.assignUnassignedCharacters` moves those records into one `Imported Characters` project. The helper is intentionally idempotent: if no orphan records remain, another migration pass performs no work and creates no duplicate imported project.
 
-`visualDescription` stores author-supplied appearance instructions. `generatedVisualData` stores the accepted canonical generated image using SwiftData external binary storage.
+This is compatibility logic for older local records, not a new 0.8 schema migration.
 
-A character normally belongs to one project. Earlier pre-project characters are migrated into an `Imported Characters` project.
+## Flexible profile
 
-### Flexible profile
+`ProfileSection` and `ProfileField` remain generic. Genre- or story-specific character attributes can be added without a persistent model change.
 
-`ProfileSection` and `ProfileField` are intentionally generic. Authors can add arbitrary attributes without a schema change for every genre-specific idea. Default profile sections are convenience content, not storage constraints.
+## Relationship graph
 
-## Relationships and family graph
+`CharacterRelationship` is one shared edge between two `CharacterProfile` objects. The stored kind is interpreted from `source`; `kind(from:)` returns the correct inverse at the opposite endpoint.
 
-`CharacterRelationship` is an edge between two real `CharacterProfile` objects. Directional relationships derive inverse meaning automatically, such as parent/child and mentor/student.
+Examples:
 
-Important invariants:
+- stored parent → source sees parent, target sees child;
+- stored mentor → source sees mentor, target sees student.
 
-- both endpoints are real character records;
-- the same edge is interpretable from either endpoint;
-- duplicate equivalent family links are rejected;
-- parent/child creation must not introduce an ancestry cycle;
-- an ancestor/descendant pair cannot also be recorded as siblings;
-- inverse meaning must not be represented by creating a contradictory duplicate edge;
-- graphical views are projections of the relationship graph, not separate persistent relationship stores.
+Structural invariants:
 
-### FamilyGraphSnapshot
+- endpoints must be real, distinct characters;
+- inverse meaning is represented by one edge, not duplicate inverse records;
+- equivalent duplicate family links are rejected;
+- parent/child links may not create ancestry cycles;
+- a direct ancestor/descendant pair may not also be siblings;
+- graphical family/network views are projections of this graph.
 
-`FamilyGraphSnapshot` is an in-memory projection rooted on the selected character. It walks family relationship kinds and assigns a generation offset relative to the root:
+### Editing relationships
 
-- parent = -1 generation;
-- child = +1 generation;
-- sibling, spouse and partner = same generation.
+Version 0.8 edits the existing edge rather than delete/recreate.
 
-Connected relatives are traversed so grandparents, grandchildren and larger families can appear without additional persistent entities. Relationship edges are deduplicated by relationship ID.
+`RelationshipEditingRules.storedKind(displayedKind:for:viewedFrom:)` translates a kind selected from the current character's perspective back into the stored source-oriented value. This preserves inverse semantics even when an edge is edited from its target character.
 
-`FamilyTreeView` computes a layout from that snapshot. SwiftUI cards remain interactive views while a `Canvas` draws connectors behind them. The family view supports two-axis scrolling and zoom.
+`FamilyRelationshipRules.validationMessage(... excluding:)` can omit the edge under edit while evaluating the proposed state. Duplicate/family-link checks and ancestor traversal therefore do not mistake the current value for a conflicting second edge, while all structural invariants still apply to the edited result.
 
-`FamilyRelationshipRules` protects graph structure before a new link is saved. It blocks self-links, duplicate family links and ancestry contradictions without imposing social assumptions on fictional family structures.
+Deleting an edge removes the same relationship from both endpoint views and immediately changes any derived family tree.
 
-## Life history
+### Family projection
 
-`LifeEvent` stores formative events and their lasting impact. Trauma and loss can feed additional Character Guide suggestions.
+`FamilyGraphSnapshot` walks family relationship kinds from the selected root and assigns relative generations:
 
-History is character data, not AI-generated narrative. The Guide may react to it but does not rewrite it.
+- parent: -1;
+- child: +1;
+- sibling/spouse/partner: 0.
+
+The snapshot is transient. `FamilyTreeView` computes layout and draws connectors separately from interactive SwiftUI character cards. No family-tree persistence model exists.
+
+## Life history and chronology
+
+`LifeEvent` records title, kind, free-text timing, details, impact and `sortOrder`.
+
+Free-text timing is deliberately not used as a universal parser/sort key. Author chronology may contain “Age 12”, “before the uprising”, invented calendar dates or other story-specific text.
+
+Version 0.8 makes `sortOrder` explicit author-controlled chronology through `LifeEventOrdering`:
+
+- `reorderedIDs` provides deterministic pure ordering behavior;
+- `move` updates stored `sortOrder` values;
+- `normalize` restores contiguous order values after create/delete/edit flows.
+
+Editing changes the existing `LifeEvent` object in place. Deleting history is confirmed because it can also alter adaptive Guide context.
 
 ## Character Guide
 
-Guide logic lives in `CharacterGuide.swift`. Prompt definitions are application content; `PromptResponse` stores author answers.
+`CharacterGuide.swift` owns stable prompt content and deterministic selection. `PromptResponse` stores author answers.
 
-Two selection APIs are maintained:
+`PromptEngine.detailedSuggestions` combines genre relevance, development-depth heuristics, category balancing and adaptive recorded context. `GuideSuggestion.reason` explains selection in the UI but is not persisted as character canon.
 
-- `PromptEngine.suggestions(...)` provides the original simple `[CharacterPrompt]` compatibility API;
-- `PromptEngine.detailedSuggestions(...)` returns `GuideSuggestion` values containing the prompt, human-readable reason and relevance score.
+Stable prompt IDs are part of compatibility: existing response IDs must not be casually renamed.
 
-Prompt IDs are stable storage keys. Existing IDs should not be casually renamed because saved responses use them to suppress answered questions.
+Full arbitrary semantic contradiction detection is not currently claimed.
 
-### Development depth and balance
+## Cast search and large projects
 
-`developmentDepths(for:)` builds a lightweight heuristic score for each `PromptCategory` from profile fields, answered Guide prompts, metadata, relationships, story role and life events.
+`CharacterSearch.matches` centralises project cast search. It covers:
 
-Applicable prompts are scored using genre relevance and category depth. Adaptive suggestions receive higher scores when recorded facts create strong follow-up opportunities. Selection then aims for category diversity before filling remaining slots by score with a soft cap on repetition.
+- name/nickname/role/summary;
+- profile section/field labels and values;
+- linked character display names;
+- relationship kind labels;
+- relationship notes.
 
-The deterministic adaptive layer can react to subjects including trauma/loss, family, multiple life events, role, magic, taverns/drinking-place behaviour, war/combat, secrecy, faith, money, romance and revenge.
-
-Each rich suggestion carries a reason. The UI exposes that reason without persisting it as character canon.
-
-Character Profiler does **not** currently claim arbitrary semantic contradiction detection across prose facts.
+Adding a relationship uses a searchable character picker rather than a large flat picker, so selection remains usable as cast size grows.
 
 ## Portable project archive
 
-`ProjectArchive.swift` is a non-SwiftData support layer for explicit project backup and restore.
+`ProjectArchive.swift` defines Character Profiler archive format v1 as a `Codable` projection of the author-visible project graph.
 
-A raw SwiftData store is an implementation detail, not a stable interchange contract. Archive format 1 serialises the author-visible project graph into a `Codable` structure containing:
+Format v1 includes project metadata, characters, profile sections/fields, life events (including ordering), Guide responses, relationship edges, profile/reference images, canonical generated visual and turnaround frames.
 
-- project metadata and timestamps;
-- all characters and common metadata;
-- arbitrary profile sections and fields;
-- life events;
-- Guide responses;
-- relationship edges;
-- profile images;
-- author reference images;
-- canonical generated visual data;
-- turnaround frames and `VisualAngle` values.
+Archived UUIDs are reconstruction keys only. Restore creates fresh SwiftData identifiers, maps archived character IDs to new local records, then rebuilds relationships after all characters exist. This lets one backup be restored repeatedly without unique-ID collision.
 
-### Archive identifiers versus local identifiers
+Validation rejects unsupported versions and malformed graph structure before a restore is accepted. Failed restore attempts clean up partial destination data.
 
-Archived UUIDs exist so relationships can refer to character records inside the document. Restore does **not** replay those UUIDs as new SwiftData object IDs.
-
-Restore creates a new project and new local model objects. A temporary archived-character-ID to new-character map reconstructs relationships only after all characters exist. This allows the same backup to be restored multiple times without unique-ID collisions.
-
-### Validation and failure handling
-
-Archive validation rejects unsupported format versions, required blank identity, duplicate archived IDs, self-referential relationship endpoints and relationship endpoints that do not exist in the archived cast.
-
-Restore validates before insertion and removes a partially created destination project if a later reconstruction step throws.
-
-`ProjectArchiveDocument` conforms to SwiftUI `FileDocument`. Export uses the system file exporter; restore uses the system file importer.
+Version 0.8 does not change archive format v1 because it introduces no new persisted information.
 
 ## Character Visual Studio
 
-Version 0.7 moves the visual workflow into the dedicated `CharacterVisualWorkspaceView.swift` source. The persistent model remains the same; the new state helpers are derived projections over existing visual records.
+`CharacterVisualWorkspaceView.swift` owns the visual workflow. Existing persistent fields remain sufficient:
 
-### Runtime availability
+- `CharacterReferenceImage` with label/order/image data;
+- `generatedVisualData` as the accepted canonical visual;
+- `CharacterVisualFrame` keyed by `VisualAngle`.
 
-Visual AI uses Apple's Image Playground integration when supported. The workspace reads SwiftUI's Image Playground support environment value before enabling generation controls.
+Image Playground availability is read at runtime. Core character/profile/Guide/relationship/history/archive features do not depend on visual AI.
 
-If generation is unavailable, existing reference pictures, appearance notes, canonical images and turnaround frames remain visible/manageable. The rest of Character Profiler never depends on visual generation being available.
+The canonical visual is the source identity image for angle generation. `VisualWorkspaceSnapshot` derives available/missing/duplicate angle state and completion across eight fixed 45° positions.
 
-### Reference images
+The turnaround is an image-based inspection sequence, not a true 3D mesh.
 
-`CharacterReferenceImage` stores up to six selected pictures. Images are normalised before storage. Existing `label` and `sortOrder` fields are used for explicit reference naming and ordering; 0.7 requires no new persistent fields.
+Simulator CI can validate APIs and deterministic state, but physical-device testing is still required to judge whether generated face/body/clothing/equipment identity remains acceptably consistent.
 
-`VisualReferenceOrdering` contains deterministic ordering logic. Reordering changes `sortOrder`; it does not duplicate image records.
+## Destructive-action and error safety
 
-### Canonical character image
+Story/character deletion reports affected linked data. Version 0.8 adds confirmed deletion for relationships and life events.
 
-The canonical generation concept combines character name/story context, role, summary, appearance notes, populated profile fields and a reference board assembled from selected reference images.
+Major author save paths use explicit `do/catch` feedback instead of treating `try?` as acceptable release behavior. Portrait import also distinguishes unreadable/failed conversion from a successful selection.
 
-The accepted result becomes `generatedVisualData` and may also be copied to the profile portrait.
-
-The canonical image is the identity anchor for turnaround generation. Once an angle is being generated, the source image is the accepted canonical visual rather than the original reference board or profile portrait.
-
-When a canonical image is replaced while angle frames exist, the UI makes the stale-turnaround risk explicit. The author may keep existing views or request a turnaround reset. Crucially, that reset occurs only after a replacement image is successfully accepted; opening and cancelling generation does not destroy existing frames.
-
-Clearing the visual set removes canonical/turnaround generated data while retaining source reference pictures and appearance notes.
-
-### Fixed eight-slot turnaround
-
-Character Profiler does not construct a true 3D mesh.
-
-`VisualAngle` defines eight standard slots at 45-degree intervals:
-
-1. front (0°)
-2. front-right (45°)
-3. right (90°)
-4. back-right (135°)
-5. back (180°)
-6. back-left (225°)
-7. left (270°)
-8. front-left (315°)
-
-`CharacterVisualFrame` stores accepted image data for an angle. Missing views are represented by the absence of a frame for that `VisualAngle`; no placeholder object is persisted.
-
-`VisualWorkspaceSnapshot` derives:
-
-- whether a canonical visual exists;
-- current reference count;
-- unique available angles;
-- missing angles;
-- duplicate stored angles;
-- completed angle count and progress.
-
-The viewer navigates the fixed `VisualAngle` sequence rather than a filtered list of existing frames. This means missing positions remain visible and understandable. The author can generate a missing slot, regenerate/delete an existing slot, generate the next missing slot, or reset all angle frames while keeping the canonical/reference material.
-
-Duplicate stored angle records are treated as a data-integrity warning. The derived snapshot counts the angle once for completion and reports the duplicate condition instead of falsely claiming more than eight views.
-
-### Validation boundary
-
-Simulator CI can prove the SwiftUI/Image Playground SDK integration compiles and can test deterministic state/navigation/reference-ordering logic.
-
-Simulator CI cannot judge the visual quality of Image Playground output or guarantee that a physical device will preserve face, proportions, clothing and equipment consistently across all generated angles. That remains a real-device validation requirement.
-
-## Destructive-action safety
-
-Story and character deletion use staged confirmations rather than immediate model deletion. Project deletion reports cast/relationship impact and reminds the author about backups. Character deletion reports linked relationship, history, Guide-answer and visual-asset counts.
-
-These confirmations are safeguards, not an undo system. Portable backup is the durable recovery mechanism.
+Confirmations are not an undo system; portable backup remains the durable recovery mechanism.
 
 ## UI flow
 
 ```text
 ProjectListView
 ├── Restore Backup
+├── LegacyDataMigration
 └── ProjectDetailView
-    ├── Project overview metrics
+    ├── Project overview
+    ├── searchable cast / CharacterSearch
     ├── Export Backup
     └── CharacterDetailView
         ├── Profile
         ├── Guide
-        │   └── PromptEngine / GuideSuggestion
         ├── People
-        │   ├── relationship rows
-        │   ├── AddRelationshipView
-        │   │   └── FamilyRelationshipRules
-        │   └── FamilyTreeView
-        │       └── FamilyGraphSnapshot
+        │   ├── RelationshipEditorView
+        │   ├── RelationshipCharacterPicker
+        │   └── FamilyTreeView / FamilyGraphSnapshot
         ├── History
+        │   ├── LifeEventEditorView
+        │   └── LifeEventOrdering
         └── Visual
             └── CharacterVisualWorkspaceView
-                ├── reference management
-                ├── appearance notes
-                ├── canonical visual lifecycle
-                └── VisualWorkspaceSnapshot / 8 angle slots
 
 ProjectArchiveDocument
 └── ProjectArchive format v1
-    ├── encode / validate / decode
-    └── fresh-ID project graph reconstruction
 ```
 
-## Compatibility and CI
+## Compatibility and release gate
 
-The core application retains its iOS 17 deployment target. Image Playground-specific UI is availability-gated.
+The core deployment target remains iOS 17. Image Playground-specific functionality is separately availability-gated.
 
-GitHub Actions builds/tests the iOS simulator target using Xcode. The workflow initialises CoreSimulator, discovers an available iPhone simulator UUID and can download the default iOS runtime if a hosted runner exposes no usable iPhone simulator.
+GitHub Actions dynamically prepares an iPhone simulator and runs the complete Xcode test suite. A green run on the exact final feature/release head is required before integration.
 
-A green exact-head CI run is a release requirement.
+Migration strategy by release:
 
-## Migration strategy
+- 0.4: family tree is derived; no persistent change.
+- 0.5: Guide scoring/reasons are derived; no persistent change.
+- 0.6: portable archive v1 added outside SwiftData schema.
+- 0.7: visual hardening uses existing visual records/order metadata.
+- 0.8: author-workflow hardening edits/orders existing records and tests legacy migration; no persistent change and archive stays v1.
 
-- Version 0.4 added no persistent entities/fields for the family tree; it is derived from relationship data.
-- Version 0.5 added no persistent fields for Guide scoring; it derives state from existing character records.
-- Version 0.6 added no SwiftData entity/field; archive format v1 is a separate `Codable` projection.
-- Version 0.7 adds no SwiftData entity/field; Visual Studio hardening derives state from existing reference/canonical/frame records and existing ordering metadata.
-
-The archive format and SwiftData schema are separate compatibility contracts. A future app must migrate local persistence safely and also deliberately decide how older portable archive versions are decoded/upgraded.
-
-Before any model change that can invalidate stored SwiftData objects, migration behaviour must be designed and tested rather than relying on accidental compatibility.
-
-## Scope boundary
-
-Future work should improve character development, relationship understanding, history, data safety and visual consistency without turning Character Profiler into an unrelated creative suite.
-
-The following remain outside the current architecture: scene generation, video/cinematics, character animation, game-engine systems, a large posing studio and automatic story writing.
+Any future schema change capable of invalidating stored records requires a deliberate migration design and regression tests before release.

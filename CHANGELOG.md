@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [0.8.0] - 2026-08-17
+
+### Added
+
+- Editable existing life events through a shared add/edit history editor.
+- Author-controlled chronological life-event ordering with move-earlier and move-later actions.
+- Richer timeline-style History presentation with explicit sequence position and lasting-impact treatment.
+- Editable existing relationship type and notes while preserving the original shared graph edge.
+- Inverse-safe relationship editing from either endpoint using `RelationshipEditingRules`.
+- Edit-aware family validation that excludes the edge under edit while checking the proposed relationship state.
+- Searchable cast picker for adding relationships in larger projects.
+- Relationship-aware project cast search covering linked character names, relationship kinds and notes.
+- Idempotent `LegacyDataMigration` helper for older unassigned character records.
+- Regression tests for history ordering, inverse relationship editing, edit-aware family validation, migration idempotency and relationship-aware search.
+
+### Safety and usability
+
+- Life-event and relationship deletion now require destructive confirmation and explain linked/derived effects.
+- Major story, character, Guide, relationship, history, migration and destructive save paths now surface SwiftData failures instead of silently swallowing them.
+- Character portrait import now reports unreadable/failed image conversion rather than failing silently.
+- Large-cast search shows useful result counts/guidance and no-results states.
+- Profile, Guide and unavailable-project empty states are clearer.
+- Accessibility labels/hints were strengthened across cast rows, project metrics, history, relationship actions and family-tree controls.
+
+### Compatibility
+
+- App version is now 0.8.0 build 10.
+- Version 0.8 adds no new SwiftData entity or persistent field.
+- Character Profiler archive format remains version 1; existing 0.6/0.7 project archives remain structurally compatible.
+- Physical-device Image Playground output-quality validation from 0.7 remains outstanding and is not falsely claimed by simulator CI.
+
 ## [0.7.0] - 2026-08-16
 
 ### Added
