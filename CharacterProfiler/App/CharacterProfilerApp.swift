@@ -5,7 +5,7 @@ import SwiftData
 
 @main
 struct CharacterProfilerApp: App {
-    private let modelContainer: ModelContainer = {
+    private let containerResult: Result<ModelContainer, Error> = {
         let schema = Schema([
             StoryProject.self,
             CharacterProfile.self,
@@ -21,16 +21,41 @@ struct CharacterProfilerApp: App {
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [configuration])
+            return .success(try ModelContainer(for: schema, configurations: [configuration]))
         } catch {
-            fatalError("Unable to create Character Profiler data store: \(error)")
+            return .failure(error)
         }
     }()
 
     var body: some Scene {
         WindowGroup {
-            ProjectListView()
+            switch containerResult {
+            case .success(let modelContainer):
+                ProjectListView()
+                    .modelContainer(modelContainer)
+            case .failure(let error):
+                DataStoreUnavailableView(error: error)
+            }
         }
-        .modelContainer(modelContainer)
+    }
+}
+
+private struct DataStoreUnavailableView: View {
+    let error: Error
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("Story Library Unavailable", systemImage: "externaldrive.badge.exclamationmark")
+        } description: {
+            VStack(spacing: 10) {
+                Text("Character Profiler could not open its local story database. The app will not erase or replace the store automatically.")
+                Text("Close and reopen the app. If the problem continues, preserve the app's data before reinstalling so the story library can be recovered or inspected.")
+                Text(error.localizedDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+        }
+        .padding()
     }
 }
