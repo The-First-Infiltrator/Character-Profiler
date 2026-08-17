@@ -1,0 +1,8 @@
+{
+  "tag": "v1.0.0",
+  "target": "dfacc2ffc4a5f57e68b193adf5e5fb3592f1dfe7",
+  "title": "Character Profiler 1.0.0",
+  "draft": false,
+  "prerelease": false,
+  "notes": "First stable release of Character Profiler.\n\nCharacter Profiler 1.0.0 delivers the complete author-focused character development workflow developed through versions 0.4-0.8: graphical family relationships, deep Character Guide prompts, project backup and restore, hardened Visual Studio workflows, editable history and relationships, large-cast usability improvements, data-safety protections, hostile-backup validation, and release-quality persistence and error handling.\n\nThis release uses archive format v1 and introduces no incompatible SwiftData schema change.\n\nAutomated release validation passed the complete Xcode simulator test suite and an optimized Release-configuration build on the exact main commit tagged by this release.\n\nPhysical-device Image Playground output-quality validation remains a documented limitation."
+}
