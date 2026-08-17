@@ -2,143 +2,127 @@
 
 # Character Profiler Feature Status
 
-This document compares the intended product in `PRODUCT_SPEC.md` with the current implementation. The changelog records what changed; this file records what is complete, partial, planned or only a candidate.
+This document records implementation status against `PRODUCT_SPEC.md`.
 
-Status meanings:
-
-- **Implemented** — present in the current codebase.
-- **Partial** — present but still needs validation, UX completion or deeper behaviour.
-- **Planned** — part of the intended product but not yet implemented.
-- **Candidate** — useful idea, but not committed product scope.
+Status meanings: **Implemented** is present in code; **Partial** needs validation or completion; **Planned** is committed future work; **Candidate** is not yet committed scope.
 
 ## Product foundation
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Native SwiftUI iPhone application | Implemented | SwiftUI application with an Xcode project. |
+| Native SwiftUI iPhone application | Implemented | Xcode project targeting iPhone. |
 | SwiftData local persistence | Implemented | Core entities and visual assets persist locally. |
-| Story/project library | Implemented | Projects own a cast and store genre/premise. |
-| Built-in genres plus custom genre | Implemented | Used by the Character Guide. |
-| Project overview metrics | Implemented | Cast, relationship, life-event, Guide-answer and average-development counts. |
-| Migration of pre-project characters | Implemented | Earlier characters can be placed into Imported Characters. |
-| CI build and unit-test workflow | Implemented | Xcode simulator build and unit tests are the release gate. |
-| Resilient hosted-runner simulator preparation | Implemented | CI discovers an available iPhone simulator and can download the default iOS runtime when needed. |
+| Story/project library | Implemented | Projects own a cast and genre/premise context. |
+| Built-in/custom genres | Implemented | Genre feeds Character Guide selection. |
+| Project overview metrics | Implemented | Cast, relationships, history, Guide answers and average development. |
+| Legacy orphan-character migration | Implemented | Older unassigned characters move into one `Imported Characters` project; 0.8 adds idempotency regression coverage. |
+| CI build/unit-test gate | Implemented | Hosted Xcode simulator workflow dynamically prepares an available iPhone runtime. |
+| Release-quality save/error surfacing | Implemented | 0.8 removes silent save failure from major story, character, Guide, relationship, history and destructive workflows. |
 
-## Character profile
+## Character profile and cast workflow
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Name, nickname, age, pronouns, role, summary | Implemented | Stored on `CharacterProfile`. |
-| Profile portrait | Implemented | Uses selected/generated image data. |
-| Flexible sections and arbitrary fields | Implemented | Not limited to a fixed compiled form. |
-| Starter author-oriented profile template | Implemented | Identity, appearance, personality, motivation, background and secrets. |
-| Search within a story cast | Implemented | Searches character data in the active project. |
-| Character development completion indicator | Implemented | Current heuristic only; may be refined later. |
-| Character deletion impact confirmation | Implemented | Reports linked relationships, history, Guide answers and visual assets before permanent deletion. |
+| Core metadata and portrait | Implemented | Name, nickname, age, pronouns, role, summary and portrait. |
+| Flexible sections/fields | Implemented | Author-defined profile content. |
+| Starter profile template | Implemented | Common character-development areas. |
+| Search within story cast | Implemented | Searches profile content; 0.8 also searches linked character names, relationship kinds and notes. |
+| Large-cast search guidance/result counts | Implemented | 0.8 improves feedback for larger projects. |
+| Completion indicator | Implemented | Heuristic development score. |
+| Character deletion impact confirmation | Implemented | Reports linked data and reminds the author about backups. |
+| Portrait import failure handling | Implemented | 0.8 surfaces unreadable/unsupported selected images. |
 
 ## Character Guide
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Large general development catalogue | Implemented | Well over 100 stable prompts. |
-| Genre-specific prompt sets | Implemented | Fantasy, SF, Romance, Mystery/Thriller, Horror, Historical, Contemporary, Adventure/Crime and YA have expanded coverage. |
-| Persisted Guide answers | Implemented | Answers are stored per character. |
-| Stable prompt identifiers | Implemented | Catalogue growth does not invalidate saved answers. |
-| Hide answered prompts | Implemented | Answered prompt IDs are suppressed from normal suggestions. |
-| Development-depth scoring | Implemented | Profile fields, answers, relationships, role and history contribute to category depth. |
-| Underdeveloped-area prioritisation | Implemented | Lightly developed categories receive a higher suggestion score. |
-| Category balancing | Implemented | Visible suggestions span several categories before repeating a theme. |
-| Adaptive prompts from relationships/history/profile text | Implemented | Includes family, trauma/loss, multiple life events, role and contextual follow-ups. |
-| Human-readable suggestion reason | Implemented | `GuideSuggestion` records why a prompt was selected. |
-| Explicit reason presentation | Implemented | Shown on suggestion cards and in the answer sheet without altering canonical prompt data. |
-| Deep semantic consistency/contradiction checking | Planned | Requires a deliberately designed reasoning layer beyond the deterministic rule engine. |
-| Explicit promotion of Guide answer into profile field | Candidate | Must remain author-controlled if added. |
+| Large prompt catalogue | Implemented | More than 120 stable prompts. |
+| Genre-specific coverage | Implemented | Expanded sets across built-in genres. |
+| Persisted answers/stable prompt IDs | Implemented | Answered prompts remain suppressible across catalogue evolution. |
+| Development-depth scoring | Implemented | Uses profile/Guide/relationship/role/history signals. |
+| Category balancing | Implemented | Visible suggestions span multiple dimensions. |
+| Adaptive context | Implemented | Includes trauma/loss, family, life events and contextual follow-ups. |
+| Human-readable selection reasons | Implemented | Shown in the Guide UI without becoming canon. |
+| Guide save failure handling | Implemented | 0.8 surfaces persistence errors. |
+| Deep semantic contradiction checking | Planned | Requires a separately designed reasoning layer. |
+| Promote Guide answer into profile | Candidate | Must remain explicit and author-controlled if added. |
 
 ## Relationships and family
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Real links between character records | Implemented | Relationship edges link two `CharacterProfile` objects. |
-| Parent/child and mentor/student inverse meaning | Implemented | Direction is interpreted from each character's point of view. |
-| Family grouping in People view | Implemented | Family relationships are separated from other relationships. |
-| Relationship notes | Implemented | Stored on each relationship edge. |
-| Graphical family tree | Implemented | Root-centred graph derived from existing family edges. |
-| Multi-generation traversal | Implemented | Connected grandparents, grandchildren and further generations are included without extra stored tree data. |
-| Tappable family members | Implemented | Tree cards navigate to existing character records. |
-| Large-family navigation | Implemented | Two-axis scrolling, pinch zoom and explicit zoom controls. |
-| Duplicate family-link prevention | Implemented | Equivalent family links are blocked. |
-| Ancestry-cycle prevention | Implemented | Parent/child cycles and ancestor/descendant sibling contradictions are rejected. |
-| Relationship preservation in project backups | Implemented | Archive endpoint IDs are reconstructed after all restored characters exist. |
-| Broader non-family relationship network | Planned | Friends, rivals, enemies, mentors and colleagues remain separate future work. |
+| Real character-to-character links | Implemented | Relationships are shared graph edges. |
+| Parent/child and mentor/student inverse semantics | Implemented | Correct meaning from either endpoint. |
+| Family grouping and notes | Implemented | People view separates family/other links. |
+| Edit existing relationship | Implemented | 0.8 edits kind/notes on the existing edge instead of delete/recreate. |
+| Inverse-safe relationship editing | Implemented | Editing from the target character stores the correct inverse kind. |
+| Searchable relationship cast picker | Implemented | 0.8 supports large casts when adding a link. |
+| Relationship deletion confirmation | Implemented | Shared-link/family-tree effect is explained before removal. |
+| Graphical family tree | Implemented | Derived root-centred graph; no second family database. |
+| Multi-generation traversal/navigation | Implemented | Connected relatives, tappable cards, scroll and zoom. |
+| Duplicate/cycle structural validation | Implemented | Duplicate links and ancestry contradictions rejected. |
+| Edit-aware family validation | Implemented | 0.8 excludes the edge being edited while validating the proposed replacement state. |
+| Relationship backup/restore | Implemented | Archive reconstructs endpoints after characters exist. |
+| Broader non-family relationship network | Planned | Separate future graph view candidate. |
 
 ## History and trauma
 
 | Capability | Status | Notes |
 | --- | --- | --- |
 | Structured life events | Implemented | Title, kind, timing, details and impact. |
-| Trauma and loss event types | Implemented | Used by adaptive Guide questions. |
-| General formative event categories | Implemented | Milestones and other life events supported. |
-| Life-history backup/restore | Implemented | Project archives include every stored life event. |
-| Chronological visual timeline | Partial | Events are structured and ordered, but 0.8 is expected to improve timeline presentation/editing. |
-| Edit existing life event | Planned | 0.8 target; current workflow still emphasises add/delete. |
+| Trauma/loss and formative categories | Implemented | Used by adaptive Guide questions. |
+| Chronological timeline presentation | Implemented | 0.8 provides a connected ordered timeline-style history view. |
+| Edit existing life event | Implemented | 0.8 edits the persisted event in place. |
+| Author-controlled event ordering | Implemented | Earlier/later controls handle free-text ages/dates without unsafe parsing assumptions. |
+| Life-event deletion confirmation | Implemented | Explains history/Guide effect before removal. |
+| Life-history backup/restore | Implemented | Archive v1 includes all life events and ordering. |
 
 ## Character Visual Studio
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Dedicated Visual workspace | Implemented | Fifth character area; 0.7 moves implementation into `CharacterVisualWorkspaceView.swift`. |
-| Up to six reference images | Implemented | Selected with the system Photos picker. |
-| Reference labels and ordering | Implemented | 0.7 adds explicit rename/reorder management using existing `sortOrder`. |
-| Reference deletion | Implemented | Explicit editor and destructive confirmation. |
+| Dedicated Visual workspace | Implemented | `CharacterVisualWorkspaceView.swift`. |
+| Up to six labelled/reorderable references | Implemented | Photos picker, labels, ordering and deletion. |
 | Written appearance instructions | Implemented | Stored per character. |
-| Character/profile facts included in generation concept | Implemented | Known data contributes to canonical generation. |
-| Runtime Image Playground availability handling | Implemented | Generation controls respect the system `supportsImagePlayground` environment value; existing assets remain usable when unavailable. |
-| AI-assisted canonical character image | Partial | Workflow is implemented; actual generated-image quality/identity consistency still needs supported physical-device validation. |
-| Canonical visual replacement lifecycle | Implemented | Replacement can keep or reset the turnaround; destructive reset is deferred until a replacement is accepted. |
-| Use generated image as profile portrait | Implemented | Canonical visual can become the portrait. |
-| Eight fixed angle definitions | Implemented | Front through front-left at 45-degree intervals. |
-| Canonical image as angle-generation identity source | Implemented | Angle generation uses the accepted canonical visual rather than falling back to unrelated references. |
-| Independent angle generation/regeneration | Implemented | Each slot can be generated or regenerated. |
-| Per-angle deletion | Implemented | Existing frames can be removed independently. |
-| Missing-angle visibility | Implemented | Missing views remain explicit fixed slots instead of being silently skipped. |
-| Turnaround completion progress | Implemented | Reports completed views, percentage and missing named angles. |
-| Generate next missing angle | Implemented | Direct recovery action for incomplete turnarounds. |
-| Whole-turnaround reset | Implemented | Removes angle frames while preserving canonical image, references and notes. |
-| Duplicate stored-angle detection | Implemented | Derived snapshot reports duplicate angle records and UI warns about them. |
-| Drag/arrow eight-slot navigation | Implemented | Navigation moves through every standard angle, including missing positions. |
-| Visual asset backup/restore | Implemented | Archive v1 includes profile images, references, canonical generated visual and turnaround frames. |
-| True continuous 3D mesh | Not planned | Explicitly outside current product design. |
-| Scene generation | Not planned | Explicitly outside product scope. |
-| Animation/cinematics | Not planned | Explicitly outside product scope. |
+| Runtime Image Playground availability handling | Implemented | Unsupported environments retain non-generation functionality. |
+| AI-assisted canonical character image | Partial | Workflow exists; output quality/identity consistency still needs supported physical-device validation. |
+| Canonical replacement/portrait lifecycle | Implemented | Accepted canonical visual is explicit. |
+| Eight fixed turnaround angles | Implemented | 45-degree slots. |
+| Canonical identity source for angles | Implemented | Turnaround generation uses accepted canonical visual. |
+| Missing/duplicate/progress state | Implemented | 0.7 hardening. |
+| Per-angle recovery and whole reset | Implemented | Existing source material can be retained. |
+| Visual asset backup/restore | Implemented | Archive v1 includes all visual data. |
+| True 3D mesh | Not planned | Separate future product decision. |
+| Scenes/animation/cinematics | Not planned | Outside product scope. |
 
 ## Data portability and safety
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Local persistent data | Implemented | Primary storage model. |
-| Versioned project backup/export | Implemented | Character Profiler JSON archive format v1. |
-| Project restore/import | Implemented | Validates and rebuilds the complete local project graph. |
-| Restore without identifier collision | Implemented | Restored SwiftData objects receive fresh IDs; archived IDs are reconstruction keys only. |
-| Archive format validation | Implemented | Unsupported versions and malformed relationship references are rejected. |
-| Whole-story round-trip test | Implemented | Includes flexible profile data, Guide answers, history, visual assets and relationships; restores the same backup twice. |
-| Project deletion impact confirmation | Implemented | Reports project/cast/relationship impact and recommends backing up first. |
-| iCloud sync | Candidate | Requires a deliberate design and migration strategy. |
+| Versioned project archive/export | Implemented | JSON archive format v1. |
+| Project restore/import | Implemented | Validates/reconstructs complete graph. |
+| Fresh local IDs on restore | Implemented | Same backup can be restored more than once. |
+| Archive structural validation | Implemented | Unsupported/malformed data rejected. |
+| Whole-story round-trip test | Implemented | Profile, Guide, history, relationships and visual assets. |
+| Story/character destructive confirmations | Implemented | Impact summaries before deletion. |
+| 0.8 persistent-schema change | None | 0.8 reuses existing fields/entities; archive format remains v1. |
+| iCloud sync | Candidate | Requires deliberate migration/conflict design. |
 
-## 0.7.0 completion criteria
+## 0.8.0 completion criteria
 
-The simulator-testable part of 0.7.0 is considered complete when:
+0.8.0 is complete when:
 
-1. Visual Studio uses actual Image Playground availability rather than assuming every iOS 18.1+ environment can generate images;
-2. reference images can be labelled, reordered and deleted without changing the persistent schema;
-3. the accepted canonical image is the identity source for angle generation;
-4. replacing the canonical image makes stale-turnaround risk explicit and does not delete existing frames merely because generation was opened and cancelled;
-5. all eight standard angle slots remain visible even when some frames are missing;
-6. turnaround completion, missing views and duplicate stored angles are inspectable;
-7. individual angle frames can be regenerated/deleted and the whole turnaround can be reset without deleting source references or appearance notes;
-8. deterministic visual-state/navigation/reference-ordering tests pass in Xcode CI;
-9. app version/build metadata is 0.7.0 / build 9;
-10. README, changelog, feature status and roadmap describe the implemented behaviour accurately.
+1. existing life events can be edited and explicitly reordered without delete/recreate;
+2. existing relationships can be edited on the same graph edge from either character perspective without corrupting inverse meaning;
+3. family structural validation remains active during edits while ignoring the edge's old value;
+4. relationship and life-event deletion are deliberate confirmed actions;
+5. adding relationships remains usable in large casts through searchable character selection;
+6. cast search includes relationship context and gives useful no-result/count feedback;
+7. legacy orphan-character migration is deterministic/idempotent under tests;
+8. major author save/import interactions surface meaningful failures instead of silently swallowing them;
+9. accessibility labels/hints cover the hardened history, relationship, family-tree and cast workflows;
+10. regression tests and the complete existing suite pass in Xcode CI;
+11. app version/build metadata is 0.8.0 / build 10;
+12. README, changelog, architecture, feature status and roadmap match implemented behavior.
 
-Physical-device Image Playground output quality and identity consistency remain an explicit validation item rather than being falsely marked complete by simulator CI.
-
-With the non-device-dependent 0.7 hardening complete, **0.8 — remaining author-release hardening** becomes the next major implementation target.
+After 0.8 integration, the next major target is the **1.0 release-readiness pass**. Physical-device Image Playground quality validation remains a separate outstanding validation item.
