@@ -41,7 +41,7 @@ This checklist records the release-quality gates for the current stable line. It
 - [x] Cast search covers profile information plus relationship names, kinds and notes.
 - [x] Large-cast relationship selection is searchable.
 - [x] Relationship direction and inverse parent/child plus mentor/student semantics are preserved.
-- [x] Family graph validation prevents self/duplicate/ancestry contradictions and reports traversal truncation.
+- [x] Family graph validation prevents self/duplicate/ancestry contradictions, removes the old arbitrary traversal cap and detects conflicting generation paths.
 - [x] Existing life events are editable and explicitly orderable.
 - [x] Genre-aware Character Guide suggestions preserve stable prompt IDs.
 - [x] Saved Guide answers can be viewed, edited and deliberately deleted.
@@ -62,7 +62,7 @@ This checklist records the release-quality gates for the current stable line. It
 - [x] App metadata is 1.0.1 build 12.
 - [x] Application asset catalogue and AppIcon set are part of the app target resources.
 - [x] README, feature-status audit and roadmap describe 1.0.0 as released and 1.0.1 as the audit-hardening update.
-- [ ] Changelog/release notes describe the final exact 1.0.1 diff after CI is green.
+- [x] Changelog describes the 1.0.1 hardening scope and remaining physical-device validation boundary.
 - [ ] A GitHub tag/release is created only after explicit release authorization and after the final `main` gate is green.
 
 ## Physical-device Visual Studio validation
