@@ -329,6 +329,75 @@ final class CharacterProfileTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testProjectArchiveRejectsMissingIdentityData() {
+        let untitled = ProjectArchive(project: StoryProject(title: "   "))
+        XCTAssertThrowsError(try untitled.validate())
+
+        let project = StoryProject(title: "Valid Story")
+        project.characters.append(CharacterProfile(name: "   ", project: project))
+        let unnamedCharacter = ProjectArchive(project: project)
+        XCTAssertThrowsError(try unnamedCharacter.validate())
+    }
+
+    @MainActor
+    func testProjectArchiveRejectsDuplicateCharacterIdentifiers() {
+        let repeatedID = UUID()
+        let project = StoryProject(title: "Duplicated Cast")
+        project.characters = [
+            CharacterProfile(id: repeatedID, name: "First", project: project),
+            CharacterProfile(id: repeatedID, name: "Second", project: project)
+        ]
+
+        let archive = ProjectArchive(project: project)
+        XCTAssertThrowsError(try archive.validate())
+    }
+
+    @MainActor
+    func testProjectArchiveRejectsDuplicateRelationshipIdentifiers() {
+        let project = StoryProject(title: "Duplicated Links")
+        let first = CharacterProfile(name: "First", project: project)
+        let second = CharacterProfile(name: "Second", project: project)
+        project.characters = [first, second]
+        let relationship = link(first, to: second, as: .friend)
+
+        var archive = ProjectArchive(project: project)
+        XCTAssertEqual(archive.project.relationships.count, 1)
+        var duplicate = archive.project.relationships[0]
+        duplicate.sourceID = relationship.id
+        archive.project.relationships.append(duplicate)
+
+        XCTAssertThrowsError(try archive.validate())
+    }
+
+    @MainActor
+    func testProjectArchiveRejectsSelfAndMissingRelationshipEndpointsBeforeRestore() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let project = StoryProject(title: "Broken Links")
+        let first = CharacterProfile(name: "First", project: project)
+        let second = CharacterProfile(name: "Second", project: project)
+        project.characters = [first, second]
+        _ = link(first, to: second, as: .rival)
+
+        var selfLinkArchive = ProjectArchive(project: project)
+        selfLinkArchive.project.relationships[0].targetCharacterID = selfLinkArchive.project.relationships[0].sourceCharacterID
+        XCTAssertThrowsError(try selfLinkArchive.restore(in: context))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<StoryProject>()).isEmpty)
+
+        var missingEndpointArchive = ProjectArchive(project: project)
+        missingEndpointArchive.project.relationships[0].targetCharacterID = UUID()
+        XCTAssertThrowsError(try missingEndpointArchive.restore(in: context))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<StoryProject>()).isEmpty)
+    }
+
+    @MainActor
+    func testProjectArchiveSuggestedFilenameIsPortable() {
+        let project = StoryProject(title: "  Ashes: Crown / Part II?  ")
+        XCTAssertEqual(ProjectArchive.suggestedFilename(for: project), "Ashes-Crown-Part-II.characterprofiler.json")
+        XCTAssertEqual(ProjectArchive.suggestedFilename(for: StoryProject(title: "***")), "Story.characterprofiler.json")
+    }
+
     func testVisualAnglesCoverFullTurnaround() {
         XCTAssertEqual(VisualAngle.allCases.count, 8)
         XCTAssertEqual(VisualAngle.front.degrees, 0)
