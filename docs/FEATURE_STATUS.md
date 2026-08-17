@@ -63,8 +63,8 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | Inverse-safe editing | Implemented | Editing from the target endpoint stores the correct inverse. |
 | Searchable cast picker | Implemented | Suitable for larger casts. |
 | Graphical family tree | Implemented | Derived from relationship data; no second family database. |
-| Multi-generation traversal/navigation | Implemented | Tappable members, scroll and zoom. |
-| Large-family traversal limit disclosure | Implemented | 1.0.1 reports when the safety cap truncates a graph instead of silently presenting an incomplete tree as complete. |
+| Multi-generation traversal/navigation | Implemented | Traverses the complete connected family component; the old arbitrary 120-character cap is removed. |
+| Generation-conflict detection | Implemented | Contradictory family paths are surfaced and new links that conflict with already implied generations are rejected. |
 | Duplicate/cycle validation | Implemented | Self-links, duplicate family links and ancestry contradictions are rejected. |
 | Relationship backup/restore | Implemented | Archive reconstructs direction/endpoints after characters exist. |
 | Broader non-family relationship network | Planned | Separate future graph-view candidate. |
@@ -110,7 +110,7 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | Future archive-version rejection | Implemented | Unsupported format versions fail explicitly. |
 | Required/duplicate identifier validation | Implemented | 1.0.1 extends structural checks beyond top-level character/relationship IDs into nested archived records. |
 | Relationship endpoint validation | Implemented | Self/missing endpoints are rejected before restore. |
-| Restore cleanup failure handling | Implemented | Cleanup is no longer intentionally swallowed with `try?`; rollback protects the context if cleanup persistence also fails. |
+| Restore cleanup failure handling | Implemented | Cleanup is no longer intentionally swallowed with `try?`; rollback protects the context if reconstruction/persistence fails. |
 | Story/character destructive confirmations | Implemented | Impact summaries before deletion. |
 | SwiftData schema change in 1.0.1 | None | 1.0.1 reuses the 0.8/1.0 model. |
 | Archive-format change in 1.0.1 | None | Format remains v1. |
