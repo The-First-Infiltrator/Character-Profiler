@@ -2,137 +2,88 @@
 
 # Character Profiler
 
-Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible profiles, structured relationships and family, life history, genre-aware development questions, portable project backup and a focused visual workspace.
+Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, linked relationships and family, structured life history, genre-aware development questions, portable project backup/restore and a focused character-appearance workspace.
 
-## Version 0.8.0
+## Version 1.0.0
 
-Version **0.8.0 build 10** is the author-workflow hardening release before the 1.0 stability pass.
+**Character Profiler 1.0.0 build 11** is the first stable-release candidate. The 1.0 pass deliberately concentrates on reliability, data safety, compatibility, packaging and release verification rather than adding a new feature family.
 
-The History workspace is now a real editable timeline rather than an add/delete list. Existing events can be opened and changed in place, moved earlier or later in author-controlled chronological order, and deleted only after a destructive confirmation. Explicit ordering is intentional: `whenText` may contain values such as “Age 12”, “three winters before the war” or a calendar date, so Character Profiler does not pretend every author's chronology can be safely parsed by a machine.
+The application now has a non-destructive startup failure state: if the local SwiftData story store cannot be opened, Character Profiler shows a recovery message instead of terminating with `fatalError`, and it does not automatically erase or replace the author's store.
 
-Relationships are now editable without deleting and recreating their graph edge. The author can change relationship type and notes from either character's record; directional inverse semantics such as parent/child and mentor/student remain correct. Family validation evaluates the proposed replacement state while excluding the edge's old value, so legitimate edits are possible without weakening ancestry/duplicate protection.
+Portable backup remains **Character Profiler archive format v1**. In addition to the full round-trip/restore-twice coverage added in 0.6, the 1.0 suite exercises malformed archives: missing story or character identity, duplicate character IDs, duplicate relationship IDs, self-relationships and endpoints that do not exist in the archived cast are rejected before restore inserts a destination story.
 
-Large casts are easier to work with. Adding a relationship uses a searchable cast picker, project search also finds relationship names/kinds/notes, and larger projects show result counts and search guidance.
+The GitHub Actions release gate now proves two builds on the exact candidate SHA: the complete simulator test suite and a separate optimized **Release configuration** compile with signing disabled. Hosted CI still discovers or provisions an available iPhone simulator dynamically.
 
-0.8 also removes a class of silent failures. Story/character editors, Guide answers, history, relationships, destructive actions, legacy migration and portrait import now surface relevant errors instead of relying on `try?` or quietly ignoring failed image loads.
+The repository includes the complete GNU GPL version 3 license text and a dedicated `docs/RELEASE_CHECKLIST.md` that separates automated proof from the physical-device Image Playground checks that simulator CI cannot establish.
 
-No new SwiftData entity or persistent field is introduced by 0.8. Portable backup remains **Character Profiler archive format v1**.
+### What 1.0 contains
 
-### Product documentation
+Character Profiler 1.0 includes the work delivered through the 0.x milestones:
 
-- `docs/PRODUCT_SPEC.md` — source of truth for product intent and boundaries.
-- `docs/FEATURE_STATUS.md` — implemented/partial/planned/candidate capability audit.
-- `docs/ROADMAP.md` — development sequence toward the first stable release.
-- `ARCHITECTURE.md` — data invariants, persistence/archive design and subsystem boundaries.
+- multiple story projects with built-in/custom genres, premise, project metrics and cast search;
+- flexible character profiles with arbitrary sections/fields, portraits and development progress;
+- a local deterministic Character Guide with more than 120 stable prompts, genre-aware scoring, adaptive follow-ups and visible “why this question?” reasons;
+- real character-to-character relationship edges, inverse parent/child and mentor/student semantics, safe relationship editing and a graphical multi-generation family tree;
+- editable, explicitly ordered life-history events covering trauma, loss, milestones, conflict, relationships, education, career, adventure and other formative events;
+- searchable relationship selection and relationship-aware search for larger casts;
+- complete versioned project backup/export and restore/import, including relationships, Guide answers, history and visual assets;
+- deliberate destructive confirmations and surfaced persistence/import failures throughout the major author workflows;
+- Character Visual Studio with labelled reference images, canonical appearance management and eight fixed 45° turnaround slots on supported Image Playground devices.
 
-## Story projects and cast
+## Product boundaries
 
-- Multiple story projects with built-in or custom genres and premise.
-- Project-scoped cast library and search.
-- Project overview metrics for cast, relationships, history, Guide answers and development.
-- Search across character metadata/profile content plus linked character names, relationship kinds and relationship notes.
-- Search result counts/guidance for larger casts.
-- Complete project backup/export and restore/import using archive format v1.
-- Idempotent migration of older pre-project characters into `Imported Characters`.
-- Destructive story/character deletion confirmations with affected-data counts.
+Character Profiler is a character-development tool. It does not silently turn suggestions into canon and does not attempt to write the novel for the author.
 
-## Character profiles
+The Visual Studio exists to answer **what does this character look like?** It is not a scene generator, animation/filmmaking system, game engine, posing studio or true 3D character modeller. The eight-view turnaround is a set of generated reference images, not a textured 3D mesh.
 
-- Name, nickname, age, pronouns, story role, summary and portrait.
-- Flexible sections and arbitrary author-defined fields.
-- Starter sections for identity, appearance, personality, motivation, background and secrets.
-- Development-completion indicator.
-- Explicit save and portrait-import error feedback.
+## Visual Studio validation boundary
 
-## Character Guide
+The Visual Studio integration, availability handling and deterministic eight-slot state are covered by simulator CI. Actual Image Playground output quality cannot be proven there.
 
-The Guide contains more than 120 stable prompts, broad genre-specific sets, deterministic development-depth scoring, category balancing and adaptive follow-ups from profile facts, relationships and life history.
+A supported physical iPhone is still required to validate that real generation launches correctly and that the canonical image plus all eight turnaround views preserve face, body proportions, clothing, colours and equipment well enough to be useful as one consistent character reference set. Character Profiler does not claim that physical output-quality validation has happened yet.
 
-Answered prompt IDs remain stable and suppressed from normal unanswered suggestions. Each rich suggestion explains **why this question?** without copying the explanation into character canon.
-
-The Guide remains local, deterministic and advisory. It does not silently rewrite character facts and does not claim arbitrary semantic contradiction detection.
-
-## Relationships and family
-
-Relationships link real `CharacterProfile` records rather than storing names as notes. Parent/child and mentor/student links read correctly from both endpoints.
-
-0.8 allows an existing relationship's type and notes to be edited on the same persisted edge. Editing from the opposite endpoint translates the displayed relationship back to the correct stored inverse. Family edits keep the same self-link, duplicate-link, ancestry-cycle and ancestor/sibling safeguards used during creation.
-
-Adding a relationship uses a searchable cast picker. Removing a relationship requires confirmation and explains that one shared link disappears from both character records; family-tree impact is made explicit.
-
-The graphical family tree is a derived projection of the same relationship graph. It supports multi-generation traversal, tappable members, scrolling and zoom without creating a second family database.
-
-## Life history
-
-Characters can record trauma, loss, milestones, achievements, relationships, conflict, education, career, adventures, relocation, secrets and other formative events.
-
-Each event records a title, kind, free-text time/age, details and lasting impact. Events can now be edited in place and explicitly reordered. History is included in project backups and may influence adaptive Guide questions.
-
-## Character Visual Studio
-
-Visual Studio remains focused on answering **what does this character look like?** It supports:
-
-- up to six labelled/reorderable reference images;
-- author-written appearance notes;
-- an accepted canonical Image Playground character image on supported devices;
-- canonical image reuse as the profile portrait;
-- explicit canonical replacement/reset lifecycle;
-- eight fixed turnaround positions at 45° intervals;
-- missing/duplicate angle detection and completion progress;
-- drag/arrow navigation across all eight slots;
-- independent angle generation/regeneration/deletion and whole-turnaround reset;
-- runtime Image Playground availability handling.
-
-The canonical image is the identity source for turnaround generation. Simulator CI validates the SDK/state logic, but actual cross-angle face/body/clothing consistency still requires a supported physical iPhone.
-
-Scenes, animation, filmmaking, a game engine and a true 3D mesh are outside current product scope.
+This limitation does not affect the local profile, Guide, relationship, history or backup workflows; those remain available when Image Playground is unavailable.
 
 ## Backup and restore
 
-A story backup is a human-inspectable JSON document such as:
+A project backup is a human-inspectable JSON document such as:
 
 `Ashes-of-the-Crown.characterprofiler.json`
 
-Archive format v1 includes project metadata, characters, flexible profile data, Guide answers, life events, relationships and current visual assets. Restore validates the archive, creates fresh local SwiftData identifiers, and reconstructs relationship endpoints after characters exist. The same backup can therefore be restored more than once without ID collision.
+Archive format v1 contains project metadata, every character, flexible profile sections/fields, Guide answers, life events, relationships, profile/reference/generated images and turnaround frames.
 
-The archive is an application-owned interchange format, not a raw SwiftData store copy.
+Restore validates the document before creating a destination story, creates fresh local SwiftData identifiers and then rebuilds relationship edges from archived reconstruction keys. The same backup can therefore be restored repeatedly without colliding with the original or another restore.
+
+The archive is an application-owned interchange format, not a raw SwiftData database copy. SwiftData schema compatibility and archive-format compatibility are maintained as separate contracts.
 
 ## Requirements and build
 
-- iOS 17.0 or later for the core app.
-- Current Xcode with the Image Playground SDK for Visual AI support.
-- Supported device/system environment for Image Playground generation.
+- iOS 17.0 or later for the core application.
+- Xcode with the Image Playground SDK for Visual AI compilation.
+- A supported Apple device/system environment for actual Image Playground generation.
 - Swift 5 language mode or later.
 
-Open `CharacterProfiler.xcodeproj`, select the `CharacterProfiler` scheme and choose an iPhone simulator or connected iPhone. A physical-device run requires an Apple Development team under Signing & Capabilities. No personal Team ID is committed.
+Open `CharacterProfiler.xcodeproj`, select the `CharacterProfiler` scheme and choose an iPhone simulator or connected iPhone. A physical-device build requires an Apple Development team under Signing & Capabilities. No personal Team ID is committed to the repository.
 
-GitHub Actions dynamically prepares an available iOS simulator and runs the complete test suite as the release gate.
+GitHub Actions dynamically prepares an iPhone simulator, runs the complete test suite and separately compiles the Release configuration.
 
 ## Data and privacy
 
-Story/profile/relationship/history/Guide/visual data is local-first through SwiftData. Large images use external binary storage. Character Profiler contains no advertising or analytics SDK. Backups are created/restored only through explicit author actions, and selected photos come through the system Photos picker.
+Character and story data is local-first through SwiftData. Large image payloads use external binary storage. Character Profiler contains no advertising or analytics SDKs. Backups and restores are explicit author actions through the system document UI, and image selection uses the system Photos picker.
 
-## Architecture summary
+If the local story store cannot be opened, the app does not silently create a replacement store as a recovery shortcut.
 
-```text
-StoryProject
-└── CharacterProfile[]
-    ├── ProfileSection[] -> ProfileField[]
-    ├── LifeEvent[] -> LifeEventOrdering
-    ├── PromptResponse[] -> Character Guide
-    ├── CharacterRelationship[] -> FamilyGraphSnapshot / FamilyTreeView
-    ├── CharacterReferenceImage[]
-    ├── generatedVisualData
-    └── CharacterVisualFrame[] -> VisualAngle (8 slots)
+## Documentation
 
-ProjectArchive format v1
-└── complete portable project graph with fresh-ID restore
-```
-
-See `ARCHITECTURE.md` for design details.
+- `docs/PRODUCT_SPEC.md` — product intent and boundaries.
+- `docs/FEATURE_STATUS.md` — implementation/validation audit.
+- `docs/ROADMAP.md` — completed milestones and post-1.0 candidates.
+- `docs/RELEASE_CHECKLIST.md` — 1.0 stability and release gates.
+- `ARCHITECTURE.md` — model, graph, archive, migration and subsystem design.
+- `CHANGELOG.md` — release history.
 
 ## Licence
 
 Copyright © 2026 Shannon Smith.
 
-Character Profiler is free software licensed under GNU GPL version 3 or, at your option, any later version. See `LICENSE`.
+Character Profiler is free software licensed under the GNU General Public License version 3 or, at your option, any later version (`GPL-3.0-or-later`). The complete GPLv3 text is included in `LICENSE`.
