@@ -27,10 +27,19 @@
 		A50000000000000000000003 /* CharacterRelationshipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50000000000000000000003 /* CharacterRelationshipsView.swift */; };
 		A50000000000000000000004 /* CharacterHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50000000000000000000004 /* CharacterHistoryView.swift */; };
 		A50000000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B50000000000000000000005 /* Assets.xcassets */; };
+		A60000000000000000000001 /* CharacterProfilerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60000000000000000000001 /* CharacterProfilerUITests.swift */; };
+		A60000000000000000000002 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* XCTest.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		C10000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D10000000000000000000002;
+			remoteInfo = CharacterProfiler;
+		};
+		C60000000000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = D10000000000000000000001 /* Project object */;
 			proxyType = 1;
@@ -62,6 +71,8 @@
 		B50000000000000000000003 /* CharacterRelationshipsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterRelationshipsView.swift; sourceTree = "<group>"; };
 		B50000000000000000000004 /* CharacterHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterHistoryView.swift; sourceTree = "<group>"; };
 		B50000000000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B60000000000000000000001 /* CharacterProfilerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterProfilerUITests.swift; sourceTree = "<group>"; };
+		B60000000000000000000002 /* CharacterProfilerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CharacterProfilerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +91,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E60000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A60000000000000000000002 /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -88,6 +107,7 @@
 			children = (
 				F10000000000000000000002 /* CharacterProfiler */,
 				F10000000000000000000007 /* CharacterProfilerTests */,
+				F60000000000000000000001 /* CharacterProfilerUITests */,
 				F10000000000000000000008 /* Frameworks */,
 				F10000000000000000000009 /* Products */,
 			);
@@ -158,6 +178,14 @@
 			path = CharacterProfilerTests;
 			sourceTree = "<group>";
 		};
+		F60000000000000000000001 /* CharacterProfilerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B60000000000000000000001 /* CharacterProfilerUITests.swift */,
+			);
+			path = CharacterProfilerUITests;
+			sourceTree = "<group>";
+		};
 		F10000000000000000000008 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -171,6 +199,7 @@
 			children = (
 				B1000000000000000000000C /* CharacterProfiler.app */,
 				B1000000000000000000000D /* CharacterProfilerTests.xctest */,
+				B60000000000000000000002 /* CharacterProfilerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -213,6 +242,24 @@
 			productReference = B1000000000000000000000D /* CharacterProfilerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		D60000000000000000000002 /* CharacterProfilerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D60000000000000000000010 /* Build configuration list for PBXNativeTarget "CharacterProfilerUITests" */;
+			buildPhases = (
+				E60000000000000000000003 /* Sources */,
+				E60000000000000000000001 /* Frameworks */,
+				E60000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C60000000000000000000002 /* PBXTargetDependency */,
+			);
+			name = CharacterProfilerUITests;
+			productName = CharacterProfilerUITests;
+			productReference = B60000000000000000000002 /* CharacterProfilerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -227,6 +274,10 @@
 						CreatedOnToolsVersion = 16.0;
 					};
 					D10000000000000000000003 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = D10000000000000000000002;
+					};
+					D60000000000000000000002 = {
 						CreatedOnToolsVersion = 16.0;
 						TestTargetID = D10000000000000000000002;
 					};
@@ -247,6 +298,7 @@
 			targets = (
 				D10000000000000000000002 /* CharacterProfiler */,
 				D10000000000000000000003 /* CharacterProfilerTests */,
+				D60000000000000000000002 /* CharacterProfilerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -261,6 +313,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E10000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E60000000000000000000005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -302,6 +361,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E60000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A60000000000000000000001 /* CharacterProfilerUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -309,6 +376,11 @@
 			isa = PBXTargetDependency;
 			target = D10000000000000000000002 /* CharacterProfiler */;
 			targetProxy = C10000000000000000000001 /* PBXContainerItemProxy */;
+		};
+		C60000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D10000000000000000000002 /* CharacterProfiler */;
+			targetProxy = C60000000000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -425,6 +497,34 @@
 			};
 			name = Release;
 		};
+		D60000000000000000000020 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.firstinfiltrator.CharacterProfilerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = CharacterProfiler;
+			};
+			name = Debug;
+		};
+		D60000000000000000000021 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.firstinfiltrator.CharacterProfilerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = CharacterProfiler;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -451,6 +551,15 @@
 			buildConfigurations = (
 				D10000000000000000000024 /* Debug */,
 				D10000000000000000000025 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D60000000000000000000010 /* Build configuration list for PBXNativeTarget "CharacterProfilerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D60000000000000000000020 /* Debug */,
+				D60000000000000000000021 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
