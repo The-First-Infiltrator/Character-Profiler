@@ -3,6 +3,21 @@
 import Foundation
 import SwiftData
 
+enum PersistenceSafety {
+    /// Executes a persistence commit and guarantees rollback before the error escapes.
+    ///
+    /// Keeping the transaction primitive injectable lets tests force the failure path without
+    /// depending on a particular SQLite/SwiftData failure mode.
+    static func commit(save: () throws -> Void, rollback: () -> Void) throws {
+        do {
+            try save()
+        } catch {
+            rollback()
+            throw error
+        }
+    }
+}
+
 extension ModelContext {
     /// Persists the current unit of work or restores the context to its last committed state.
     ///
@@ -10,12 +25,10 @@ extension ModelContext {
     /// A failed save must therefore never leave an insert, delete, or edit pending for a later
     /// unrelated save to commit accidentally.
     func saveOrRollback() throws {
-        do {
-            try save()
-        } catch {
-            rollback()
-            throw error
-        }
+        try PersistenceSafety.commit(
+            save: { try save() },
+            rollback: { rollback() }
+        )
     }
 }
 
