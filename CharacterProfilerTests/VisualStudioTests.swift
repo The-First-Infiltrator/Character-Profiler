@@ -163,8 +163,6 @@ final class AuthorWorkflowTests: XCTestCase {
         parent.outgoingRelationships.append(second)
         grandparent.incomingRelationships.append(second)
 
-        // Deliberately construct contradictory stored data to prove the derived graph does not
-        // silently accept whichever traversal path happens to run first.
         let conflicting = CharacterRelationship(kind: .spouse, source: root, target: grandparent)
         root.outgoingRelationships.append(conflicting)
         grandparent.incomingRelationships.append(conflicting)
@@ -327,6 +325,70 @@ final class AuthorWorkflowTests: XCTestCase {
             CharacterVisualFrame(angle: .front, imageData: Data([2]), character: character)
         ]
         project.characters = [character]
+
+        XCTAssertThrowsError(try ProjectArchive(project: project).validate())
+    }
+
+    private enum SyntheticPersistenceError: Error {
+        case failed
+    }
+
+    @MainActor
+    func testPersistenceSafetyRollsBackPendingMutationWhenCommitFails() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let project = StoryProject(title: "Story")
+        let character = CharacterProfile(name: "Before", project: project)
+        context.insert(project)
+        context.insert(character)
+        project.characters.append(character)
+        try context.save()
+
+        let characterID = character.id
+        character.name = "After"
+
+        XCTAssertThrowsError(
+            try PersistenceSafety.commit(
+                save: { throw SyntheticPersistenceError.failed },
+                rollback: { context.rollback() }
+            )
+        )
+
+        let fetched = try context.fetch(FetchDescriptor<CharacterProfile>())
+        XCTAssertEqual(fetched.first(where: { $0.id == characterID })?.name, "Before")
+    }
+
+    @MainActor
+    func testRelationshipKindDoesNotTreatUnrelatedCharacterAsEndpoint() {
+        let source = CharacterProfile(name: "Source")
+        let target = CharacterProfile(name: "Target")
+        let unrelated = CharacterProfile(name: "Unrelated")
+        let relationship = CharacterRelationship(kind: .parent, source: source, target: target)
+
+        XCTAssertEqual(relationship.kind(from: source), .parent)
+        XCTAssertEqual(relationship.kind(from: target), .child)
+        XCTAssertEqual(relationship.kind(from: unrelated), .other)
+    }
+
+    @MainActor
+    func testArchiveRejectsConflictingFamilyGenerationPaths() {
+        let project = StoryProject(title: "Story")
+        let root = CharacterProfile(name: "Root", project: project)
+        let parent = CharacterProfile(name: "Parent", project: project)
+        let grandparent = CharacterProfile(name: "Grandparent", project: project)
+        project.characters = [root, parent, grandparent]
+
+        let rootParent = CharacterRelationship(kind: .parent, source: root, target: parent)
+        root.outgoingRelationships.append(rootParent)
+        parent.incomingRelationships.append(rootParent)
+
+        let parentGrandparent = CharacterRelationship(kind: .parent, source: parent, target: grandparent)
+        parent.outgoingRelationships.append(parentGrandparent)
+        grandparent.incomingRelationships.append(parentGrandparent)
+
+        let conflict = CharacterRelationship(kind: .spouse, source: root, target: grandparent)
+        root.outgoingRelationships.append(conflict)
+        grandparent.incomingRelationships.append(conflict)
 
         XCTAssertThrowsError(try ProjectArchive(project: project).validate())
     }
