@@ -2,7 +2,7 @@
 
 # Changelog
 
-## [1.0.1] - 2026-08-17
+## [1.0.1] - 2026-08-18
 
 ### Fixed
 
@@ -15,28 +15,37 @@
 - Visual Studio appearance notes are debounced instead of saving synchronously on every keystroke.
 - Canonical visual generation now keeps the profile portrait as an identity cue even when separate reference images are present.
 - Restore failure handling uses rollback-safe persistence rather than intentionally suppressing cleanup-save errors.
-- Archive validation now rejects duplicate nested identifiers, duplicate prompt IDs/turnaround angles, blank required nested labels/titles, empty required visual payloads and ancestry cycles before restore.
-- Large family-tree traversal reports when its safety limit truncates the graph instead of silently presenting an incomplete result as complete.
+- Archive validation now rejects duplicate nested identifiers, duplicate prompt IDs/turnaround angles, blank required nested labels/titles, empty required visual payloads, ancestry cycles and conflicting family-generation paths before restore.
+- Relationship perspective lookup no longer treats an unrelated character as the target endpoint.
+- Large family-tree traversal reports structural generation conflicts instead of silently presenting an arbitrary traversal result.
 - Legacy migration no longer identifies the imported bucket by title alone.
+- The non-destructive local-store recovery screen now offers an explicit retry without erasing or replacing the author's store.
+- Backup JSON validation/encoding is prepared away from the interactive SwiftUI path before the system file exporter writes the document.
 
 ### Code quality and packaging
 
 - Split Guide, relationship/family and history implementations out of the oversized character-detail source.
 - Added focused comments for persistence, relationship direction, archive reconstruction and other non-obvious invariants rather than commenting trivial syntax.
-- Added a real application asset catalogue and AppIcon target resource wiring.
-- App version is now 1.0.1 build 12.
+- Added a real opaque 1024×1024 application AppIcon, not just an asset-catalogue manifest entry.
+- CI now preflights the icon file, catalogue manifest, dimensions and alpha state so missing packaging assets cannot hide behind a successful Xcode exit code.
+- Added an XCUITest target with a smoke flow that launches the Story Library and opens the New Story editor.
+- Added deterministic regression coverage for the rollback failure path, unrelated relationship endpoints and conflicting archived family-generation paths.
+- App version remains 1.0.1 build 12.
 - No SwiftData entity/field was added and portable archive format remains version 1.
 
 ### CI and release safety
 
-- GitHub Actions now runs the complete simulator tests, an optimized simulator Release build and an optimized unsigned generic `iphoneos` Release build.
+- GitHub Actions runs the complete simulator unit/UI tests, an optimized simulator Release build and an optimized unsigned generic `iphoneos` Release build.
+- Stale runs for the same pull request or branch are cancelled through workflow concurrency grouping.
+- Third-party workflow actions are pinned to immutable commit SHAs.
 - Release-publisher JavaScript is stored in a normal source file and syntax-checked before execution.
 - A release request is rejected unless its exact target SHA is an ancestor of `main` and that exact SHA has a successful `iOS Build` workflow run.
-- README, architecture, feature-status, roadmap and release-checklist documentation were synchronized with the released 1.0.0 baseline and 1.0.1 hardening work.
+- README, architecture, feature-status, roadmap and release-checklist documentation are synchronized with the released 1.0.0 baseline and 1.0.1 hardening work.
 
 ### Validation boundary
 
 - Hosted CI can compile the real-device target but still cannot prove Image Playground output quality or cross-angle visual identity consistency on a physical supported iPhone.
+- Archive format v1 intentionally remains a single portable JSON document for compatibility. A future archive-format revision can move large binary visual assets into a package layout if real projects demonstrate that scale requires it.
 
 ## [1.0.0] - 2026-08-17
 
