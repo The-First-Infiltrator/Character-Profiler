@@ -211,6 +211,7 @@ struct ProjectDetailView: View {
     @State private var showingExporter = false
     @State private var exportDocument: ProjectArchiveDocument?
     @State private var exportErrorMessage: String?
+    @State private var isPreparingExport = false
     @State private var operationErrorMessage: String?
     @State private var charactersPendingDeletion: [CharacterProfile] = []
 
@@ -308,8 +309,13 @@ struct ProjectDetailView: View {
                         Label("Edit Story", systemImage: "pencil")
                     }
                     Button { prepareExport() } label: {
-                        Label("Export Backup", systemImage: "square.and.arrow.up")
+                        if isPreparingExport {
+                            Label("Preparing Backup", systemImage: "hourglass")
+                        } else {
+                            Label("Export Backup", systemImage: "square.and.arrow.up")
+                        }
                     }
+                    .disabled(isPreparingExport)
                 } label: {
                     Label("Story Actions", systemImage: "ellipsis.circle")
                 }
@@ -362,8 +368,24 @@ struct ProjectDetailView: View {
     }
 
     private func prepareExport() {
-        exportDocument = ProjectArchiveDocument(archive: ProjectArchive(project: project))
-        showingExporter = true
+        guard !isPreparingExport else { return }
+        isPreparingExport = true
+
+        // SwiftData is read on the view actor. Once projected into value types/Data, validation
+        // and JSON encoding can run without blocking interactive UI work.
+        let archive = ProjectArchive(project: project)
+        Task {
+            do {
+                let data = try await Task.detached(priority: .userInitiated) {
+                    try archive.encodedData()
+                }.value
+                exportDocument = ProjectArchiveDocument(data: data)
+                showingExporter = true
+            } catch {
+                exportErrorMessage = error.localizedDescription
+            }
+            isPreparingExport = false
+        }
     }
 
     private func stageCharacterDeletion(at offsets: IndexSet) {
