@@ -113,6 +113,8 @@ struct ProjectArchive: Codable {
         }
 
         var relationshipIDs = Set<UUID>()
+        var semanticRelationships = Set<RelationshipSemanticKey>()
+        var familyPairs = Set<RelationshipPairKey>()
         for relationship in project.relationships {
             guard relationshipIDs.insert(relationship.sourceID).inserted else {
                 throw ProjectArchiveError.invalidArchive("The archive contains duplicate relationship identifiers.")
@@ -124,9 +126,48 @@ struct ProjectArchive: Codable {
                   characterIDSet.contains(relationship.targetCharacterID) else {
                 throw ProjectArchiveError.invalidArchive("A relationship points to a character that is not present in this story archive.")
             }
+
+            // Relationship semantics are directional even though the same shared edge is shown from
+            // both character perspectives. Canonicalise the pair before comparing so a hand-edited
+            // mentor→student edge cannot be duplicated as the reversed student→mentor equivalent.
+            let pair = RelationshipPairKey(relationship.sourceCharacterID, relationship.targetCharacterID)
+            let kindFromFirstCharacter = relationship.sourceCharacterID == pair.first
+                ? relationship.kind
+                : relationship.kind.inverse
+            let semanticKey = RelationshipSemanticKey(pair: pair, kindFromFirstCharacter: kindFromFirstCharacter)
+            guard semanticRelationships.insert(semanticKey).inserted else {
+                throw ProjectArchiveError.invalidArchive("The archive contains a duplicate relationship between the same characters.")
+            }
+
+            // The live editor permits at most one family edge for a pair. Preserve that invariant at
+            // the archive boundary as well, even when two different zero-generation kinds (for
+            // example spouse and partner) would otherwise pass generation-path validation.
+            if relationship.kind.isFamily, !familyPairs.insert(pair).inserted {
+                throw ProjectArchiveError.invalidArchive("The archive contains more than one family relationship between the same characters.")
+            }
         }
 
         try validateArchivedFamilyGraph()
+    }
+
+    private struct RelationshipPairKey: Hashable {
+        let first: UUID
+        let second: UUID
+
+        init(_ left: UUID, _ right: UUID) {
+            if left.uuidString < right.uuidString {
+                first = left
+                second = right
+            } else {
+                first = right
+                second = left
+            }
+        }
+    }
+
+    private struct RelationshipSemanticKey: Hashable {
+        let pair: RelationshipPairKey
+        let kindFromFirstCharacter: RelationshipKind
     }
 
     private func requireUnique<T: Hashable>(_ values: [T], description: String) throws {

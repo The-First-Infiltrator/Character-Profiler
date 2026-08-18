@@ -76,6 +76,7 @@ enum VisualReferenceOrdering {
 struct CharacterVisualWorkspaceView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.supportsImagePlayground) private var supportsImagePlayground
+    @Environment(\.reportPersistenceFailure) private var reportPersistenceFailure
 
     let character: CharacterProfile
 
@@ -91,6 +92,7 @@ struct CharacterVisualWorkspaceView: View {
     @State private var errorMessage: String?
     @State private var appearanceNotesDraft: String
     @State private var appearanceSaveTask: Task<Void, Never>?
+    @State private var isDisappearing = false
 
     init(character: CharacterProfile) {
         self.character = character
@@ -162,7 +164,11 @@ struct CharacterVisualWorkspaceView: View {
         }
         .onChange(of: selectedPhotos) { _, items in importReferences(items) }
         .onChange(of: appearanceNotesDraft) { _, _ in scheduleAppearanceNotesSave() }
-        .onDisappear { flushAppearanceNotes() }
+        .onAppear { isDisappearing = false }
+        .onDisappear {
+            isDisappearing = true
+            flushAppearanceNotes()
+        }
         .sheet(item: $editingReference) { reference in
             VisualReferenceEditor(reference: reference, character: character)
         }
@@ -705,7 +711,12 @@ struct CharacterVisualWorkspaceView: View {
             appearanceNotesDraft = character.visualDescription
         } catch {
             appearanceNotesDraft = character.visualDescription
-            errorMessage = "Character Profiler could not save the appearance notes. \(error.localizedDescription)"
+            let message = "Character Profiler could not save the appearance notes. \(error.localizedDescription)"
+            if isDisappearing {
+                reportPersistenceFailure(message)
+            } else {
+                errorMessage = message
+            }
         }
     }
 

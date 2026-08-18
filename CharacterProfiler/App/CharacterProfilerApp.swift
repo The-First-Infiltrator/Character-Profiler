@@ -39,6 +39,7 @@ private final class ModelContainerLoader: ObservableObject {
 @main
 struct CharacterProfilerApp: App {
     @StateObject private var containerLoader = ModelContainerLoader()
+    @State private var persistenceFailureMessage: String?
 
     var body: some Scene {
         WindowGroup {
@@ -46,6 +47,17 @@ struct CharacterProfilerApp: App {
             case .success(let modelContainer):
                 ProjectListView()
                     .modelContainer(modelContainer)
+                    .environment(\.reportPersistenceFailure) { message in
+                        persistenceFailureMessage = message
+                    }
+                    .alert("Changes Could Not Be Saved", isPresented: Binding(
+                        get: { persistenceFailureMessage != nil },
+                        set: { if !$0 { persistenceFailureMessage = nil } }
+                    )) {
+                        Button("OK", role: .cancel) { persistenceFailureMessage = nil }
+                    } message: {
+                        Text(persistenceFailureMessage ?? "Unknown persistence error.")
+                    }
             case .failure(let error):
                 DataStoreUnavailableView(error: error, retry: containerLoader.retry)
             }

@@ -6,12 +6,14 @@ This checklist records the release-quality gates for the current stable line. It
 
 ## Automated release gates
 
+Exact-head boxes remain unchecked while the release candidate is changing. CI evidence is recorded against the immutable candidate SHA, and no follow-up documentation-only commit should invalidate that proof.
+
 - [ ] Exact final 1.0.1 head passes the complete iOS simulator unit and UI-test suite.
 - [ ] Exact final 1.0.1 head compiles successfully as an optimized simulator Release with code signing disabled.
 - [ ] Exact final 1.0.1 head compiles successfully as an optimized generic `iphoneos` Release with code signing disabled.
 - [ ] After integration, the exact `main` commit passes the same GitHub Actions workflow.
 - [x] Hosted CI dynamically discovers or provisions an iPhone simulator rather than assuming one fixed device exists.
-- [x] XCUITest smoke coverage launches the Story Library and opens the New Story editor.
+- [x] XCUITest end-to-end coverage launches the Story Library, creates a story, opens it, creates a character, and verifies the saved character appears.
 - [x] CI preflights the AppIcon file, manifest entry, 1024×1024 dimensions and opaque alpha state before Xcode builds.
 - [x] Third-party GitHub Actions are pinned to immutable commit SHAs.
 - [x] Stale CI for the same PR/branch is cancelled by concurrency grouping.
@@ -28,6 +30,7 @@ This checklist records the release-quality gates for the current stable line. It
 - [x] Unsupported future archive format versions are rejected.
 - [x] Missing story/character identity is rejected before restore.
 - [x] Duplicate identifiers and invalid relationship endpoints are rejected before restore.
+- [x] Semantic duplicate relationships and multiple family links for the same character pair are rejected before restore.
 - [x] Corrupt archives with ancestry cycles or conflicting family-generation paths are rejected before restore.
 - [x] Restore cleanup does not intentionally swallow a second SwiftData save failure.
 - [x] Legacy orphan-character migration remains idempotent under regression tests.
@@ -58,6 +61,7 @@ This checklist records the release-quality gates for the current stable line. It
 
 - [x] Reference images remain author-controlled and reorderable.
 - [x] Appearance-note persistence is debounced rather than writing on every keystroke.
+- [x] A failed final Appearance Notes flush is surfaced through an ancestor that remains visible after leaving Visual Studio.
 - [x] Canonical generation can use the character's existing portrait together with reference imagery.
 - [x] Turnaround generation continues to use the accepted canonical image as its identity anchor.
 - [x] Existing visual assets remain manageable when Image Playground is unavailable.

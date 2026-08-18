@@ -2,6 +2,7 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 enum PersistenceSafety {
     /// Executes a persistence commit and guarantees rollback before the error escapes.
@@ -15,6 +16,19 @@ enum PersistenceSafety {
             rollback()
             throw error
         }
+    }
+}
+
+private struct PersistenceFailureReporterKey: EnvironmentKey {
+    static let defaultValue: (String) -> Void = { _ in }
+}
+
+extension EnvironmentValues {
+    /// Reports a persistence failure to an ancestor that remains on screen even when the editing
+    /// workspace causing the save is being dismissed or replaced by another section.
+    var reportPersistenceFailure: (String) -> Void {
+        get { self[PersistenceFailureReporterKey.self] }
+        set { self[PersistenceFailureReporterKey.self] = newValue }
     }
 }
 
