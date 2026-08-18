@@ -608,7 +608,11 @@ final class CharacterRelationship {
         return nil
     }
 
+    /// Returns the relationship meaning from a supplied character's perspective.
+    /// A non-endpoint degrades to `.other` rather than silently pretending it is the target.
     func kind(from character: CharacterProfile) -> RelationshipKind {
-        source?.id == character.id ? kind : kind.inverse
+        if source?.id == character.id { return kind }
+        if target?.id == character.id { return kind.inverse }
+        return .other
     }
 }
