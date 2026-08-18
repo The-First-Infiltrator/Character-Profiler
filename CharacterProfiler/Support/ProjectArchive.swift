@@ -135,7 +135,7 @@ struct ProjectArchive: Codable {
         }
     }
 
-    /// Protects restore from hand-edited/corrupt archives containing direct ancestry loops.
+    /// Protects restore from hand-edited/corrupt archives containing impossible family graphs.
     private func validateArchivedFamilyGraph() throws {
         var parentsByChild: [UUID: Set<UUID>] = [:]
         for relationship in project.relationships {
@@ -163,6 +163,56 @@ struct ProjectArchive: Codable {
             var visiting = Set<UUID>()
             if visitsAncestor(characterID, origin: characterID, visiting: &visiting) {
                 throw ProjectArchiveError.invalidArchive("The archived family graph contains an ancestry cycle.")
+            }
+        }
+
+        // Every path through a family component must imply the same relative generation. Apply the
+        // live-editor invariant before restore so corrupt/legacy archives cannot import a
+        // contradictory graph and reveal the problem only after reconstruction.
+        var familyAdjacency: [UUID: [(characterID: UUID, delta: Int)]] = [:]
+        for relationship in project.relationships where relationship.kind.isFamily {
+            let delta: Int
+            switch relationship.kind {
+            case .parent:
+                delta = -1
+            case .child:
+                delta = 1
+            case .sibling, .spouse, .partner:
+                delta = 0
+            default:
+                continue
+            }
+
+            familyAdjacency[relationship.sourceCharacterID, default: []]
+                .append((relationship.targetCharacterID, delta))
+            familyAdjacency[relationship.targetCharacterID, default: []]
+                .append((relationship.sourceCharacterID, -delta))
+        }
+
+        var generationByID: [UUID: Int] = [:]
+        for rootID in project.characters.map(\.sourceID) where generationByID[rootID] == nil {
+            generationByID[rootID] = 0
+            var queue: [UUID] = [rootID]
+            var index = 0
+
+            while index < queue.count {
+                let currentID = queue[index]
+                index += 1
+                let currentGeneration = generationByID[currentID] ?? 0
+
+                for edge in familyAdjacency[currentID, default: []] {
+                    let expected = currentGeneration + edge.delta
+                    if let existing = generationByID[edge.characterID] {
+                        if existing != expected {
+                            throw ProjectArchiveError.invalidArchive(
+                                "The archived family graph contains conflicting generation paths."
+                            )
+                        }
+                    } else {
+                        generationByID[edge.characterID] = expected
+                        queue.append(edge.characterID)
+                    }
+                }
             }
         }
     }
@@ -505,20 +555,22 @@ struct ProjectArchiveDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }
     static var writableContentTypes: [UTType] { [.json] }
 
-    var archive: ProjectArchive
+    /// Pre-encoded bytes keep SwiftUI's synchronous FileDocument write callback lightweight.
+    var data: Data
 
-    init(archive: ProjectArchive) {
-        self.archive = archive
+    init(data: Data) {
+        self.data = data
     }
 
     init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents else {
             throw ProjectArchiveError.missingFileData
         }
-        archive = try ProjectArchive.decode(data)
+        _ = try ProjectArchive.decode(data)
+        self.data = data
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: try archive.encodedData())
+        FileWrapper(regularFileWithContents: data)
     }
 }
