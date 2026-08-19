@@ -393,3 +393,113 @@ final class AuthorWorkflowTests: XCTestCase {
         XCTAssertThrowsError(try ProjectArchive(project: project).validate())
     }
 }
+
+final class ReleaseHardeningTests: XCTestCase {
+    func testArchiveEncodedSizeBoundaryIsDeterministic() {
+        XCTAssertNoThrow(
+            try ArchiveResourcePolicy.validateEncodedByteCount(ArchiveResourcePolicy.maximumEncodedArchiveBytes)
+        )
+        XCTAssertThrowsError(
+            try ArchiveResourcePolicy.validateEncodedByteCount(ArchiveResourcePolicy.maximumEncodedArchiveBytes + 1)
+        )
+    }
+
+    func testArchiveImageSizeBoundaryIsDeterministic() {
+        XCTAssertNoThrow(
+            try ArchiveResourcePolicy.validateImageByteCount(ArchiveResourcePolicy.maximumImageBytes)
+        )
+        XCTAssertThrowsError(
+            try ArchiveResourcePolicy.validateImageByteCount(ArchiveResourcePolicy.maximumImageBytes + 1)
+        )
+    }
+
+    func testArchiveCheckedAdditionRejectsIntegerOverflow() {
+        var total = Int.max
+        XCTAssertThrowsError(
+            try ArchiveResourcePolicy.checkedAdding(1, to: &total, description: "test data")
+        )
+        XCTAssertEqual(total, Int.max)
+    }
+
+    @MainActor
+    func testArchiveAllowsSixReferencesAndRejectsASeventh() throws {
+        let project = StoryProject(title: "Story")
+        let character = CharacterProfile(name: "Elena", project: project)
+        project.characters = [character]
+
+        for index in 0..<ArchiveResourcePolicy.maximumReferenceImagesPerCharacter {
+            character.referenceImages.append(
+                CharacterReferenceImage(
+                    label: "Reference \(index)",
+                    sortOrder: index,
+                    imageData: Data([UInt8(index)]),
+                    character: character
+                )
+            )
+        }
+
+        XCTAssertNoThrow(try ArchiveResourcePolicy.validate(ProjectArchive(project: project)))
+
+        character.referenceImages.append(
+            CharacterReferenceImage(
+                label: "Reference overflow",
+                sortOrder: ArchiveResourcePolicy.maximumReferenceImagesPerCharacter,
+                imageData: Data([255]),
+                character: character
+            )
+        )
+        XCTAssertThrowsError(try ArchiveResourcePolicy.validate(ProjectArchive(project: project)))
+    }
+
+    @MainActor
+    func testSafeArchiveRoundTripPreservesFormatV1() throws {
+        let project = StoryProject(title: "Bounded Story", genre: .fantasy)
+        let character = CharacterProfile(name: "Elena", project: project)
+        project.characters = [character]
+
+        let data = try ProjectArchive(project: project).safelyEncodedData()
+        let decoded = try ProjectArchive.safelyDecode(data)
+
+        XCTAssertEqual(decoded.formatVersion, 1)
+        XCTAssertEqual(decoded.project.title, "Bounded Story")
+        XCTAssertEqual(decoded.project.characters.map(\.name), ["Elena"])
+    }
+
+    @MainActor
+    func testGuideRankingFixtureLocksEditorialPriorityOrder() {
+        let project = StoryProject(title: "Ashes", genre: .fantasy)
+        let character = CharacterProfile(
+            name: "Elena",
+            summary: "A battle-scarred mage driven by revenge while hiding a secret, questioning faith and carrying debt.",
+            storyRole: "Reluctant hero",
+            project: project
+        )
+        let other = CharacterProfile(name: "Mara", project: project)
+        project.characters = [character, other]
+
+        let trauma = LifeEvent(
+            title: "Siege",
+            kind: .trauma,
+            details: "Survived a battle",
+            character: character
+        )
+        character.lifeEvents = [trauma]
+
+        let relationship = CharacterRelationship(kind: .mentor, source: character, target: other)
+        character.outgoingRelationships.append(relationship)
+        other.incomingRelationships.append(relationship)
+
+        let ids = PromptEngine.detailedSuggestions(for: character, in: project, limit: 8).map(\.id)
+
+        XCTAssertEqual(ids, [
+            "adaptive.after-trauma",
+            "adaptive.magic-cost",
+            "adaptive.revenge-endpoint",
+            "adaptive.relationship-pressure",
+            "adaptive.secret-pressure",
+            "adaptive.magic-limit",
+            "adaptive.after-battle",
+            "adaptive.trauma-visible"
+        ])
+    }
+}

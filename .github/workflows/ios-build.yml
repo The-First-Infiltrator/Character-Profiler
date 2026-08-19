@@ -15,6 +15,8 @@ concurrency:
 jobs:
   build:
     runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -42,8 +44,14 @@ jobs:
           [[ "$width" == "1024" && "$height" == "1024" ]]
           [[ "$alpha" == "no" ]]
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Verify pinned Xcode version
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$DEVELOPER_DIR"
+          version="$(xcodebuild -version)"
+          printf '%s\n' "$version"
+          grep -q '^Xcode 16\.4$' <<<"$version"
 
       - name: Prepare iOS Simulator
         shell: bash
@@ -56,7 +64,7 @@ jobs:
           simulator_id="$(grep -m1 -E 'iPhone .*[0-9A-Fa-f-]{36}' /tmp/available-simulators.txt | grep -oE '[0-9A-Fa-f-]{36}' | head -1 || true)"
 
           if [[ -z "$simulator_id" ]]; then
-            echo "No bootable iPhone simulator is currently installed; downloading the default iOS runtime for this Xcode."
+            echo "No bootable iPhone simulator is currently installed; downloading the default iOS runtime for the pinned Xcode."
             xcodebuild -downloadPlatform iOS
             xcrun simctl list devices available >/tmp/available-simulators.txt
             cat /tmp/available-simulators.txt
@@ -79,6 +87,7 @@ jobs:
           -sdk iphonesimulator
           -destination "platform=iOS Simulator,id=${SIMULATOR_ID}"
           CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
           test
 
       - name: Build optimized Simulator Release
@@ -90,6 +99,7 @@ jobs:
           -sdk iphonesimulator
           -destination "platform=iOS Simulator,id=${SIMULATOR_ID}"
           CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
           build
 
       - name: Build optimized iPhoneOS Release
@@ -101,4 +111,5 @@ jobs:
           -sdk iphoneos
           -destination "generic/platform=iOS"
           CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
           build

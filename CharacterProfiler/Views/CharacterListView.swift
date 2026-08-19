@@ -179,8 +179,7 @@ struct ProjectListView: View {
                 let archive = try await Task.detached(priority: .userInitiated) {
                     let accessed = url.startAccessingSecurityScopedResource()
                     defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-                    let data = try Data(contentsOf: url, options: [.mappedIfSafe])
-                    return try ProjectArchive.decode(data)
+                    return try ProjectArchive.safelyDecode(contentsOf: url)
                 }.value
 
                 _ = try archive.restore(in: modelContext)
@@ -377,7 +376,7 @@ struct ProjectDetailView: View {
         Task {
             do {
                 let data = try await Task.detached(priority: .userInitiated) {
-                    try archive.encodedData()
+                    try archive.safelyEncodedData()
                 }.value
                 exportDocument = ProjectArchiveDocument(data: data)
                 showingExporter = true

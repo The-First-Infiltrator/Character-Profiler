@@ -7,7 +7,7 @@ final class CharacterProfilerUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testAuthorCanCreateStoryAndCharacter() {
+    func testAuthorCanCreateStoryCharacterAndHistoryEntryThenDeleteHistoryEntry() {
         let app = XCUIApplication()
         app.launch()
 
@@ -15,6 +15,7 @@ final class CharacterProfilerUITests: XCTestCase {
 
         let storyTitle = "UI Story \(UUID().uuidString.prefix(8))"
         let characterName = "Elena UI \(UUID().uuidString.prefix(8))"
+        let eventTitle = "Turning Point \(UUID().uuidString.prefix(8))"
 
         let newStory = app.buttons["New Story"]
         XCTAssertTrue(newStory.waitForExistence(timeout: 4))
@@ -49,6 +50,44 @@ final class CharacterProfilerUITests: XCTestCase {
         XCTAssertTrue(saveCharacter.isEnabled)
         saveCharacter.tap()
 
-        XCTAssertTrue(app.staticTexts[characterName].waitForExistence(timeout: 6))
+        let characterRow = app.staticTexts[characterName]
+        XCTAssertTrue(characterRow.waitForExistence(timeout: 6))
+        characterRow.tap()
+        XCTAssertTrue(app.navigationBars[characterName].waitForExistence(timeout: 4))
+
+        let historySegment = app.segmentedControls.buttons["History"]
+        XCTAssertTrue(historySegment.waitForExistence(timeout: 4))
+        historySegment.tap()
+
+        let addLifeEvent = app.buttons["Add Life Event"]
+        XCTAssertTrue(addLifeEvent.waitForExistence(timeout: 4))
+        addLifeEvent.tap()
+        XCTAssertTrue(app.navigationBars["Add Life Event"].waitForExistence(timeout: 4))
+
+        let eventTitleField = app.textFields["Event title"]
+        XCTAssertTrue(eventTitleField.waitForExistence(timeout: 4))
+        eventTitleField.tap()
+        eventTitleField.typeText(eventTitle)
+
+        let saveEvent = app.buttons["Save"]
+        XCTAssertTrue(saveEvent.isEnabled)
+        saveEvent.tap()
+
+        XCTAssertTrue(app.staticTexts[eventTitle].waitForExistence(timeout: 6))
+
+        let eventActions = app.buttons["Actions for \(eventTitle)"]
+        XCTAssertTrue(eventActions.waitForExistence(timeout: 4))
+        eventActions.tap()
+
+        let deleteAction = app.buttons["Delete"]
+        XCTAssertTrue(deleteAction.waitForExistence(timeout: 4))
+        deleteAction.tap()
+
+        let confirmDelete = app.buttons["Delete Life Event"]
+        XCTAssertTrue(confirmDelete.waitForExistence(timeout: 4))
+        confirmDelete.tap()
+
+        XCTAssertFalse(app.staticTexts[eventTitle].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["No Life Events"].waitForExistence(timeout: 4))
     }
 }
