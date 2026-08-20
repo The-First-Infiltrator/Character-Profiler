@@ -7,6 +7,15 @@ final class CharacterProfilerUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    private func reveal(_ element: XCUIElement, in scrollView: XCUIElement, maxSwipes: Int = 6) -> Bool {
+        if element.waitForExistence(timeout: 1), element.isHittable { return true }
+        for _ in 0..<maxSwipes {
+            scrollView.swipeUp()
+            if element.exists && element.isHittable { return true }
+        }
+        return element.exists && element.isHittable
+    }
+
     func testAuthorCanCreateAndDeleteStoryCharacterAndHistoryEntry() {
         let app = XCUIApplication()
         app.launch()
@@ -56,7 +65,9 @@ final class CharacterProfilerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars[characterName].waitForExistence(timeout: 4))
 
         let historyWorkspace = app.buttons["workspace-history"]
-        XCTAssertTrue(historyWorkspace.waitForExistence(timeout: 4))
+        let characterDashboard = app.scrollViews.firstMatch
+        XCTAssertTrue(characterDashboard.waitForExistence(timeout: 4))
+        XCTAssertTrue(reveal(historyWorkspace, in: characterDashboard), "History workspace should become hittable after scrolling the character dashboard")
         historyWorkspace.tap()
         XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 4))
 
