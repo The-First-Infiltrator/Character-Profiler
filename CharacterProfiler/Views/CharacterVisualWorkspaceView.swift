@@ -140,6 +140,7 @@ struct CharacterVisualWorkspaceView: View {
         VStack(alignment: .leading, spacing: 18) {
             Label("Character Visual Studio", systemImage: "person.crop.rectangle.stack")
                 .font(.title3.bold())
+                .foregroundStyle(CharacterProfilerTheme.violet)
             Text("Establish one canonical look from the character record and references, then build an eight-view turnaround from that canonical image.")
                 .foregroundStyle(.secondary)
 
@@ -153,8 +154,7 @@ struct CharacterVisualWorkspaceView: View {
                 .foregroundStyle(.secondary)
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.violet) }
             }
 
             referencePicturesSection
@@ -359,6 +359,7 @@ struct CharacterVisualWorkspaceView: View {
                         .foregroundStyle(.secondary)
                 }
                 ProgressView(value: state.turnaroundProgress)
+                    .tint(CharacterProfilerTheme.violet)
 
                 if !state.duplicateAngles.isEmpty {
                     Label("Duplicate stored frames detected for: \(state.duplicateAngles.map(\.displayName).joined(separator: ", ")). Delete or regenerate the duplicate views before relying on the turnaround.", systemImage: "exclamationmark.triangle")
@@ -789,6 +790,8 @@ private struct VisualReferenceEditor: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background { CharacterProfilerBackdrop() }
             .navigationTitle("Reference Image")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

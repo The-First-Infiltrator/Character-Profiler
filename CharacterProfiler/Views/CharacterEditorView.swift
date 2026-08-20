@@ -18,7 +18,7 @@ struct ProjectEditorView: View {
 
     var body: some View {
         Form {
-            Section("Story Details") {
+            Section {
                 TextField("Story title", text: $draft.title)
                     .textInputAutocapitalization(.words)
                 Picker("Genre", selection: $draft.genre) {
@@ -29,6 +29,11 @@ struct ProjectEditorView: View {
                 if draft.genre == .other {
                     TextField("Custom genre", text: $draft.customGenre)
                 }
+            } header: {
+                CharacterProfilerSectionHeader(
+                    title: "Story Details",
+                    systemImage: "book.closed"
+                )
             }
 
             Section {
@@ -39,11 +44,17 @@ struct ProjectEditorView: View {
                 )
                 .lineLimit(4...10)
             } header: {
-                Text("Premise")
+                CharacterProfilerSectionHeader(
+                    title: "Premise",
+                    systemImage: "text.quote",
+                    accent: CharacterProfilerTheme.gold
+                )
             } footer: {
                 Text("The premise appears at the top of the story workspace. Genre helps Character Guide choose useful development questions and can be changed later without losing character data.")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background { CharacterProfilerBackdrop() }
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(project == nil ? "New Story" : "Edit Story")
         .navigationBarTitleDisplayMode(.inline)
@@ -97,7 +108,7 @@ struct CharacterEditorView: View {
         Form {
             portraitSection
 
-            Section("Identity") {
+            Section {
                 TextField("Name", text: $draft.name)
                     .textInputAutocapitalization(.words)
                 TextField("Nickname", text: $draft.nickname)
@@ -109,6 +120,11 @@ struct CharacterEditorView: View {
                     TextField("Pronouns", text: $draft.pronouns)
                         .frame(maxWidth: .infinity)
                 }
+            } header: {
+                CharacterProfilerSectionHeader(
+                    title: "Identity",
+                    systemImage: "person.text.rectangle"
+                )
             }
 
             Section {
@@ -121,7 +137,11 @@ struct CharacterEditorView: View {
                 )
                 .lineLimit(3...8)
             } header: {
-                Text("Story")
+                CharacterProfilerSectionHeader(
+                    title: "Story",
+                    systemImage: "book.pages",
+                    accent: CharacterProfilerTheme.gold
+                )
             } footer: {
                 Text("Keep the summary short enough to scan quickly. Detailed facts belong in Profile Details below.")
             }
@@ -190,18 +210,30 @@ struct CharacterEditorView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             } header: {
-                Text("Profile Details")
+                CharacterProfilerSectionHeader(
+                    title: "Profile Details",
+                    systemImage: "rectangle.stack",
+                    accent: CharacterProfilerTheme.violet
+                )
             } footer: {
                 Text("Sections stay collapsed until you open them, keeping long profiles manageable on iPhone. Swipe individual fields to delete them.")
             }
 
             if let validationMessage = draft.validationMessage {
-                Section("Cannot Save") {
+                Section {
                     Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
+                } header: {
+                    CharacterProfilerSectionHeader(
+                        title: "Cannot Save",
+                        systemImage: "exclamationmark.triangle",
+                        accent: .orange
+                    )
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background { CharacterProfilerBackdrop() }
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(character == nil ? "New Character" : "Edit Character")
         .navigationBarTitleDisplayMode(.inline)
@@ -234,7 +266,7 @@ struct CharacterEditorView: View {
             HStack(spacing: 18) {
                 portraitPreview
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Portrait")
+                    Text("Visual Identity")
                         .font(.headline)
                     Text("A clear portrait makes the story and relationship screens much easier to scan.")
                         .font(.caption)
@@ -251,6 +283,12 @@ struct CharacterEditorView: View {
                 }
             }
             .padding(.vertical, 4)
+        } header: {
+            CharacterProfilerSectionHeader(
+                title: "Portrait",
+                systemImage: "person.crop.circle",
+                accent: CharacterProfilerTheme.rose
+            )
         }
     }
 
@@ -311,7 +349,17 @@ struct CharacterEditorView: View {
                 .scaledToFill()
                 .frame(width: 92, height: 92)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(.quaternary, lineWidth: 1))
+                .overlay(
+                    Circle().stroke(
+                        LinearGradient(
+                            colors: [CharacterProfilerTheme.gold, CharacterProfilerTheme.rose],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2.5
+                    )
+                )
+                .shadow(color: CharacterProfilerTheme.rose.opacity(0.16), radius: 8, y: 4)
                 .accessibilityLabel("Current character portrait")
         } else {
             Image(systemName: "person.crop.circle.fill")

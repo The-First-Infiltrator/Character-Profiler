@@ -25,7 +25,9 @@ struct CharacterGuidePanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("Character Guide", systemImage: "sparkles").font(.title3.bold())
+                Label("Character Guide", systemImage: "sparkles")
+                    .font(.title3.bold())
+                    .foregroundStyle(CharacterProfilerTheme.gold)
                 Spacer()
                 if !savedAnswers.isEmpty {
                     Button("Saved Answers (\(savedAnswers.count))", systemImage: "text.book.closed") {
@@ -62,8 +64,8 @@ struct CharacterGuidePanel: View {
                         }
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.thinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.gold) }
+                        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint(suggestion.reason)
@@ -106,6 +108,8 @@ struct CharacterGuidePanel: View {
                             .lineLimit(4...12)
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .background { CharacterProfilerBackdrop() }
                 .navigationTitle(prompt.category.displayName)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -196,6 +200,10 @@ private struct SavedGuideAnswersView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .padding(.vertical, 5)
+                    .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.gold) }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button("Delete", systemImage: "trash", role: .destructive) {
                             responsePendingDeletion = response
@@ -205,6 +213,9 @@ private struct SavedGuideAnswersView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("Saved Guide Answers")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -278,6 +289,8 @@ private struct SavedGuideAnswerEditor: View {
                     .lineLimit(4...14)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("Edit Guide Answer")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

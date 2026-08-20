@@ -21,6 +21,10 @@ final class CharacterProfilerUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Character Profiler"].waitForExistence(timeout: 8))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["story-library-hero"].waitForExistence(timeout: 4),
+            "The polished story-library hero should be visible on launch"
+        )
 
         let storyTitle = "UI Story \(UUID().uuidString.prefix(8))"
         let characterName = "Elena UI \(UUID().uuidString.prefix(8))"
@@ -44,6 +48,10 @@ final class CharacterProfilerUITests: XCTestCase {
         XCTAssertTrue(storyRow.waitForExistence(timeout: 6))
         storyRow.tap()
         XCTAssertTrue(app.navigationBars[storyTitle].waitForExistence(timeout: 4))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["story-workspace-hero"].waitForExistence(timeout: 4),
+            "The story workspace should retain its visual hero hierarchy"
+        )
 
         let newCharacter = app.buttons["New Character"]
         XCTAssertTrue(newCharacter.waitForExistence(timeout: 4))
@@ -63,6 +71,10 @@ final class CharacterProfilerUITests: XCTestCase {
         XCTAssertTrue(characterRow.waitForExistence(timeout: 6))
         characterRow.tap()
         XCTAssertTrue(app.navigationBars[characterName].waitForExistence(timeout: 4))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["character-dossier-hero"].waitForExistence(timeout: 4),
+            "The character dossier hero should be visible"
+        )
 
         let historyWorkspace = app.buttons["workspace-history"]
         let characterDashboard = app.scrollViews.firstMatch

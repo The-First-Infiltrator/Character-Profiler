@@ -2,6 +2,118 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
+
+enum CharacterProfilerTheme {
+    static let ink = Color(red: 0.16, green: 0.12, blue: 0.30)
+    static let indigo = Color(red: 0.34, green: 0.28, blue: 0.78)
+    static let violet = Color(red: 0.56, green: 0.31, blue: 0.82)
+    static let gold = Color(red: 0.88, green: 0.57, blue: 0.18)
+    static let rose = Color(red: 0.78, green: 0.28, blue: 0.48)
+    static let teal = Color(red: 0.13, green: 0.58, blue: 0.58)
+
+    static let heroGradient = LinearGradient(
+        colors: [ink, indigo, violet],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+}
+
+struct CharacterProfilerBackdrop: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            Color(uiColor: .systemGroupedBackground)
+
+            LinearGradient(
+                colors: [
+                    CharacterProfilerTheme.indigo.opacity(colorScheme == .dark ? 0.20 : 0.10),
+                    CharacterProfilerTheme.gold.opacity(colorScheme == .dark ? 0.08 : 0.05),
+                    Color.clear
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Circle()
+                .fill(CharacterProfilerTheme.violet.opacity(colorScheme == .dark ? 0.10 : 0.06))
+                .frame(width: 280, height: 280)
+                .blur(radius: 70)
+                .offset(x: 150, y: -260)
+        }
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
+    }
+}
+
+struct CharacterProfilerCardSurface: View {
+    let accent: Color
+    var prominent = false
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: prominent ? 24 : 18, style: .continuous)
+            .fill(.thinMaterial)
+            .overlay {
+                RoundedRectangle(cornerRadius: prominent ? 24 : 18, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [accent.opacity(prominent ? 0.18 : 0.10), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: prominent ? 24 : 18, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [accent.opacity(0.42), Color.white.opacity(0.10)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: accent.opacity(prominent ? 0.16 : 0.09), radius: prominent ? 18 : 10, y: prominent ? 9 : 5)
+    }
+}
+
+struct CharacterProfilerIconTile: View {
+    let systemImage: String
+    let accent: Color
+    var size: CGFloat = 46
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: size * 0.42, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(
+                LinearGradient(
+                    colors: [accent, accent.opacity(0.72)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: size * 0.29, style: .continuous)
+            )
+            .shadow(color: accent.opacity(0.28), radius: 7, y: 4)
+            .accessibilityHidden(true)
+    }
+}
+
+struct CharacterProfilerSectionHeader: View {
+    let title: String
+    let systemImage: String
+    var accent = CharacterProfilerTheme.indigo
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(accent)
+            .textCase(nil)
+    }
+}
 
 private final class ModelContainerLoader: ObservableObject {
     @Published private(set) var result: Result<ModelContainer, Error>
@@ -47,6 +159,7 @@ struct CharacterProfilerApp: App {
             case .success(let modelContainer):
                 ProjectListView()
                     .modelContainer(modelContainer)
+                    .tint(CharacterProfilerTheme.indigo)
                     .environment(\.reportPersistenceFailure) { message in
                         persistenceFailureMessage = message
                     }

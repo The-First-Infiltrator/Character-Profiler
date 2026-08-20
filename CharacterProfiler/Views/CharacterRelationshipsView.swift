@@ -25,7 +25,9 @@ struct CharacterRelationshipsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("People", systemImage: "person.2").font(.title3.bold())
+                Label("People", systemImage: "person.2")
+                    .font(.title3.bold())
+                    .foregroundStyle(CharacterProfilerTheme.rose)
                 Spacer()
                 Button("Add Relationship", systemImage: "plus") { showingAdd = true }
             }
@@ -63,8 +65,8 @@ struct CharacterRelationshipsPanel: View {
                                 .accessibilityHidden(true)
                         }
                         .padding()
-                        .background(.thinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.rose) }
+                        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Opens the graphical connected family tree")
@@ -147,7 +149,8 @@ struct CharacterRelationshipsPanel: View {
                 }
                 .accessibilityLabel("Relationship actions for \(other.name)")
             }
-            .padding(.vertical, 4)
+            .padding(12)
+            .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.rose) }
         }
     }
 
@@ -261,6 +264,8 @@ private struct RelationshipEditorView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background { CharacterProfilerBackdrop() }
             .navigationTitle(relationship == nil ? "Add Relationship" : "Edit Relationship")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
@@ -365,6 +370,9 @@ private struct RelationshipCharacterPicker: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("Choose Character")
         .searchable(text: $searchText, prompt: "Search cast")
     }
@@ -687,6 +695,7 @@ struct FamilyTreeView: View {
                 )
             }
         }
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("\(root.name) — Family")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -825,8 +834,11 @@ private struct FamilyTreeNodeCard: View {
         }
         .padding(10)
         .frame(width: 156, height: 86)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background {
+            CharacterProfilerCardSurface(
+                accent: hasGenerationConflict ? .orange : CharacterProfilerTheme.rose
+            )
+        }
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .stroke(
