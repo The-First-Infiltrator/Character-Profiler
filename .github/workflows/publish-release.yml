@@ -88,6 +88,13 @@ jobs:
             exit 1
           fi
 
+          project_build="$(xcodebuild -project CharacterProfiler.xcodeproj -scheme CharacterProfiler -configuration Release -showBuildSettings | awk '/CURRENT_PROJECT_VERSION =/ {print $3; exit}')"
+          if ! [[ "$project_build" =~ ^[1-9][0-9]*$ ]]; then
+            echo "CURRENT_PROJECT_VERSION must be a positive integer, found $project_build." >&2
+            exit 1
+          fi
+          echo "RELEASE_BUILD=$project_build" >> "$GITHUB_ENV"
+
       - name: Validate application resources
         shell: bash
         run: |
@@ -120,7 +127,6 @@ jobs:
           echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
 
       - name: Test exact release commit
-        continue-on-error: ${{ env.RELEASE_PRERELEASE == 'true' }}
         run: >-
           xcodebuild
           -project CharacterProfiler.xcodeproj
@@ -153,7 +159,7 @@ jobs:
           -destination "generic/platform=iOS"
           -derivedDataPath "$RUNNER_TEMP/CharacterProfilerReleaseDerivedData"
           MARKETING_VERSION="$RELEASE_BASE_VERSION"
-          CURRENT_PROJECT_VERSION=15
+          CURRENT_PROJECT_VERSION="$RELEASE_BUILD"
           CODE_SIGNING_ALLOWED=NO
           SWIFT_STRICT_CONCURRENCY=complete
           build

@@ -1,25 +1,27 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 
-# Character Profiler Stable Release Checklist
+# Character Profiler 1.1 Release Checklist
 
 This checklist records the release-quality gates for the current stable line. It separates automated proof from physical-device Image Playground validation.
 
 ## Automated release gates
 
-The immutable 1.0.1 candidate `77ac8fa2f33cf1c06ef59576fd9605bc00330f26` passed GitHub Actions iOS Build run `32313490472`, including the complete simulator test suite, optimized simulator Release build and optimized unsigned generic `iphoneos` Release build. The integration commit is `35667c73496190769a17ef797f81338b799676f6`.
+Version 1.1.0 build 15 is the current release-candidate line. A candidate is publishable only when the exact PR head and the exact request commit on `main` pass the complete simulator tests, optimized simulator Release build and optimized unsigned generic `iphoneos` Release build. Project/icon packaging changes also run the compiled app-icon pixel-integrity gate.
 
-- [x] Exact final 1.0.1 candidate passes the complete iOS simulator unit and UI-test suite.
-- [x] Exact final 1.0.1 candidate compiles successfully as an optimized simulator Release with code signing disabled.
-- [x] Exact final 1.0.1 candidate compiles successfully as an optimized generic `iphoneos` Release with code signing disabled.
-- [ ] After integration, the exact final `main` commit passes the complete publication build/test gate.
+- [ ] Exact final 1.1.0 candidate passes the complete iOS simulator unit and UI-test suite.
+- [ ] Exact final 1.1.0 candidate compiles successfully as an optimized simulator Release with code signing disabled.
+- [ ] Exact final 1.1.0 candidate compiles successfully as an optimized generic `iphoneos` Release with code signing disabled.
+- [ ] Exact final 1.1.0 candidate passes compiled app-icon integrity validation.
+- [ ] After integration, the exact release-request commit on `main` passes the complete publication build/test gate.
 - [x] Hosted CI dynamically discovers or provisions an iPhone simulator rather than assuming one fixed device exists.
 - [x] XCUITest end-to-end coverage launches the Story Library, creates a story, opens it, creates a character, and verifies the saved character appears.
 - [x] CI preflights the AppIcon file, manifest entry, 1024×1024 dimensions and opaque alpha state before Xcode builds.
 - [x] Third-party GitHub Actions are pinned to immutable commit SHAs.
 - [x] Stale CI for the same pull request or branch is cancelled by concurrency grouping.
 - [x] Green CI builds package the optimized unsigned device app into an IPA artifact and emit a SHA-256 checksum.
-- [x] Release requests publish only the exact `main` commit created by the request merge and require the request version to match `MARKETING_VERSION`.
+- [x] Release requests publish only the exact `main` commit created by the request merge and require the request base version to match `MARKETING_VERSION`.
 - [x] Release publication independently runs the complete simulator tests plus optimized simulator and iPhoneOS Release builds before creating or updating a GitHub Release.
+- [x] Release publication is strict for stable and prerelease requests; a failed test cannot be bypassed to obtain an IPA.
 - [x] Published releases attach `CharacterProfiler-<version>-unsigned.ipa` and its SHA-256 checksum as release assets.
 
 ## Persistence and data safety
@@ -71,11 +73,11 @@ The immutable 1.0.1 candidate `77ac8fa2f33cf1c06ef59576fd9605bc00330f26` passed 
 
 - [x] Source/project documentation identifies `GPL-3.0-or-later` through SPDX headers/notices.
 - [x] Repository includes the complete GNU General Public License version 3 text.
-- [x] App metadata is 1.0.1 build 12.
+- [x] App metadata is 1.1.0 build 15 in Debug and Release configurations.
 - [x] Application asset catalogue includes a real opaque 1024×1024 AppIcon and is part of the app target resources.
-- [x] README, feature-status audit and roadmap describe 1.0.0 as released and 1.0.1 as the audit-hardening update.
-- [x] Changelog describes the 1.0.1 hardening scope and remaining physical-device validation boundary.
-- [ ] A GitHub `v1.0.1` tag/release is created only after the exact publication gate above succeeds.
+- [x] README, architecture, feature-status audit and roadmap describe the 1.1.0 interface scope and unchanged data/archive contracts.
+- [x] Changelog records 1.0.2, 1.0.3 and 1.1.0 plus the remaining physical-device validation boundary.
+- [ ] A GitHub `v1.1.0-rc.1` release and its IPA/checksum exist only after the exact publication gate above succeeds.
 
 ## Physical-device Visual Studio validation
 

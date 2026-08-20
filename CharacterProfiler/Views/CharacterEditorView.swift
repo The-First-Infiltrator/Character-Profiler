@@ -31,13 +31,15 @@ struct ProjectEditorView: View {
                 }
             }
 
-            Section("Premise") {
+            Section {
                 TextField(
                     "What is this story about?",
                     text: $draft.premise,
                     axis: .vertical
                 )
                 .lineLimit(4...10)
+            } header: {
+                Text("Premise")
             } footer: {
                 Text("The premise appears at the top of the story workspace. Genre helps Character Guide choose useful development questions and can be changed later without losing character data.")
             }
@@ -109,7 +111,7 @@ struct CharacterEditorView: View {
                 }
             }
 
-            Section("Story") {
+            Section {
                 TextField("Role in the story", text: $draft.storyRole)
                     .textInputAutocapitalization(.sentences)
                 TextField(
@@ -118,6 +120,8 @@ struct CharacterEditorView: View {
                     axis: .vertical
                 )
                 .lineLimit(3...8)
+            } header: {
+                Text("Story")
             } footer: {
                 Text("Keep the summary short enough to scan quickly. Detailed facts belong in Profile Details below.")
             }
