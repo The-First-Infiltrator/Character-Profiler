@@ -3,7 +3,7 @@
   "target": "current-main",
   "title": "Character Profiler 1.1.0 Release Candidate 2",
   "build": 16,
-  "publication_request": 2,
+  "publication_request": 3,
   "draft": false,
   "prerelease": true,
   "notes": "Character Profiler 1.1.0 Release Candidate 2 is the physical-device test build for the polished iPhone interface.\n\nIt introduces a cohesive adaptive visual system across the Story Library, story workspace, character dashboard, editors, Character Guide, People & Relationships, History and Visual Studio, with clearer hierarchy, gradient hero cards, semantic accent colours and improved light/dark appearance.\n\nThere is no SwiftData schema or Character Profiler archive-format change; archive format remains v1. Physical-device Image Playground output quality, interface ergonomics and cross-angle identity consistency remain explicit validation items.\n\nThe attached IPA is intentionally unsigned for AltStore, AltServer, Sideloadly or another sideloading tool to apply the user's development signature during installation."
