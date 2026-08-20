@@ -2,6 +2,20 @@
 
 # Changelog
 
+## [1.1.0-rc.2] - 2026-08-21
+
+### Changed
+
+- Polished the Story Library, story workspace, character dashboard, editors, guide, relationships, history and Visual Studio with a cohesive adaptive interface.
+- Added clearer visual hierarchy, gradient hero cards, semantic accent colours and improved light/dark appearance while preserving existing data and workflows.
+- Advanced the physical-device test build to version 1.1.0 build 16.
+
+### Compatibility and validation
+
+- This candidate adds no SwiftData entity or persistent field and keeps Character Profiler archive format v1.
+- Hosted CI must pass the complete simulator test suite plus optimized simulator and unsigned iPhoneOS Release builds before packaging the IPA.
+- Physical-device Image Playground output quality, interface ergonomics and cross-angle character consistency remain validation items for this candidate.
+
 ## [1.1.0] - 2026-08-21
 
 ### Changed

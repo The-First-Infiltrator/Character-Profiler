@@ -58,14 +58,17 @@ struct ProjectListView: View {
                     )
                     .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                     .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
 
-                Section("Stories") {
+                Section {
                     if projects.isEmpty {
                         VStack(spacing: 14) {
-                            Image(systemName: "books.vertical.fill")
-                                .font(.system(size: 42))
-                                .foregroundStyle(.secondary)
+                            CharacterProfilerIconTile(
+                                systemImage: "books.vertical.fill",
+                                accent: CharacterProfilerTheme.indigo,
+                                size: 58
+                            )
                             Text("Start Your First Story")
                                 .font(.title3.bold())
                             Text("Create a story project, then build its cast, relationships, history and visual references in one place.")
@@ -81,6 +84,15 @@ struct ProjectListView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 28)
+                        .padding(.horizontal, 18)
+                        .background {
+                            CharacterProfilerCardSurface(
+                                accent: CharacterProfilerTheme.indigo,
+                                prominent: true
+                            )
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     } else {
                         ForEach(projects) { project in
                             NavigationLink {
@@ -88,12 +100,22 @@ struct ProjectListView: View {
                             } label: {
                                 StoryLibraryRow(project: project)
                             }
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete(perform: stageProjectDeletion)
                     }
+                } header: {
+                    CharacterProfilerSectionHeader(
+                        title: "Your Stories",
+                        systemImage: "books.vertical"
+                    )
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background { CharacterProfilerBackdrop() }
             .navigationTitle("Character Profiler")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -279,14 +301,17 @@ struct ProjectDetailView: View {
                 )
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
 
             Section {
                 if project.characters.isEmpty {
                     VStack(spacing: 14) {
-                        Image(systemName: "person.crop.circle.badge.plus")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.secondary)
+                        CharacterProfilerIconTile(
+                            systemImage: "person.crop.circle.badge.plus",
+                            accent: CharacterProfilerTheme.violet,
+                            size: 56
+                        )
                         Text("Build the Cast")
                             .font(.title3.bold())
                         Text("Add the first character, then open their workspace to develop profile, Guide answers, relationships, history and visuals.")
@@ -302,6 +327,15 @@ struct ProjectDetailView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 22)
+                    .padding(.horizontal, 18)
+                    .background {
+                        CharacterProfilerCardSurface(
+                            accent: CharacterProfilerTheme.violet,
+                            prominent: true
+                        )
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 } else if filteredCharacters.isEmpty {
                     ContentUnavailableView.search(text: searchText)
                 } else {
@@ -311,12 +345,18 @@ struct ProjectDetailView: View {
                         } label: {
                             CharacterRow(character: character)
                         }
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
                     .onDelete(perform: stageCharacterDeletion)
                 }
             } header: {
                 HStack {
-                    Text("Characters")
+                    CharacterProfilerSectionHeader(
+                        title: "Characters",
+                        systemImage: "person.2"
+                    )
                     Spacer()
                     if !project.characters.isEmpty {
                         Button {
@@ -335,6 +375,8 @@ struct ProjectDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle(project.title)
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $searchText, prompt: "Search characters")
@@ -522,18 +564,66 @@ private struct StoryLibrarySummary: View {
     let characterCount: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Story Library")
-                .font(.title2.bold())
-            Text(storyCount == 0
-                 ? "A focused home for your stories and characters."
-                 : "\(storyCount) stor\(storyCount == 1 ? "y" : "ies") • \(characterCount) character\(characterCount == 1 ? "" : "s")")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        ZStack(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(CharacterProfilerTheme.heroGradient)
+
+            Image(systemName: "book.pages.fill")
+                .font(.system(size: 112, weight: .bold))
+                .foregroundStyle(.white.opacity(0.08))
+                .rotationEffect(.degrees(-8))
+                .offset(x: 24, y: -16)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 16) {
+                Label("STORY DEVELOPMENT STUDIO", systemImage: "sparkles")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(CharacterProfilerTheme.gold)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Story Library")
+                        .font(.title.bold())
+                    Text(storyCount == 0
+                         ? "A focused home for stories, characters and the worlds around them."
+                         : "Every story, character and creative thread in one place.")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.78))
+                }
+
+                HStack(spacing: 10) {
+                    LibraryMetric(value: storyCount, label: storyCount == 1 ? "Story" : "Stories", icon: "books.vertical")
+                    LibraryMetric(value: characterCount, label: characterCount == 1 ? "Character" : "Characters", icon: "person.2")
+                }
+            }
+            .foregroundStyle(.white)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: CharacterProfilerTheme.ink.opacity(0.24), radius: 18, y: 10)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("story-library-hero")
+    }
+}
+
+private struct LibraryMetric: View {
+    let value: Int
+    let label: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption.weight(.semibold))
+                .accessibilityHidden(true)
+            Text("\(value)")
+                .font(.subheadline.monospacedDigit().weight(.bold))
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.72))
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .background(.white.opacity(0.11), in: Capsule())
     }
 }
 
@@ -548,11 +638,10 @@ private struct StoryLibraryRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: project.genre.icon)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 46, height: 46)
-                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            CharacterProfilerIconTile(
+                systemImage: project.genre.icon,
+                accent: CharacterProfilerTheme.indigo
+            )
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(project.title)
@@ -573,11 +662,14 @@ private struct StoryLibraryRow: View {
                         Label("\(averageDevelopment)%", systemImage: "chart.bar")
                     }
                 }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(CharacterProfilerTheme.indigo)
             }
         }
-        .padding(.vertical, 5)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.indigo) }
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -591,26 +683,28 @@ private struct StoryHeroCard: View {
     let averageDevelopment: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                Image(systemName: project.genre.icon)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.tint)
-                    .frame(width: 48, height: 48)
-                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(project.genreDisplayName)
-                        .font(.headline)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 13) {
+                CharacterProfilerIconTile(
+                    systemImage: project.genre.icon,
+                    accent: CharacterProfilerTheme.gold,
+                    size: 52
+                )
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(project.genreDisplayName.uppercased())
+                        .font(.caption.weight(.bold))
+                        .tracking(0.7)
+                        .foregroundStyle(CharacterProfilerTheme.gold)
                     Text(characterCount == 0 ? "Ready to build your cast" : "\(characterCount) character\(characterCount == 1 ? "" : "s") in this story")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.headline)
+                        .foregroundStyle(.white)
                 }
             }
 
             if !project.premise.isEmpty {
                 Text(project.premise)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.80))
             }
 
             ProjectOverviewGrid(
@@ -621,8 +715,15 @@ private struct StoryHeroCard: View {
                 averageDevelopment: averageDevelopment
             )
         }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(20)
+        .background(CharacterProfilerTheme.heroGradient, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(.white.opacity(0.13), lineWidth: 1)
+        }
+        .shadow(color: CharacterProfilerTheme.ink.opacity(0.24), radius: 18, y: 10)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("story-workspace-hero")
     }
 }
 
@@ -637,11 +738,11 @@ private struct ProjectOverviewGrid: View {
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
-            ProjectMetric(value: "\(characterCount)", label: "Characters", icon: "person.2")
-            ProjectMetric(value: "\(relationshipCount)", label: "Relationships", icon: "point.3.connected.trianglepath.dotted")
-            ProjectMetric(value: "\(historyCount)", label: "Life events", icon: "clock.arrow.circlepath")
-            ProjectMetric(value: "\(guideAnswerCount)", label: "Guide answers", icon: "sparkles")
-            ProjectMetric(value: "\(averageDevelopment)%", label: "Development", icon: "chart.bar")
+            ProjectMetric(value: "\(characterCount)", label: "Characters", icon: "person.2", accent: CharacterProfilerTheme.violet)
+            ProjectMetric(value: "\(relationshipCount)", label: "Relationships", icon: "point.3.connected.trianglepath.dotted", accent: CharacterProfilerTheme.rose)
+            ProjectMetric(value: "\(historyCount)", label: "Life events", icon: "clock.arrow.circlepath", accent: CharacterProfilerTheme.teal)
+            ProjectMetric(value: "\(guideAnswerCount)", label: "Guide answers", icon: "sparkles", accent: CharacterProfilerTheme.gold)
+            ProjectMetric(value: "\(averageDevelopment)%", label: "Development", icon: "chart.bar", accent: CharacterProfilerTheme.indigo)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
@@ -654,23 +755,26 @@ private struct ProjectMetric: View {
     let value: String
     let label: String
     let icon: String
+    let accent: Color
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .frame(width: 18)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(accent)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
                 Text(label)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.66))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 3)
+        .padding(9)
+        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -687,8 +791,11 @@ private struct CharacterRow: View {
                         .font(.headline)
                     Spacer()
                     Text("\(Int(character.completionScore * 100))%")
-                        .font(.caption2.monospacedDigit().weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .font(.caption2.monospacedDigit().weight(.bold))
+                        .foregroundStyle(CharacterProfilerTheme.violet)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(CharacterProfilerTheme.violet.opacity(0.11), in: Capsule())
                 }
                 if !character.storyRole.isEmpty {
                     Text(character.storyRole)
@@ -701,9 +808,13 @@ private struct CharacterRow: View {
                         .lineLimit(1)
                 }
                 ProgressView(value: character.completionScore)
+                    .tint(CharacterProfilerTheme.violet)
             }
         }
-        .padding(.vertical, 4)
+        .padding(13)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.violet) }
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(rowAccessibilityLabel)
     }
@@ -735,7 +846,17 @@ struct CharacterPortraitView: View {
         .frame(width: size, height: size)
         .background(.thinMaterial)
         .clipShape(Circle())
-        .overlay(Circle().stroke(.quaternary, lineWidth: 1))
+        .overlay(
+            Circle().stroke(
+                LinearGradient(
+                    colors: [CharacterProfilerTheme.gold, CharacterProfilerTheme.violet],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: max(1.5, size * 0.025)
+            )
+        )
+        .shadow(color: CharacterProfilerTheme.violet.opacity(0.16), radius: size * 0.08, y: size * 0.04)
         .accessibilityHidden(true)
     }
 }

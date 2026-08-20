@@ -44,12 +44,13 @@ struct CharacterDetailView: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(16)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.gold) }
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Character Workspace")
+                    Label("Character Workspace", systemImage: "square.grid.2x2.fill")
                         .font(.title3.bold())
+                        .foregroundStyle(CharacterProfilerTheme.indigo)
                     Text("Open the part of this character you want to work on. Each area keeps its own tools and editing flow.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -62,7 +63,8 @@ struct CharacterDetailView: View {
                         title: "Profile",
                         subtitle: profileFactCount == 0 ? "Build identity, personality and custom facts" : "Review identity and \(profileFactCount) saved fact\(profileFactCount == 1 ? "" : "s")",
                         systemImage: "person.text.rectangle",
-                        badge: profileFactCount == 0 ? "Start" : "\(profileFactCount)"
+                        badge: profileFactCount == 0 ? "Start" : "\(profileFactCount)",
+                        accent: CharacterProfilerTheme.indigo
                     )
                 }
                 .buttonStyle(.plain)
@@ -76,7 +78,8 @@ struct CharacterDetailView: View {
                             title: "Character Guide",
                             subtitle: guideAnswerCount == 0 ? "Answer adaptive development questions" : "Continue development from \(guideAnswerCount) saved answer\(guideAnswerCount == 1 ? "" : "s")",
                             systemImage: "sparkles",
-                            badge: guideAnswerCount == 0 ? "Explore" : "\(guideAnswerCount)"
+                            badge: guideAnswerCount == 0 ? "Explore" : "\(guideAnswerCount)",
+                            accent: CharacterProfilerTheme.gold
                         )
                     }
                     .buttonStyle(.plain)
@@ -89,7 +92,8 @@ struct CharacterDetailView: View {
                             title: "People & Relationships",
                             subtitle: relationshipCount == 0 ? "Connect family, friends, rivals and partners" : "\(relationshipCount) relationship\(relationshipCount == 1 ? "" : "s") linked to this character",
                             systemImage: "person.2",
-                            badge: relationshipCount == 0 ? "Add" : "\(relationshipCount)"
+                            badge: relationshipCount == 0 ? "Add" : "\(relationshipCount)",
+                            accent: CharacterProfilerTheme.rose
                         )
                     }
                     .buttonStyle(.plain)
@@ -99,13 +103,15 @@ struct CharacterDetailView: View {
                         title: "Character Guide",
                         subtitle: "Assign this character to a story to use the Guide",
                         systemImage: "sparkles",
-                        badge: "Unavailable"
+                        badge: "Unavailable",
+                        accent: CharacterProfilerTheme.gold
                     )
                     CharacterWorkspaceCard(
                         title: "People & Relationships",
                         subtitle: "Assign this character to a story to link people",
                         systemImage: "person.2",
-                        badge: "Unavailable"
+                        badge: "Unavailable",
+                        accent: CharacterProfilerTheme.rose
                     )
                 }
 
@@ -116,7 +122,8 @@ struct CharacterDetailView: View {
                         title: "History",
                         subtitle: historyCount == 0 ? "Record the events that shaped this character" : "\(historyCount) life event\(historyCount == 1 ? "" : "s") in chronological order",
                         systemImage: "clock.arrow.circlepath",
-                        badge: historyCount == 0 ? "Add" : "\(historyCount)"
+                        badge: historyCount == 0 ? "Add" : "\(historyCount)",
+                        accent: CharacterProfilerTheme.teal
                     )
                 }
                 .buttonStyle(.plain)
@@ -130,7 +137,8 @@ struct CharacterDetailView: View {
                         title: "Visual Studio",
                         subtitle: visualAssetCount == 0 ? "Develop a consistent visual identity" : "Work with \(visualAssetCount) portrait, reference or generated asset\(visualAssetCount == 1 ? "" : "s")",
                         systemImage: "person.crop.rectangle.stack",
-                        badge: visualAssetCount == 0 ? "Open" : "\(visualAssetCount)"
+                        badge: visualAssetCount == 0 ? "Open" : "\(visualAssetCount)",
+                        accent: CharacterProfilerTheme.violet
                     )
                 }
                 .buttonStyle(.plain)
@@ -140,6 +148,7 @@ struct CharacterDetailView: View {
             .padding(.top, 8)
             .padding(.bottom, 28)
         }
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle(character.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -204,37 +213,51 @@ private struct CharacterHeader: View {
     let character: CharacterProfile
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            CharacterPortraitView(character: character, size: 96)
-            VStack(alignment: .leading, spacing: 7) {
-                Text(character.displayName)
-                    .font(.title2.bold())
-                    .lineLimit(2)
-                if !character.storyRole.isEmpty {
-                    Text(character.storyRole)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
-                HStack(spacing: 10) {
-                    if !character.ageText.isEmpty {
-                        Label(character.ageText, systemImage: "birthday.cake")
+        VStack(alignment: .leading, spacing: 16) {
+            Label("CHARACTER DOSSIER", systemImage: "person.text.rectangle.fill")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(CharacterProfilerTheme.gold)
+
+            HStack(alignment: .center, spacing: 16) {
+                CharacterPortraitView(character: character, size: 96)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(character.displayName)
+                        .font(.title2.bold())
+                        .lineLimit(2)
+                    if !character.storyRole.isEmpty {
+                        Text(character.storyRole)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.76))
                     }
-                    if !character.pronouns.isEmpty { Text(character.pronouns) }
+                    HStack(spacing: 10) {
+                        if !character.ageText.isEmpty {
+                            Label(character.ageText, systemImage: "birthday.cake")
+                        }
+                        if !character.pronouns.isEmpty { Text(character.pronouns) }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.68))
+                    ProgressView(value: character.completionScore)
+                        .tint(CharacterProfilerTheme.gold)
+                        .accessibilityLabel("Character development")
+                        .accessibilityValue("\(Int(character.completionScore * 100)) percent")
+                    Text("\(Int(character.completionScore * 100))% developed")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(CharacterProfilerTheme.gold)
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                ProgressView(value: character.completionScore)
-                    .accessibilityLabel("Character development")
-                    .accessibilityValue("\(Int(character.completionScore * 100)) percent")
-                Text("\(Int(character.completionScore * 100))% developed")
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .foregroundStyle(.white)
+        .padding(20)
+        .background(CharacterProfilerTheme.heroGradient, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(.white.opacity(0.13), lineWidth: 1)
+        }
+        .shadow(color: CharacterProfilerTheme.ink.opacity(0.24), radius: 18, y: 10)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("character-dossier-hero")
     }
 }
 
@@ -243,14 +266,11 @@ private struct CharacterWorkspaceCard: View {
     let subtitle: String
     let systemImage: String
     let badge: String
+    let accent: Color
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 44, height: 44)
-                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            CharacterProfilerIconTile(systemImage: systemImage, accent: accent, size: 46)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -268,10 +288,10 @@ private struct CharacterWorkspaceCard: View {
             VStack(alignment: .trailing, spacing: 8) {
                 Text(badge)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(accent)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(.quaternary, in: Capsule())
+                    .background(accent.opacity(0.11), in: Capsule())
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
@@ -279,7 +299,7 @@ private struct CharacterWorkspaceCard: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background { CharacterProfilerCardSurface(accent: accent) }
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
@@ -292,6 +312,7 @@ private struct CharacterProfileWorkspaceView: View {
             CharacterProfilePanel(character: character)
                 .padding()
         }
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -306,6 +327,7 @@ private struct CharacterGuideWorkspaceView: View {
             CharacterGuidePanel(character: character, project: project)
                 .padding()
         }
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("Character Guide")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -320,6 +342,7 @@ private struct CharacterRelationshipsWorkspaceView: View {
             CharacterRelationshipsPanel(character: character, project: project)
                 .padding()
         }
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("People")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -333,6 +356,7 @@ private struct CharacterHistoryWorkspaceView: View {
             CharacterTimelinePanel(character: character)
                 .padding()
         }
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("History")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -352,6 +376,7 @@ private struct CharacterVisualWorkspaceScreen: View {
             }
             .padding()
         }
+        .background { CharacterProfilerBackdrop() }
         .navigationTitle("Visual Studio")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -400,7 +425,7 @@ private struct CharacterProfilePanel: View {
                     }
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.indigo) }
                 }
             }
         }

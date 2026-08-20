@@ -47,7 +47,9 @@ struct CharacterTimelinePanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("History", systemImage: "clock.arrow.circlepath").font(.title3.bold())
+                Label("History", systemImage: "clock.arrow.circlepath")
+                    .font(.title3.bold())
+                    .foregroundStyle(CharacterProfilerTheme.teal)
                 Spacer()
                 Button("Add Life Event", systemImage: "plus") { showingAdd = true }
             }
@@ -102,11 +104,17 @@ struct CharacterTimelinePanel: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(spacing: 5) {
                 ZStack {
-                    Circle().fill(.thinMaterial).frame(width: 34, height: 34)
-                    Image(systemName: event.kind.icon).font(.caption.weight(.semibold))
+                    Circle()
+                        .fill(CharacterProfilerTheme.teal.opacity(0.14))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: event.kind.icon)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(CharacterProfilerTheme.teal)
                 }
                 if index < total - 1 {
-                    Rectangle().fill(.quaternary).frame(width: 2, height: 52)
+                    Rectangle()
+                        .fill(CharacterProfilerTheme.teal.opacity(0.28))
+                        .frame(width: 2, height: 52)
                 }
             }
             .accessibilityHidden(true)
@@ -138,8 +146,8 @@ struct CharacterTimelinePanel: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.teal) }
+                .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(eventAccessibilityLabel(event, position: index + 1))
@@ -228,7 +236,7 @@ private struct LifeEventEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Event") {
+                Section {
                     TextField("Event title", text: $title)
                     Picker("Type", selection: $kind) {
                         ForEach(LifeEventKind.allCases) { eventKind in
@@ -236,17 +244,37 @@ private struct LifeEventEditorView: View {
                         }
                     }
                     TextField("When / age", text: $whenText)
+                } header: {
+                    CharacterProfilerSectionHeader(
+                        title: "Event",
+                        systemImage: "clock.arrow.circlepath",
+                        accent: CharacterProfilerTheme.teal
+                    )
                 }
-                Section("What Happened") {
+                Section {
                     TextField("Describe the event", text: $details, axis: .vertical).lineLimit(3...10)
+                } header: {
+                    CharacterProfilerSectionHeader(
+                        title: "What Happened",
+                        systemImage: "text.alignleft",
+                        accent: CharacterProfilerTheme.indigo
+                    )
                 }
-                Section("Lasting Impact") {
+                Section {
                     TextField("How did it change them?", text: $impact, axis: .vertical).lineLimit(2...8)
                     Text("Impact can influence adaptive Character Guide questions later.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                } header: {
+                    CharacterProfilerSectionHeader(
+                        title: "Lasting Impact",
+                        systemImage: "arrow.triangle.branch",
+                        accent: CharacterProfilerTheme.gold
+                    )
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background { CharacterProfilerBackdrop() }
             .navigationTitle(event == nil ? "Add Life Event" : "Edit Life Event")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
