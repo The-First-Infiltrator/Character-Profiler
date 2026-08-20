@@ -10,7 +10,6 @@ struct ProjectEditorView: View {
     let project: StoryProject?
     @State private var draft: ProjectDraft
     @State private var saveErrorMessage: String?
-    @State private var showingDeleteConfirmation = false
 
     init(project: StoryProject?) {
         self.project = project
@@ -32,15 +31,6 @@ struct ProjectEditorView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-            if project != nil {
-                Section {
-                    Button("Delete Story", systemImage: "trash", role: .destructive) {
-                        showingDeleteConfirmation = true
-                    }
-                } footer: {
-                    Text("Deleting a story permanently removes every character and all profile, relationship, history, Guide and visual data in that story.")
-                }
-            }
         }
         .navigationTitle(project == nil ? "New Story" : "Edit Story")
         .navigationBarTitleDisplayMode(.inline)
@@ -58,38 +48,10 @@ struct ProjectEditorView: View {
         } message: {
             Text(saveErrorMessage ?? "Unknown save error.")
         }
-        .confirmationDialog(
-            "Delete Story?",
-            isPresented: $showingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Delete Story Permanently", role: .destructive) { deleteProject() }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text(projectDeletionMessage)
-        }
     }
 
     private func saveProject() {
         _ = draft.save(to: project, in: modelContext)
-        do {
-            try modelContext.saveOrRollback()
-            dismiss()
-        } catch {
-            saveErrorMessage = error.localizedDescription
-        }
-    }
-
-    private var projectDeletionMessage: String {
-        guard let project else { return "" }
-        let characterCount = project.characters.count
-        let relationshipCount = Set(project.characters.flatMap { $0.allRelationships.map(\.id) }).count
-        return "This permanently deletes \(project.title), \(characterCount) character\(characterCount == 1 ? "" : "s"), \(relationshipCount) relationship\(relationshipCount == 1 ? "" : "s"), and all profile, history, Guide and visual data inside it. Export a backup first if you may need this work again."
-    }
-
-    private func deleteProject() {
-        guard let project else { return }
-        modelContext.delete(project)
         do {
             try modelContext.saveOrRollback()
             dismiss()
