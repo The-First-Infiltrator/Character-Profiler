@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: One-shot repository hygiene
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - .github/workflows/one-shot-repository-hygiene.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact main commit
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Delete known integrated and superseded branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            'automation/release-publication'
+            'feature/v0.4-family-tree'
+            'feature/v0.5-character-guide'
+            'feature/v0.6-project-archive'
+            'feature/v0.7-visual-hardening'
+            'feature/v0.8-author-hardening'
+            'feature/v1.0-release-readiness'
+            'fix/release-publisher-syntax'
+            'hardening/v1.0.1-audit'
+            'hardening/v1.0.1-audit-fixes'
+            'hardening/v1.0.1-audit-fixes2'
+            'hardening/v1.0.1-audit-fixes3'
+            'polish/v0.5.1-guide-reasons'
+            'stabilize/v0.3.1-docs'
+            'maintenance/finalize-repository-hygiene'
+          )
+
+          git fetch --prune origin
+          for branch in "${branches[@]}"; do
+            if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+              echo "Deleting integrated/superseded branch: $branch"
+              git push origin --delete "$branch"
+            else
+              echo "Already absent: $branch"
+            fi
+          done
+
+          git fetch --prune origin
+          leftovers="$(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin \
+            | grep -v '^HEAD$' \
+            | grep -v '^main$' || true)"
+          if [[ -n "$leftovers" ]]; then
+            echo 'Unexpected non-main branches remain:' >&2
+            printf '%s\n' "$leftovers" >&2
+            exit 1
+          fi
+
+      - name: Remove this one-shot workflow from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/one-shot-repository-hygiene.yml
+          git commit -m 'Remove completed one-shot repository hygiene workflow'
+          git push origin HEAD:main
