@@ -202,12 +202,14 @@ struct ProjectListView: View {
 }
 
 struct ProjectDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     let project: StoryProject
     @State private var searchText = ""
     @State private var showingNewCharacter = false
     @State private var showingProjectEditor = false
     @State private var showingExporter = false
+    @State private var showingStoryDeletionConfirmation = false
     @State private var exportDocument: ProjectArchiveDocument?
     @State private var exportErrorMessage: String?
     @State private var isPreparingExport = false
@@ -315,6 +317,12 @@ struct ProjectDetailView: View {
                         }
                     }
                     .disabled(isPreparingExport)
+                    Divider()
+                    Button(role: .destructive) {
+                        showingStoryDeletionConfirmation = true
+                    } label: {
+                        Label("Delete Story", systemImage: "trash")
+                    }
                 } label: {
                     Label("Story Actions", systemImage: "ellipsis.circle")
                 }
@@ -351,6 +359,12 @@ struct ProjectDetailView: View {
         } message: {
             Text(operationErrorMessage ?? "Unknown save error.")
         }
+        .alert("Delete Story?", isPresented: $showingStoryDeletionConfirmation) {
+            Button("Delete Story Permanently", role: .destructive) { confirmStoryDeletion() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(storyDeletionMessage)
+        }
         .confirmationDialog(
             "Delete Character?",
             isPresented: Binding(
@@ -384,6 +398,21 @@ struct ProjectDetailView: View {
                 exportErrorMessage = error.localizedDescription
             }
             isPreparingExport = false
+        }
+    }
+
+    private var storyDeletionMessage: String {
+        let characterCount = project.characters.count
+        return "This permanently deletes \(project.title), \(characterCount) character\(characterCount == 1 ? "" : "s"), \(relationshipCount) relationship\(relationshipCount == 1 ? "" : "s"), and all profile, history, Guide and visual data inside it. Export a backup first if you may need this work again."
+    }
+
+    private func confirmStoryDeletion() {
+        modelContext.delete(project)
+        do {
+            try modelContext.saveOrRollback()
+            dismiss()
+        } catch {
+            operationErrorMessage = error.localizedDescription
         }
     }
 
