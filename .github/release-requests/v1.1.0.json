@@ -1,0 +1,8 @@
+{
+  "tag": "v1.1.0",
+  "target": "current-main",
+  "title": "Character Profiler 1.1.0 — iPhone UX Test Release",
+  "draft": false,
+  "prerelease": true,
+  "notes": "Character Profiler 1.1.0 is the first testable release of the redesigned iPhone interface.\n\nThis release includes the new Story Library and story workspace hierarchy, the Character dashboard with full-screen Profile, Guide, People, History and Visual Studio workspaces, clearer story and character creation/editing flows, collapsible profile-detail editing, and the updated end-to-end navigation test.\n\nThere is no SwiftData schema or archive-format change. Character Profiler archive format remains v1.\n\nThis is a pre-release specifically for Shannon's device testing. The current end-to-end simulator UI test still has a known navigation failure, so the release workflow permits this prerelease to continue through the build and packaging stages while retaining the failed-test result. The normal release gate remains strict for non-prerelease releases.\n\nThe IPA is intentionally unsigned for AltStore, AltServer, Sideloadly, or another sideloading tool to apply the user's development signature during installation."
+}
