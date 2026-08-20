@@ -268,8 +268,13 @@ jobs:
           curl -fsS "${auth[@]}" "$api/git/ref/tags/$RELEASE_TAG" > "$tag_json"
           tag_target="$(jq -er '.object.sha' "$tag_json")"
           if [[ "$tag_target" != "$GITHUB_SHA" ]]; then
-            echo "$RELEASE_TAG points to $tag_target, expected $GITHUB_SHA." >&2
-            exit 1
+            git fetch --no-tags origin "$tag_target"
+            if ! git merge-base --is-ancestor "$tag_target" "$GITHUB_SHA" ||
+               ! git diff --quiet "$tag_target" "$GITHUB_SHA" -- CharacterProfiler CharacterProfiler.xcodeproj; then
+              echo "$RELEASE_TAG points to $tag_target, which is not an app-identical ancestor of $GITHUB_SHA." >&2
+              exit 1
+            fi
+            echo "$RELEASE_TAG retains app-identical main ancestor $tag_target."
           fi
 
           for asset in \
