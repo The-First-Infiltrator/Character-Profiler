@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Clean merged repair branches
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/cleanup-merged-branches-one-shot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Delete stale merged branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            'fix/app-icon-v1.0.3'
+            'fix/device-test-icon-deletion'
+            'fix/release-publisher-rest'
+            'fix/v1.0.1-release-publication'
+            'release/v1.0.1-ipa'
+            'temp-noop'
+          )
+
+          for branch in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null 2>&1; then
+              git push origin --delete "$branch"
+            fi
+          done
+
+      - name: Verify only main remains
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t branches < <(git ls-remote --heads origin | awk '{sub("refs/heads/", "", $2); print $2}' | sort)
+          printf '%s\n' "${branches[@]}"
+          [[ "${#branches[@]}" -eq 1 ]]
+          [[ "${branches[0]}" == 'main' ]]
+
+      - name: Remove one-shot cleanup workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/cleanup-merged-branches-one-shot.yml
+          git commit -m 'Remove completed branch cleanup workflow'
+          git push origin HEAD:main
