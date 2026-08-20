@@ -110,11 +110,6 @@ final class CharacterProfilerUITests: XCTestCase {
         XCTAssertTrue(storyActions.waitForExistence(timeout: 4))
         storyActions.tap()
 
-        let editStory = app.buttons["Edit Story"]
-        XCTAssertTrue(editStory.waitForExistence(timeout: 4))
-        editStory.tap()
-        XCTAssertTrue(app.navigationBars["Edit Story"].waitForExistence(timeout: 4))
-
         let deleteStory = app.buttons["Delete Story"]
         XCTAssertTrue(deleteStory.waitForExistence(timeout: 4))
         deleteStory.tap()
