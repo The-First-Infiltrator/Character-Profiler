@@ -18,26 +18,41 @@ struct ProjectEditorView: View {
 
     var body: some View {
         Form {
-            Section("Story") {
-                TextField("Project title", text: $draft.title)
+            Section("Story Details") {
+                TextField("Story title", text: $draft.title)
+                    .textInputAutocapitalization(.words)
                 Picker("Genre", selection: $draft.genre) {
-                    ForEach(StoryGenre.allCases) { genre in Text(genre.displayName).tag(genre) }
+                    ForEach(StoryGenre.allCases) { genre in
+                        Label(genre.displayName, systemImage: genre.icon).tag(genre)
+                    }
                 }
-                if draft.genre == .other { TextField("Custom genre", text: $draft.customGenre) }
-                TextField("Premise or story summary", text: $draft.premise, axis: .vertical).lineLimit(3...8)
+                if draft.genre == .other {
+                    TextField("Custom genre", text: $draft.customGenre)
+                }
             }
-            Section {
-                Text("The genre controls the development questions suggested to authors. You can change it later without losing character data.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+
+            Section("Premise") {
+                TextField(
+                    "What is this story about?",
+                    text: $draft.premise,
+                    axis: .vertical
+                )
+                .lineLimit(4...10)
+            } footer: {
+                Text("The premise appears at the top of the story workspace. Genre helps Character Guide choose useful development questions and can be changed later without losing character data.")
             }
         }
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle(project == nil ? "New Story" : "Edit Story")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") { saveProject() }.disabled(!draft.isValid)
+                Button("Save") { saveProject() }
+                    .fontWeight(.semibold)
+                    .disabled(!draft.isValid)
             }
         }
         .alert("Story Change Could Not Be Completed", isPresented: Binding(
@@ -78,46 +93,103 @@ struct CharacterEditorView: View {
 
     var body: some View {
         Form {
-            Section("Character") {
-                HStack(spacing: 16) {
-                    portraitPreview
+            portraitSection
+
+            Section("Identity") {
+                TextField("Name", text: $draft.name)
+                    .textInputAutocapitalization(.words)
+                TextField("Nickname", text: $draft.nickname)
+                    .textInputAutocapitalization(.words)
+                HStack {
+                    TextField("Age", text: $draft.ageText)
+                        .frame(maxWidth: .infinity)
+                    Divider()
+                    TextField("Pronouns", text: $draft.pronouns)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            Section("Story") {
+                TextField("Role in the story", text: $draft.storyRole)
+                    .textInputAutocapitalization(.sentences)
+                TextField(
+                    "Short character summary",
+                    text: $draft.summary,
+                    axis: .vertical
+                )
+                .lineLimit(3...8)
+            } footer: {
+                Text("Keep the summary short enough to scan quickly. Detailed facts belong in Profile Details below.")
+            }
+
+            Section {
+                if draft.sections.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        PhotosPicker(selection: $photoItem, matching: .images) {
-                            Label("Choose Portrait", systemImage: "photo")
-                        }
-                        if draft.profileImageData != nil {
-                            Button("Remove Portrait", systemImage: "trash", role: .destructive) {
-                                draft.profileImageData = nil
+                        Label("No profile sections yet", systemImage: "square.stack.3d.up")
+                            .font(.headline)
+                        Text("Add sections for appearance, personality, motivations, skills, background or anything specific to this character.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                } else {
+                    ForEach($draft.sections) { $section in
+                        DisclosureGroup {
+                            VStack(alignment: .leading, spacing: 12) {
+                                TextField("Section name", text: $section.title)
+                                    .font(.headline)
+
+                                ForEach($section.fields) { $field in
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        TextField("Field name", text: $field.label)
+                                            .font(.caption.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                        TextField("Value", text: $field.value, axis: .vertical)
+                                            .lineLimit(1...6)
+                                    }
+                                    .padding(.vertical, 3)
+                                }
+                                .onDelete { section.fields.remove(atOffsets: $0) }
+
+                                Button {
+                                    section.fields.append(FieldDraft(label: "New Field", value: ""))
+                                } label: {
+                                    Label("Add Field", systemImage: "plus.circle")
+                                }
+
+                                Button(role: .destructive) {
+                                    removeSection(id: section.id)
+                                } label: {
+                                    Label("Remove Section", systemImage: "trash")
+                                }
+                            }
+                            .padding(.top, 8)
+                        } label: {
+                            HStack {
+                                Image(systemName: "rectangle.stack")
+                                    .foregroundStyle(.tint)
+                                Text(section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Section" : section.title)
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(section.fields.count)")
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
                 }
-                TextField("Name", text: $draft.name)
-                TextField("Nickname", text: $draft.nickname)
-                TextField("Age", text: $draft.ageText)
-                TextField("Pronouns", text: $draft.pronouns)
-                TextField("Story role", text: $draft.storyRole)
-                TextField("Short summary", text: $draft.summary, axis: .vertical).lineLimit(2...6)
-            }
 
-            ForEach($draft.sections) { $section in
-                Section {
-                    TextField("Section name", text: $section.title).font(.headline)
-                    ForEach($section.fields) { $field in
-                        VStack(alignment: .leading, spacing: 4) {
-                            TextField("Field name", text: $field.label).font(.caption).foregroundStyle(.secondary)
-                            TextField("Value", text: $field.value, axis: .vertical).lineLimit(1...5)
-                        }
-                    }
-                    .onDelete { section.fields.remove(atOffsets: $0) }
-                    Button("Add Field") { section.fields.append(FieldDraft(label: "New Field", value: "")) }
-                } header: {
-                    Text(section.title.isEmpty ? "Section" : section.title)
+                Button {
+                    draft.addSection()
+                } label: {
+                    Label("Add Profile Section", systemImage: "plus")
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
+            } header: {
+                Text("Profile Details")
+            } footer: {
+                Text("Sections stay collapsed until you open them, keeping long profiles manageable on iPhone. Swipe individual fields to delete them.")
             }
-            .onDelete { draft.sections.remove(atOffsets: $0) }
-
-            Section { Button("Add Section") { draft.addSection() } }
 
             if let validationMessage = draft.validationMessage {
                 Section("Cannot Save") {
@@ -126,12 +198,17 @@ struct CharacterEditorView: View {
                 }
             }
         }
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle(character == nil ? "New Character" : "Edit Character")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") { saveCharacter() }.disabled(!draft.isValid)
+                Button("Save") { saveCharacter() }
+                    .fontWeight(.semibold)
+                    .disabled(!draft.isValid)
             }
         }
         .onChange(of: photoItem) { _, item in
@@ -146,6 +223,35 @@ struct CharacterEditorView: View {
         } message: {
             Text(errorMessage ?? "Unknown error.")
         }
+    }
+
+    private var portraitSection: some View {
+        Section {
+            HStack(spacing: 18) {
+                portraitPreview
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Portrait")
+                        .font(.headline)
+                    Text("A clear portrait makes the story and relationship screens much easier to scan.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        Label(draft.profileImageData == nil ? "Choose Portrait" : "Change Portrait", systemImage: "photo")
+                    }
+                    if draft.profileImageData != nil {
+                        Button("Remove Portrait", systemImage: "trash", role: .destructive) {
+                            draft.profileImageData = nil
+                        }
+                        .font(.caption)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    private func removeSection(id: UUID) {
+        draft.sections.removeAll { $0.id == id }
     }
 
     private func saveCharacter() {
@@ -199,15 +305,16 @@ struct CharacterEditorView: View {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 72, height: 72)
+                .frame(width: 92, height: 92)
                 .clipShape(Circle())
+                .overlay(Circle().stroke(.quaternary, lineWidth: 1))
                 .accessibilityLabel("Current character portrait")
         } else {
             Image(systemName: "person.crop.circle.fill")
                 .resizable()
                 .scaledToFit()
                 .foregroundStyle(.secondary)
-                .frame(width: 72, height: 72)
+                .frame(width: 92, height: 92)
                 .accessibilityLabel("No character portrait selected")
         }
     }
