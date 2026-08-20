@@ -2,6 +2,44 @@
 
 # Changelog
 
+## [1.1.0] - 2026-08-21
+
+### Changed
+
+- Reworked Story Library and story workspaces into a clearer iPhone hierarchy with summary, cast and development context.
+- Replaced the cramped five-way character segmented control with a dashboard linking to full-screen Profile, Character Guide, People & Relationships, History and Visual Studio workspaces.
+- Separated story premise, character identity, story role and collapsible profile details into more readable editing groups.
+- Updated the end-to-end UI flow for the new navigation and destructive story/character paths.
+
+### Fixed
+
+- Corrected the two SwiftUI sections whose invalid title-plus-footer initializer prevented the merged 1.1 interface from compiling.
+- Restored strict release testing for prereleases; a failed test can no longer be treated as permission to continue publishing.
+- Aligned Debug and Release metadata at version 1.1.0 build 15.
+- Release publication now reads and validates the build number from the Xcode project instead of overriding it with a workflow constant.
+
+### Compatibility and validation
+
+- Version 1.1.0 adds no SwiftData entity or persistent field and keeps Character Profiler archive format v1.
+- Hosted CI must pass the complete simulator test suite plus optimized simulator and unsigned iPhoneOS Release builds before packaging an IPA.
+- Physical-device Image Playground output quality and cross-angle character consistency remain explicitly unvalidated until tested on a supported iPhone.
+
+## [1.0.3] - 2026-08-20
+
+### Fixed
+
+- Replaced the malformed physical-device app icon with a deterministic opaque 1024×1024 source asset.
+- Added a compiled-icon integrity workflow that decodes the iPhoneOS icon and compares its pixels with the canonical source.
+- Published version 1.0.3 build 14 with an unsigned IPA and SHA-256 checksum.
+
+## [1.0.2] - 2026-08-20
+
+### Fixed
+
+- Repaired the blank device-test icon path used before the compiled-icon integrity gate was introduced.
+- Added explicit, confirmed character and story deletion flows and covered both paths in the end-to-end iOS UI test.
+- Published version 1.0.2 build 13 with an unsigned IPA and SHA-256 checksum.
+
 ## [1.0.1] - 2026-08-18
 
 ### Fixed

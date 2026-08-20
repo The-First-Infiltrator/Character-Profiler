@@ -38,7 +38,7 @@ StoryProject
     └── CharacterVisualFrame[]
 ```
 
-Versions 0.8, 1.0.0 and 1.0.1 add no SwiftData entity or persistent field. The 1.0.1 app continues to use the model already proven by the 0.8/1.0 line.
+Versions 0.8 through 1.1.0 add no SwiftData entity or persistent field. The 1.1.0 app continues to use the model proven by the 0.8/1.0 line.
 
 ## Persistence transaction rule
 
@@ -164,13 +164,14 @@ Confirmations are not an undo system; portable project backup remains the durabl
 
 The core deployment target remains iOS 17. Image Playground functionality is separately availability-gated.
 
-For 1.0.1, GitHub Actions proves three build gates on the exact candidate SHA:
+For 1.1.0, GitHub Actions proves four gates on the exact candidate SHA:
 
 1. complete simulator test suite;
 2. optimized simulator Release compilation;
-3. optimized generic `iphoneos` Release compilation with signing disabled.
+3. optimized generic `iphoneos` Release compilation with signing disabled;
+4. compiled iPhoneOS app-icon pixel integrity when icon or project packaging changes.
 
-Release publication is separately hardened. `.github/scripts/publish-release.js` is syntax-checked before execution and rejects a requested release target unless the exact SHA is an ancestor of `main` and has a successful exact-SHA `iOS Build` workflow run.
+Release publication is separately hardened. A newly added JSON request is accepted only on `main`, must target the exact request commit and must match the Xcode marketing version. The publisher then reruns the complete simulator tests plus optimized simulator and iPhoneOS builds on that exact SHA before it packages, checksums, uploads and verifies the unsigned IPA.
 
 Migration/compatibility history:
 
@@ -181,5 +182,8 @@ Migration/compatibility history:
 - 0.8: author-workflow hardening edited/ordered existing records and tested legacy migration; no persistent change.
 - 1.0.0: startup/data/archive/release hardening; no persistent change and archive remains v1.
 - 1.0.1: audit hardening, transactional rollback, profile ID preservation, workflow completion and release verification; no persistent change and archive remains v1.
+- 1.0.2: explicit story/character deletion workflow and device-icon correction; no persistent change and archive remains v1.
+- 1.0.3: deterministic app icon plus compiled-icon integrity verification; no persistent change and archive remains v1.
+- 1.1.0: Story Library, story workspace, character dashboard and editor-flow refinement; no persistent change and archive remains v1.
 
 Any future schema change capable of invalidating stored records requires deliberate migration design and regression coverage before release. Archive-format evolution requires an independent version/upgrade decision.

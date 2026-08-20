@@ -1,0 +1,8 @@
+{
+  "tag": "v1.1.0-rc.1",
+  "target": "current-main",
+  "title": "Character Profiler 1.1.0 Release Candidate 1",
+  "draft": false,
+  "prerelease": true,
+  "notes": "Character Profiler 1.1.0 Release Candidate 1 is the physical-device test build for the redesigned iPhone interface.\n\nIt includes the clearer Story Library and story workspace hierarchy, the Character dashboard with full-screen Profile, Character Guide, People & Relationships, History and Visual Studio destinations, clearer story and character editing, and collapsible profile details.\n\nThis candidate repairs the invalid SwiftUI Section declarations that prevented the merged 1.1 work from compiling, restores strict release testing, and aligns the app metadata at version 1.1.0 build 15.\n\nThere is no SwiftData schema or Character Profiler archive-format change; archive format remains v1. Physical-device Image Playground output quality and cross-angle identity consistency remain explicit validation items.\n\nThe attached IPA is intentionally unsigned for AltStore, AltServer, Sideloadly or another sideloading tool to apply the user's development signature during installation."
+}

@@ -22,7 +22,7 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | CI simulator test gate | Implemented | Hosted Xcode workflow dynamically prepares a simulator and runs the complete unit-test suite. |
 | CI optimized simulator Release gate | Implemented | Release configuration compiles with signing disabled. |
 | CI optimized iPhoneOS Release gate | Implemented | 1.0.1 separately compiles a generic real-device iOS target with signing disabled. |
-| Release target verification | Implemented | Publisher requires exact target SHA on `main` plus a successful exact-SHA `iOS Build`. |
+| Release target verification | Implemented | Publisher checks out the exact request merge on `main`, reruns every test/build gate on that SHA, and publishes only after those gates pass. |
 
 ## Character profile and cast workflow
 
@@ -117,14 +117,15 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | Package-based external archive assets | Candidate | Consider if large image-heavy JSON archives become a practical memory/performance problem. |
 | iCloud sync | Candidate | Requires deliberate migration/conflict design. |
 
-## 1.0.1 validation status
+## 1.1.0 validation status
 
-The 1.0.1 audit branch is ready to integrate only when the exact final head passes:
+The 1.1.0 release candidate is ready to integrate only when the exact final head passes:
 
 1. complete simulator unit tests;
 2. optimized simulator Release compilation;
 3. optimized unsigned `iphoneos` Release compilation;
-4. documentation/source-scope audit showing no accidental SwiftData/archive-format change;
-5. PR review with the exact head SHA fixed for merge approval.
+4. compiled app-icon integrity validation;
+5. documentation/source-scope audit showing no accidental SwiftData/archive-format change;
+6. PR review with the exact head SHA fixed for merge approval.
 
-After merge, the exact `main` commit must pass the same workflow before a stable 1.0.1 tag/release is requested. Physical-device Image Playground quality remains a separately disclosed validation boundary.
+After merge, the exact `main` commit is rebuilt and retested by the release publisher before the 1.1.0 release-candidate IPA and checksum can be attached. Physical-device Image Playground quality remains a separately disclosed validation boundary.

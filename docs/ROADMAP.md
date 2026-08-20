@@ -50,7 +50,7 @@ Established the first stable feature baseline, non-destructive startup store fai
 
 ### 1.0.1 — Audit hardening
 
-Status: in validation.
+Status: released.
 
 This release is a focused corrective pass over the complete codebase. It addresses issues found in a line-by-line functionality/code/commenting audit:
 
@@ -68,6 +68,26 @@ This release is a focused corrective pass over the complete codebase. It address
 - repository documentation synchronized to the actual released/hardened state.
 
 Version 1.0.1 remains archive format v1 and introduces no new SwiftData entity or persistent field.
+
+### 1.0.2 — Device deletion and icon correction
+
+Status: released.
+
+Delivered explicit confirmed character/story deletion paths, end-to-end deletion coverage and the first corrected physical-device icon package. Version 1.0.2 remains archive format v1 and introduces no SwiftData entity or persistent field.
+
+### 1.0.3 — Compiled app-icon integrity
+
+Status: released.
+
+Delivered the deterministic canonical icon and a permanent CI gate that verifies the pixels of the icon compiled into the iPhoneOS application before release. Version 1.0.3 remains archive format v1 and introduces no SwiftData entity or persistent field.
+
+### 1.1.0 — iPhone workflow refinement
+
+Status: release candidate.
+
+Delivers the redesigned Story Library and story workspace hierarchy, a full-screen Character workspace dashboard, clearer story and character editing, collapsible profile details and end-to-end coverage for the revised navigation and deletion flows.
+
+Version 1.1.0 remains archive format v1 and introduces no SwiftData entity or persistent field. The release candidate must pass the complete simulator test suite plus optimized simulator and unsigned iPhoneOS Release builds before its IPA is published for physical-device testing.
 
 ## Outstanding physical-device checks
 
