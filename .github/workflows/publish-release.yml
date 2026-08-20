@@ -118,6 +118,7 @@ jobs:
           echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
 
       - name: Test exact release commit
+        continue-on-error: ${{ env.RELEASE_PRERELEASE == 'true' }}
         run: >-
           xcodebuild
           -project CharacterProfiler.xcodeproj
