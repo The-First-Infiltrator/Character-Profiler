@@ -6,25 +6,21 @@
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, linked relationships and family, structured life history, genre-aware development questions, portable project backup/restore and a focused character-appearance workspace.
 
-## Version 1.0.1
+## Version 1.1.0
 
-**Character Profiler 1.0.1 build 12** is the audit-hardening update to the first stable release. It focuses on data-integrity guarantees, author workflow completeness, device-build validation, release safety and repository maintainability rather than adding a new feature family.
+**Character Profiler 1.1.0 build 15** is the first major interface and workflow refinement after the stable 1.0 line. It keeps the existing local data model and archive format while making the app substantially easier to navigate and use on an iPhone.
 
-Key hardening in 1.0.1 includes:
+The 1.1 experience centres on three clearer levels:
 
-- SwiftData save failures now roll back the current unit of work so a failed delete/edit cannot be committed accidentally by a later unrelated save;
-- character-scoped changes also update the owning story activity timestamp, keeping Story Library recency accurate;
-- profile editing preserves existing section/field UUIDs and blocks blank labels instead of silently dropping authored data;
-- saved Character Guide answers now have a complete view/edit/delete workflow;
-- Visual Studio appearance notes are debounced rather than saved on every keystroke, and canonical generation can incorporate the existing portrait together with author references;
-- archive validation is stricter, restore cleanup no longer intentionally suppresses persistence failures, and backup import/export now enforces bounded resource budgets before expensive graph processing;
-- family-tree projection no longer has the old arbitrary 120-character traversal cap and now surfaces conflicting generation paths instead of depending silently on traversal order;
-- the Xcode target now contains a real asset catalogue/AppIcon definition;
-- CI pins Xcode 16.4, enables complete Swift concurrency diagnostics in Swift 5 language mode, tests the simulator, builds an optimized simulator Release and separately compiles an unsigned optimized `iphoneos` Release;
-- the UI suite now crosses from story/character creation into history creation and destructive deletion, while deterministic Guide-ranking fixtures lock editorial-priority behaviour;
-- every green CI build packages the unsigned device build as an IPA artifact, and release requests rebuild the exact `main` commit before attaching the IPA and SHA-256 checksum directly to the GitHub Release.
+- **Story Library** — a cleaner story home with richer story rows, cast/development context and an explicit restore action;
+- **Story workspace** — a story summary card, development metrics and a more deliberate cast-building flow;
+- **Character workspace** — a dashboard instead of a cramped five-way segmented control, with full-screen destinations for Profile, Character Guide, People & Relationships, History and Visual Studio.
 
-The core application remains local-first and the portable backup format remains **Character Profiler archive format v1**. Version 1.0.1 does not introduce a new SwiftData entity/field or change the archive format number.
+Editing is also less overwhelming. Character identity, story role, portrait and detailed profile sections are separated into clearer groups, while long profile sections collapse until the author chooses to work on them.
+
+The 1.0.2 deletion fixes and 1.0.3 app-icon integrity repair remain included. CI still validates the actual compiled iPhone icon against the canonical source image before release packaging.
+
+Character Profiler remains local-first. Version 1.1.0 adds no new SwiftData entity or persistent field and does not change **Character Profiler archive format v1**.
 
 ## Product boundaries
 
@@ -34,9 +30,9 @@ The Visual Studio exists to answer **what does this character look like?** It is
 
 ## Visual Studio validation boundary
 
-The Visual Studio integration, availability handling and deterministic eight-slot state are covered by simulator CI, and 1.0.1 also compiles the real-device iOS target. Actual Image Playground output quality still cannot be proven by hosted CI.
+The Visual Studio integration, availability handling and deterministic eight-slot state are covered by simulator CI, and the release pipeline separately compiles the real-device iOS target. Actual Image Playground output quality still cannot be proven by hosted CI.
 
-A supported physical iPhone is still required to validate that real generation launches correctly and that the canonical image plus all eight turnaround views preserve face, body proportions, clothing, colours and equipment well enough to be useful as one consistent character reference set.
+A supported physical iPhone is required to validate that real generation launches correctly and that the canonical image plus turnaround views preserve face, body proportions, clothing, colours and equipment well enough to be useful as one consistent character reference set.
 
 This limitation does not affect the local profile, Guide, relationship, history or backup workflows; those remain available when Image Playground is unavailable.
 
@@ -48,7 +44,7 @@ Archive format v1 contains project metadata, every character, flexible profile s
 
 The archive is an application-owned interchange format, not a raw SwiftData database copy. SwiftData schema compatibility and archive-format compatibility are maintained as separate contracts.
 
-Backup processing is deliberately bounded. Version 1.0.1 accepts encoded archives up to 128 MiB, at most 1,000 characters and 25,000 relationships per story, no more than six reference images and eight turnaround frames per character, and applies additional generous limits to nested profile/history/Guide collections, text fields and visual payloads. Import preflights the selected file before mapping/decoding it, checked arithmetic protects cumulative image accounting, and export uses the same policy so the app does not create a backup it would reject on restore.
+Backup processing is deliberately bounded. The current archive implementation accepts encoded archives up to 128 MiB, at most 1,000 characters and 25,000 relationships per story, no more than six reference images and eight turnaround frames per character, and applies additional generous limits to nested profile/history/Guide collections, text fields and visual payloads.
 
 ## Requirements and build
 
@@ -59,9 +55,9 @@ Backup processing is deliberately bounded. Version 1.0.1 accepts encoded archive
 
 Open `CharacterProfiler.xcodeproj`, select the `CharacterProfiler` scheme and choose an iPhone simulator or connected iPhone. A physical-device build requires an Apple Development team under Signing & Capabilities. No personal Team ID is committed to the repository.
 
-GitHub Actions uses the pinned Xcode 16.4 toolchain on the `macos-15` runner, dynamically prepares an iPhone simulator, runs the complete unit/UI-test suite with complete Swift concurrency diagnostics, compiles an optimized simulator Release and separately compiles an unsigned optimized real-device iOS Release. The device build is packaged into `CharacterProfiler-<version>-unsigned.ipa` and retained as a CI artifact.
+GitHub Actions uses pinned Xcode 16.4 on the `macos-15` runner, dynamically prepares an iPhone simulator, runs the complete unit/UI-test suite with complete Swift concurrency diagnostics, compiles an optimized simulator Release and separately compiles an unsigned optimized real-device iOS Release. The device build is packaged into `CharacterProfiler-<version>-unsigned.ipa` and retained as a CI artifact.
 
-Published GitHub Releases include the unsigned IPA and its SHA-256 checksum. The IPA is intentionally unsigned: AltStore/AltServer or another sideloading tool applies the user's development signature during installation.
+Published GitHub Releases include the unsigned IPA and its SHA-256 checksum. The IPA is intentionally unsigned: AltStore/AltServer, Sideloadly or another sideloading tool applies the user's development signature during installation.
 
 ## Data and privacy
 
@@ -73,7 +69,7 @@ If the local story store cannot be opened, the app does not silently create a re
 
 - `docs/PRODUCT_SPEC.md` — product intent and boundaries.
 - `docs/FEATURE_STATUS.md` — implementation/validation audit.
-- `docs/ROADMAP.md` — completed milestones and post-1.0 candidates.
+- `docs/ROADMAP.md` — completed milestones and future candidates.
 - `docs/RELEASE_CHECKLIST.md` — stable-release and physical-device validation gates.
 - `ARCHITECTURE.md` — model, graph, archive, migration and subsystem design.
 - `CHANGELOG.md` — release history.

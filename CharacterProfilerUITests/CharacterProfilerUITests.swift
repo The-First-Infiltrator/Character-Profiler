@@ -7,6 +7,15 @@ final class CharacterProfilerUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    private func reveal(_ element: XCUIElement, in scrollView: XCUIElement, maxSwipes: Int = 6) -> Bool {
+        if element.waitForExistence(timeout: 1), element.isHittable { return true }
+        for _ in 0..<maxSwipes {
+            scrollView.swipeUp()
+            if element.exists && element.isHittable { return true }
+        }
+        return element.exists && element.isHittable
+    }
+
     func testAuthorCanCreateAndDeleteStoryCharacterAndHistoryEntry() {
         let app = XCUIApplication()
         app.launch()
@@ -22,7 +31,7 @@ final class CharacterProfilerUITests: XCTestCase {
         newStory.tap()
         XCTAssertTrue(app.navigationBars["New Story"].waitForExistence(timeout: 4))
 
-        let projectTitle = app.textFields["Project title"]
+        let projectTitle = app.textFields["Story title"]
         XCTAssertTrue(projectTitle.waitForExistence(timeout: 4))
         projectTitle.tap()
         projectTitle.typeText(storyTitle)
@@ -55,9 +64,12 @@ final class CharacterProfilerUITests: XCTestCase {
         characterRow.tap()
         XCTAssertTrue(app.navigationBars[characterName].waitForExistence(timeout: 4))
 
-        let historySegment = app.segmentedControls.buttons["History"]
-        XCTAssertTrue(historySegment.waitForExistence(timeout: 4))
-        historySegment.tap()
+        let historyWorkspace = app.buttons["workspace-history"]
+        let characterDashboard = app.scrollViews.firstMatch
+        XCTAssertTrue(characterDashboard.waitForExistence(timeout: 4))
+        XCTAssertTrue(reveal(historyWorkspace, in: characterDashboard), "History workspace should become hittable after scrolling the character dashboard")
+        historyWorkspace.tap()
+        XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 4))
 
         let addLifeEvent = app.buttons["Add Life Event"]
         XCTAssertTrue(addLifeEvent.waitForExistence(timeout: 4))
@@ -90,6 +102,11 @@ final class CharacterProfilerUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts[eventTitle].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["No Life Events"].waitForExistence(timeout: 4))
 
+        let historyBackButton = app.navigationBars["History"].buttons.element(boundBy: 0)
+        XCTAssertTrue(historyBackButton.waitForExistence(timeout: 4))
+        historyBackButton.tap()
+        XCTAssertTrue(app.navigationBars[characterName].waitForExistence(timeout: 4))
+
         let characterActions = app.buttons["Character Actions"]
         XCTAssertTrue(characterActions.waitForExistence(timeout: 4))
         characterActions.tap()
@@ -104,7 +121,7 @@ final class CharacterProfilerUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars[storyTitle].waitForExistence(timeout: 6))
         XCTAssertFalse(app.staticTexts[characterName].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["No Characters"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Build the Cast"].waitForExistence(timeout: 4))
 
         let storyActions = app.buttons["Story Actions"]
         XCTAssertTrue(storyActions.waitForExistence(timeout: 4))

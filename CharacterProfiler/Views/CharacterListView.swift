@@ -16,8 +16,6 @@ enum LegacyDataMigration {
         let unassigned = characters.filter { $0.project == nil }
         guard !unassigned.isEmpty else { return nil }
 
-        // Match the legacy bucket by all metadata we assigned to it, not title alone. An author is
-        // allowed to create an ordinary story named "Imported Characters" without migration taking it over.
         let imported = projects.first(where: {
             $0.title == "Imported Characters" &&
             $0.genre == .other &&
@@ -48,46 +46,70 @@ struct ProjectListView: View {
     @State private var projectsPendingDeletion: [StoryProject] = []
     @State private var isRestoringBackup = false
 
+    private var totalCharacters: Int { projects.reduce(0) { $0 + $1.characters.count } }
+
     var body: some View {
         NavigationStack {
             List {
-                if projects.isEmpty {
-                    ContentUnavailableView(
-                        "No Stories",
-                        systemImage: "books.vertical",
-                        description: Text("Create a story project or restore one from a Character Profiler backup.")
+                Section {
+                    StoryLibrarySummary(
+                        storyCount: projects.count,
+                        characterCount: totalCharacters
                     )
-                } else {
-                    ForEach(projects) { project in
-                        NavigationLink {
-                            ProjectDetailView(project: project)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(project.title).font(.headline)
-                                Label(project.genreDisplayName, systemImage: project.genre.icon)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                Text("\(project.characters.count) character\(project.characters.count == 1 ? "" : "s")")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .listRowBackground(Color.clear)
+                }
+
+                Section("Stories") {
+                    if projects.isEmpty {
+                        VStack(spacing: 14) {
+                            Image(systemName: "books.vertical.fill")
+                                .font(.system(size: 42))
+                                .foregroundStyle(.secondary)
+                            Text("Start Your First Story")
+                                .font(.title3.bold())
+                            Text("Create a story project, then build its cast, relationships, history and visual references in one place.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                            Button {
+                                showingNewProject = true
+                            } label: {
+                                Label("Create First Story", systemImage: "plus")
                             }
-                            .accessibilityElement(children: .combine)
+                            .buttonStyle(.borderedProminent)
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 28)
+                    } else {
+                        ForEach(projects) { project in
+                            NavigationLink {
+                                ProjectDetailView(project: project)
+                            } label: {
+                                StoryLibraryRow(project: project)
+                            }
+                        }
+                        .onDelete(perform: stageProjectDeletion)
                     }
-                    .onDelete(perform: stageProjectDeletion)
                 }
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Character Profiler")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button { showingImporter = true } label: {
+                    Menu {
+                        Button { showingImporter = true } label: {
+                            Label("Restore Backup", systemImage: "square.and.arrow.down")
+                        }
+                        .disabled(isRestoringBackup)
+                    } label: {
                         if isRestoringBackup {
                             ProgressView().accessibilityLabel("Restoring backup")
                         } else {
-                            Label("Restore Backup", systemImage: "square.and.arrow.down")
+                            Label("Library Actions", systemImage: "ellipsis.circle")
                         }
                     }
-                    .disabled(isRestoringBackup)
+
                     Button { showingNewProject = true } label: {
                         Label("New Story", systemImage: "plus")
                     }
@@ -168,8 +190,6 @@ struct ProjectListView: View {
         }
     }
 
-    /// Reads and decodes the potentially large JSON archive away from the main actor. SwiftData
-    /// reconstruction remains on the main actor because it mutates the view's ModelContext.
     private func restoreProject(from url: URL) {
         guard !isRestoringBackup else { return }
         isRestoringBackup = true
@@ -249,28 +269,39 @@ struct ProjectDetailView: View {
     var body: some View {
         List {
             Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    Label(project.genreDisplayName, systemImage: project.genre.icon)
-                        .font(.subheadline.weight(.semibold))
-                    if !project.premise.isEmpty { Text(project.premise).foregroundStyle(.secondary) }
-                    ProjectOverviewGrid(
-                        characterCount: project.characters.count,
-                        relationshipCount: relationshipCount,
-                        historyCount: historyCount,
-                        guideAnswerCount: guideAnswerCount,
-                        averageDevelopment: averageDevelopment
-                    )
-                }
-                .padding(.vertical, 4)
+                StoryHeroCard(
+                    project: project,
+                    characterCount: project.characters.count,
+                    relationshipCount: relationshipCount,
+                    historyCount: historyCount,
+                    guideAnswerCount: guideAnswerCount,
+                    averageDevelopment: averageDevelopment
+                )
+                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             }
 
             Section {
                 if project.characters.isEmpty {
-                    ContentUnavailableView(
-                        "No Characters",
-                        systemImage: "person.crop.circle.badge.plus",
-                        description: Text("Add the first character to this story.")
-                    )
+                    VStack(spacing: 14) {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                            .font(.system(size: 40))
+                            .foregroundStyle(.secondary)
+                        Text("Build the Cast")
+                            .font(.title3.bold())
+                        Text("Add the first character, then open their workspace to develop profile, Guide answers, relationships, history and visuals.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button {
+                            showingNewCharacter = true
+                        } label: {
+                            Label("Create First Character", systemImage: "person.badge.plus")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 22)
                 } else if filteredCharacters.isEmpty {
                     ContentUnavailableView.search(text: searchText)
                 } else {
@@ -287,9 +318,14 @@ struct ProjectDetailView: View {
                 HStack {
                     Text("Characters")
                     Spacer()
-                    if project.characters.count > 20 || !searchText.isEmpty {
-                        Text("\(filteredCharacters.count) of \(project.characters.count)")
-                            .monospacedDigit()
+                    if !project.characters.isEmpty {
+                        Button {
+                            showingNewCharacter = true
+                        } label: {
+                            Label("Add", systemImage: "plus")
+                                .labelStyle(.titleAndIcon)
+                        }
+                        .textCase(nil)
                     }
                 }
             } footer: {
@@ -298,7 +334,9 @@ struct ProjectDetailView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle(project.title)
+        .navigationBarTitleDisplayMode(.large)
         .searchable(text: $searchText, prompt: "Search characters")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -384,8 +422,6 @@ struct ProjectDetailView: View {
         guard !isPreparingExport else { return }
         isPreparingExport = true
 
-        // SwiftData is read on the view actor. Once projected into value types/Data, validation
-        // and JSON encoding can run without blocking interactive UI work.
         let archive = ProjectArchive(project: project)
         Task {
             do {
@@ -481,7 +517,73 @@ enum CharacterSearch {
     }
 }
 
-private struct ProjectOverviewGrid: View {
+private struct StoryLibrarySummary: View {
+    let storyCount: Int
+    let characterCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Story Library")
+                .font(.title2.bold())
+            Text(storyCount == 0
+                 ? "A focused home for your stories and characters."
+                 : "\(storyCount) stor\(storyCount == 1 ? "y" : "ies") • \(characterCount) character\(characterCount == 1 ? "" : "s")")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+private struct StoryLibraryRow: View {
+    let project: StoryProject
+
+    private var averageDevelopment: Int {
+        guard !project.characters.isEmpty else { return 0 }
+        let average = project.characters.reduce(0.0) { $0 + $1.completionScore } / Double(project.characters.count)
+        return Int((average * 100).rounded())
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: project.genre.icon)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 46, height: 46)
+                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(project.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(project.genreDisplayName)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                if !project.premise.isEmpty {
+                    Text(project.premise)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                HStack(spacing: 10) {
+                    Label("\(project.characters.count)", systemImage: "person.2")
+                    if !project.characters.isEmpty {
+                        Label("\(averageDevelopment)%", systemImage: "chart.bar")
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 5)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct StoryHeroCard: View {
+    let project: StoryProject
     let characterCount: Int
     let relationshipCount: Int
     let historyCount: Int
@@ -489,21 +591,58 @@ private struct ProjectOverviewGrid: View {
     let averageDevelopment: Int
 
     var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 10) {
-            GridRow {
-                ProjectMetric(value: "\(characterCount)", label: "Characters", icon: "person.2")
-                ProjectMetric(value: "\(relationshipCount)", label: "Relationships", icon: "point.3.connected.trianglepath.dotted")
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: project.genre.icon)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.tint)
+                    .frame(width: 48, height: 48)
+                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(project.genreDisplayName)
+                        .font(.headline)
+                    Text(characterCount == 0 ? "Ready to build your cast" : "\(characterCount) character\(characterCount == 1 ? "" : "s") in this story")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            GridRow {
-                ProjectMetric(value: "\(historyCount)", label: "Life events", icon: "clock.arrow.circlepath")
-                ProjectMetric(value: "\(guideAnswerCount)", label: "Guide answers", icon: "sparkles")
+
+            if !project.premise.isEmpty {
+                Text(project.premise)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
             }
-            GridRow {
-                ProjectMetric(value: "\(averageDevelopment)%", label: "Average development", icon: "chart.bar")
-                Color.clear.frame(height: 1).accessibilityHidden(true)
-            }
+
+            ProjectOverviewGrid(
+                characterCount: characterCount,
+                relationshipCount: relationshipCount,
+                historyCount: historyCount,
+                guideAnswerCount: guideAnswerCount,
+                averageDevelopment: averageDevelopment
+            )
         }
-        .font(.caption)
+        .padding(16)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+private struct ProjectOverviewGrid: View {
+    let characterCount: Int
+    let relationshipCount: Int
+    let historyCount: Int
+    let guideAnswerCount: Int
+    let averageDevelopment: Int
+
+    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+            ProjectMetric(value: "\(characterCount)", label: "Characters", icon: "person.2")
+            ProjectMetric(value: "\(relationshipCount)", label: "Relationships", icon: "point.3.connected.trianglepath.dotted")
+            ProjectMetric(value: "\(historyCount)", label: "Life events", icon: "clock.arrow.circlepath")
+            ProjectMetric(value: "\(guideAnswerCount)", label: "Guide answers", icon: "sparkles")
+            ProjectMetric(value: "\(averageDevelopment)%", label: "Development", icon: "chart.bar")
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
             "Project overview: \(characterCount) characters, \(relationshipCount) relationships, \(historyCount) life events, \(guideAnswerCount) Guide answers, \(averageDevelopment) percent average development"
@@ -517,14 +656,21 @@ private struct ProjectMetric: View {
     let icon: String
 
     var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: icon).frame(width: 18).accessibilityHidden(true)
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .frame(width: 18)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
-                Text(value).font(.subheadline.weight(.semibold))
-                Text(label).foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 3)
         .accessibilityElement(children: .combine)
     }
 }
@@ -533,19 +679,31 @@ private struct CharacterRow: View {
     let character: CharacterProfile
 
     var body: some View {
-        HStack(spacing: 12) {
-            CharacterPortraitView(character: character, size: 48)
+        HStack(spacing: 13) {
+            CharacterPortraitView(character: character, size: 54)
             VStack(alignment: .leading, spacing: 4) {
-                Text(character.displayName).font(.headline)
+                HStack {
+                    Text(character.displayName)
+                        .font(.headline)
+                    Spacer()
+                    Text("\(Int(character.completionScore * 100))%")
+                        .font(.caption2.monospacedDigit().weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
                 if !character.storyRole.isEmpty {
-                    Text(character.storyRole).font(.subheadline).foregroundStyle(.secondary)
+                    Text(character.storyRole)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 } else if !character.summary.isEmpty {
-                    Text(character.summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                    Text(character.summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
                 ProgressView(value: character.completionScore)
             }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(rowAccessibilityLabel)
     }
