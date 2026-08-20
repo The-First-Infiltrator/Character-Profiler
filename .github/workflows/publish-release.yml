@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Resolve newly-added release request
+      - name: Resolve added or modified release request
         shell: bash
         run: |
           set -euo pipefail
@@ -37,10 +37,10 @@ jobs:
             exit 1
           fi
 
-          requests="$(git diff --diff-filter=A --name-only "$before" "$GITHUB_SHA" -- '.github/release-requests/*.json')"
+          requests="$(git diff --diff-filter=AM --name-only "$before" "$GITHUB_SHA" -- '.github/release-requests/*.json')"
           count="$(printf '%s\n' "$requests" | sed '/^$/d' | wc -l | tr -d ' ')"
           if [[ "$count" != '1' ]]; then
-            echo "Expected exactly one newly-added release request, found $count." >&2
+            echo "Expected exactly one added or modified release request, found $count." >&2
             printf '%s\n' "$requests" >&2
             exit 1
           fi
