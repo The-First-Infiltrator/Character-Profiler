@@ -9,6 +9,12 @@ on:
       - '.github/release-requests/*.json'
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag from the changed request
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -21,6 +27,7 @@ jobs:
   publish:
     if: >-
       github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
        startsWith(github.event.comment.body, '/publish-release ') &&
@@ -41,6 +48,7 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_COMMENT: ${{ github.event.comment.body || '' }}
+          DISPATCH_TAG: ${{ inputs.tag || '' }}
         run: |
           set -euo pipefail
 
@@ -76,6 +84,10 @@ jobs:
               echo "Release comment requested '$RELEASE_COMMENT', but the changed request targets $tag." >&2
               exit 1
             fi
+          fi
+          if [[ "$EVENT_NAME" == 'workflow_dispatch' && "$DISPATCH_TAG" != "$tag" ]]; then
+            echo "Workflow dispatch requested '$DISPATCH_TAG', but the changed request targets $tag." >&2
+            exit 1
           fi
 
           jq -r '.notes // ""' "$request" > "$RUNNER_TEMP/release-notes.md"
