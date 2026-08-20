@@ -1,0 +1,8 @@
+{
+  "tag": "v1.0.1",
+  "target": "current-main",
+  "title": "Character Profiler 1.0.1",
+  "draft": false,
+  "prerelease": false,
+  "notes": "Character Profiler 1.0.1 is the post-1.0 audit-hardening release.\n\nThis release strengthens SwiftData rollback safety, profile identity preservation, Character Guide answer management, relationship and family validation, history workflows, Visual Studio persistence, bounded project backup/restore, local-store recovery, application resources, CI and release safeguards.\n\nThe app remains Character Profiler archive format v1 and does not introduce a new SwiftData entity or persistent field.\n\nThe release workflow tests and builds the exact tagged main commit with pinned Xcode 16.4, packages the unsigned iPhoneOS Release as CharacterProfiler-1.0.1-unsigned.ipa, and publishes both the IPA and its SHA-256 checksum as release assets. The IPA is intentionally unsigned so AltStore/AltServer or another sideloading tool can apply the user's development signature during installation.\n\nPhysical-device Image Playground output quality and cross-angle identity consistency remain explicitly outside hosted CI validation."
+}

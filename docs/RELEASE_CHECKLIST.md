@@ -11,15 +11,16 @@ The immutable 1.0.1 candidate `77ac8fa2f33cf1c06ef59576fd9605bc00330f26` passed 
 - [x] Exact final 1.0.1 candidate passes the complete iOS simulator unit and UI-test suite.
 - [x] Exact final 1.0.1 candidate compiles successfully as an optimized simulator Release with code signing disabled.
 - [x] Exact final 1.0.1 candidate compiles successfully as an optimized generic `iphoneos` Release with code signing disabled.
-- [ ] After integration, the exact final `main` commit passes the same GitHub Actions workflow.
+- [ ] After integration, the exact final `main` commit passes the complete publication build/test gate.
 - [x] Hosted CI dynamically discovers or provisions an iPhone simulator rather than assuming one fixed device exists.
 - [x] XCUITest end-to-end coverage launches the Story Library, creates a story, opens it, creates a character, and verifies the saved character appears.
 - [x] CI preflights the AppIcon file, manifest entry, 1024×1024 dimensions and opaque alpha state before Xcode builds.
 - [x] Third-party GitHub Actions are pinned to immutable commit SHAs.
-- [x] Stale CI for the same PR/branch is cancelled by concurrency grouping.
-- [x] Release publisher source is syntax-checked before execution.
-- [x] Release publisher requires the exact requested target to be an ancestor of `main`.
-- [x] Release publisher requires a successful exact-SHA `iOS Build` before creating a tag/release.
+- [x] Stale CI for the same pull request or branch is cancelled by concurrency grouping.
+- [x] Green CI builds package the optimized unsigned device app into an IPA artifact and emit a SHA-256 checksum.
+- [x] Release requests publish only the exact `main` commit created by the request merge and require the request version to match `MARKETING_VERSION`.
+- [x] Release publication independently runs the complete simulator tests plus optimized simulator and iPhoneOS Release builds before creating or updating a GitHub Release.
+- [x] Published releases attach `CharacterProfiler-<version>-unsigned.ipa` and its SHA-256 checksum as release assets.
 
 ## Persistence and data safety
 
@@ -74,7 +75,7 @@ The immutable 1.0.1 candidate `77ac8fa2f33cf1c06ef59576fd9605bc00330f26` passed 
 - [x] Application asset catalogue includes a real opaque 1024×1024 AppIcon and is part of the app target resources.
 - [x] README, feature-status audit and roadmap describe 1.0.0 as released and 1.0.1 as the audit-hardening update.
 - [x] Changelog describes the 1.0.1 hardening scope and remaining physical-device validation boundary.
-- [ ] A GitHub tag/release is created only after explicit release authorization and after the final `main` gate is green.
+- [ ] A GitHub `v1.0.1` tag/release is created only after the exact publication gate above succeeds.
 
 ## Physical-device Visual Studio validation
 

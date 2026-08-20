@@ -110,6 +110,41 @@ jobs:
           -configuration Release
           -sdk iphoneos
           -destination "generic/platform=iOS"
+          -derivedDataPath "$RUNNER_TEMP/CharacterProfilerDerivedData"
           CODE_SIGNING_ALLOWED=NO
           SWIFT_STRICT_CONCURRENCY=complete
           build
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          app="$RUNNER_TEMP/CharacterProfilerDerivedData/Build/Products/Release-iphoneos/CharacterProfiler.app"
+          test -d "$app"
+
+          version="$(xcodebuild -project CharacterProfiler.xcodeproj -scheme CharacterProfiler -configuration Release -showBuildSettings | awk '/MARKETING_VERSION =/ {print $3; exit}')"
+          test -n "$version"
+
+          package="$RUNNER_TEMP/CharacterProfiler-package"
+          output="$GITHUB_WORKSPACE/artifacts"
+          rm -rf "$package" "$output"
+          mkdir -p "$package/Payload" "$output"
+          ditto "$app" "$package/Payload/CharacterProfiler.app"
+          (
+            cd "$package"
+            /usr/bin/zip -qry "$output/CharacterProfiler-${version}-unsigned.ipa" Payload
+          )
+
+          test -s "$output/CharacterProfiler-${version}-unsigned.ipa"
+          shasum -a 256 "$output/CharacterProfiler-${version}-unsigned.ipa" | tee "$output/CharacterProfiler-${version}-unsigned.ipa.sha256"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CharacterProfiler-IPA-${{ github.sha }}
+          path: |
+            artifacts/*.ipa
+            artifacts/*.sha256
+          if-no-files-found: error
+          retention-days: 30
