@@ -57,6 +57,7 @@ jobs:
           draft="$(jq -r '.draft // false' "$request")"
           prerelease="$(jq -r '.prerelease // false' "$request")"
           version="${tag#v}"
+          base_version="$(printf '%s\n' "$version" | sed -E 's/[-+].*$//')"
 
           jq -r '.notes // ""' "$request" > "$RUNNER_TEMP/release-notes.md"
 
@@ -64,6 +65,7 @@ jobs:
             echo "RELEASE_REQUEST=$request"
             echo "RELEASE_TAG=$tag"
             echo "RELEASE_VERSION=$version"
+            echo "RELEASE_BASE_VERSION=$base_version"
             echo "RELEASE_DRAFT=$draft"
             echo "RELEASE_PRERELEASE=$prerelease"
             echo 'RELEASE_TITLE<<CHARACTER_PROFILER_EOF'
@@ -81,8 +83,8 @@ jobs:
           grep -q '^Xcode 16\.4$' <<<"$xcode_version"
 
           project_version="$(xcodebuild -project CharacterProfiler.xcodeproj -scheme CharacterProfiler -configuration Release -showBuildSettings | awk '/MARKETING_VERSION =/ {print $3; exit}')"
-          if [[ "$project_version" != "$RELEASE_VERSION" ]]; then
-            echo "Release request version $RELEASE_VERSION does not match MARKETING_VERSION $project_version." >&2
+          if [[ "$project_version" != "$RELEASE_BASE_VERSION" ]]; then
+            echo "Release request base version $RELEASE_BASE_VERSION does not match MARKETING_VERSION $project_version." >&2
             exit 1
           fi
 
@@ -150,6 +152,8 @@ jobs:
           -sdk iphoneos
           -destination "generic/platform=iOS"
           -derivedDataPath "$RUNNER_TEMP/CharacterProfilerReleaseDerivedData"
+          MARKETING_VERSION="$RELEASE_BASE_VERSION"
+          CURRENT_PROJECT_VERSION=15
           CODE_SIGNING_ALLOWED=NO
           SWIFT_STRICT_CONCURRENCY=complete
           build
