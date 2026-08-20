@@ -7,6 +7,8 @@ on:
     branches: [ main ]
     paths:
       - '.github/release-requests/*.json'
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
@@ -17,6 +19,14 @@ concurrency:
 
 jobs:
   publish:
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/publish-release ') &&
+       (github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'))
     runs-on: macos-15
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
@@ -28,13 +38,15 @@ jobs:
 
       - name: Resolve added or modified release request
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_COMMENT: ${{ github.event.comment.body || '' }}
         run: |
           set -euo pipefail
 
           before='${{ github.event.before }}'
           if [[ -z "$before" || "$before" == '0000000000000000000000000000000000000000' ]]; then
-            echo 'A normal main-branch parent commit is required for release publication.' >&2
-            exit 1
+            before="$(git rev-parse "$GITHUB_SHA^")"
           fi
 
           requests="$(git diff --diff-filter=AM --name-only "$before" "$GITHUB_SHA" -- '.github/release-requests/*.json')"
@@ -58,6 +70,13 @@ jobs:
           prerelease="$(jq -r '.prerelease // false' "$request")"
           version="${tag#v}"
           base_version="$(printf '%s\n' "$version" | sed -E 's/[-+].*$//')"
+
+          if [[ "$EVENT_NAME" == 'issue_comment' ]]; then
+            if [[ "$RELEASE_COMMENT" != "/publish-release $tag" ]]; then
+              echo "Release comment requested '$RELEASE_COMMENT', but the changed request targets $tag." >&2
+              exit 1
+            fi
+          fi
 
           jq -r '.notes // ""' "$request" > "$RUNNER_TEMP/release-notes.md"
 
