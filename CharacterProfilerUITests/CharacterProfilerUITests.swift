@@ -7,7 +7,7 @@ final class CharacterProfilerUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testAuthorCanCreateStoryCharacterAndHistoryEntryThenDeleteHistoryEntry() {
+    func testAuthorCanCreateAndDeleteStoryCharacterAndHistoryEntry() {
         let app = XCUIApplication()
         app.launch()
 
@@ -79,15 +79,46 @@ final class CharacterProfilerUITests: XCTestCase {
         XCTAssertTrue(eventActions.waitForExistence(timeout: 4))
         eventActions.tap()
 
-        let deleteAction = app.buttons["Delete"]
-        XCTAssertTrue(deleteAction.waitForExistence(timeout: 4))
-        deleteAction.tap()
+        let deleteEvent = app.buttons["Delete"]
+        XCTAssertTrue(deleteEvent.waitForExistence(timeout: 4))
+        deleteEvent.tap()
 
-        let confirmDelete = app.buttons["Delete Life Event"]
-        XCTAssertTrue(confirmDelete.waitForExistence(timeout: 4))
-        confirmDelete.tap()
+        let confirmDeleteEvent = app.buttons["Delete Life Event"]
+        XCTAssertTrue(confirmDeleteEvent.waitForExistence(timeout: 4))
+        confirmDeleteEvent.tap()
 
         XCTAssertFalse(app.staticTexts[eventTitle].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["No Life Events"].waitForExistence(timeout: 4))
+
+        let characterActions = app.buttons["Character Actions"]
+        XCTAssertTrue(characterActions.waitForExistence(timeout: 4))
+        characterActions.tap()
+
+        let deleteCharacter = app.buttons["Delete Character"]
+        XCTAssertTrue(deleteCharacter.waitForExistence(timeout: 4))
+        deleteCharacter.tap()
+
+        let confirmDeleteCharacter = app.buttons["Delete Character Permanently"]
+        XCTAssertTrue(confirmDeleteCharacter.waitForExistence(timeout: 4))
+        confirmDeleteCharacter.tap()
+
+        XCTAssertTrue(app.navigationBars[storyTitle].waitForExistence(timeout: 6))
+        XCTAssertFalse(app.staticTexts[characterName].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["No Characters"].waitForExistence(timeout: 4))
+
+        let storyActions = app.buttons["Story Actions"]
+        XCTAssertTrue(storyActions.waitForExistence(timeout: 4))
+        storyActions.tap()
+
+        let deleteStory = app.buttons["Delete Story"]
+        XCTAssertTrue(deleteStory.waitForExistence(timeout: 4))
+        deleteStory.tap()
+
+        let confirmDeleteStory = app.buttons["Delete Story Permanently"]
+        XCTAssertTrue(confirmDeleteStory.waitForExistence(timeout: 4))
+        confirmDeleteStory.tap()
+
+        XCTAssertTrue(app.navigationBars["Character Profiler"].waitForExistence(timeout: 6))
+        XCTAssertFalse(app.staticTexts[storyTitle].waitForExistence(timeout: 2))
     }
 }

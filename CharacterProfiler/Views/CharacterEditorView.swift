@@ -40,7 +40,7 @@ struct ProjectEditorView: View {
                 Button("Save") { saveProject() }.disabled(!draft.isValid)
             }
         }
-        .alert("Story Could Not Be Saved", isPresented: Binding(
+        .alert("Story Change Could Not Be Completed", isPresented: Binding(
             get: { saveErrorMessage != nil },
             set: { if !$0 { saveErrorMessage = nil } }
         )) {

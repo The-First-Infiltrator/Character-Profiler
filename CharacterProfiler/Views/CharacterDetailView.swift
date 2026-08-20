@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import SwiftUI
+import SwiftData
 
 private enum CharacterDetailSection: String, CaseIterable, Identifiable {
     case profile, guide, people, history, visual
@@ -11,9 +12,13 @@ private enum CharacterDetailSection: String, CaseIterable, Identifiable {
 /// The character record shell. Feature-heavy workspaces live in dedicated view files so their
 /// persistence and graph invariants can be reviewed and tested independently.
 struct CharacterDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     let character: CharacterProfile
     @State private var selectedSection: CharacterDetailSection = .profile
     @State private var showingEditor = false
+    @State private var showingDeleteConfirmation = false
+    @State private var deleteErrorMessage: String?
 
     var body: some View {
         ScrollView {
@@ -64,13 +69,65 @@ struct CharacterDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if character.project != nil {
-                Button("Edit Character", systemImage: "pencil") { showingEditor = true }
+                Menu {
+                    Button { showingEditor = true } label: {
+                        Label("Edit Character", systemImage: "pencil")
+                    }
+                    Divider()
+                    Button(role: .destructive) { showingDeleteConfirmation = true } label: {
+                        Label("Delete Character", systemImage: "trash")
+                    }
+                } label: {
+                    Label("Character Actions", systemImage: "ellipsis.circle")
+                }
             }
         }
         .sheet(isPresented: $showingEditor) {
             if let project = character.project {
                 NavigationStack { CharacterEditorView(project: project, character: character) }
             }
+        }
+        .confirmationDialog(
+            "Delete Character?",
+            isPresented: $showingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Character Permanently", role: .destructive) { deleteCharacter() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(characterDeletionMessage)
+        }
+        .alert("Character Could Not Be Deleted", isPresented: Binding(
+            get: { deleteErrorMessage != nil },
+            set: { if !$0 { deleteErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { deleteErrorMessage = nil }
+        } message: {
+            Text(deleteErrorMessage ?? "Unknown delete error.")
+        }
+    }
+
+    private var characterDeletionMessage: String {
+        let relationshipCount = Set(character.allRelationships.map(\.id)).count
+        let historyCount = character.lifeEvents.count
+        let answerCount = character.promptResponses.filter {
+            !$0.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }.count
+        let visualCount = character.referenceImages.count + character.visualFrames.count
+            + (character.profileImageData == nil ? 0 : 1)
+            + (character.generatedVisualData == nil ? 0 : 1)
+        return "This permanently deletes \(character.displayName) and removes \(relationshipCount) linked relationship\(relationshipCount == 1 ? "" : "s"), \(historyCount) history entr\(historyCount == 1 ? "y" : "ies"), \(answerCount) Guide answer\(answerCount == 1 ? "" : "s"), and \(visualCount) visual asset\(visualCount == 1 ? "" : "s"). Export the story backup first if you may need this character again."
+    }
+
+    private func deleteCharacter() {
+        let project = character.project
+        modelContext.delete(character)
+        project?.updatedAt = .now
+        do {
+            try modelContext.saveOrRollback()
+            dismiss()
+        } catch {
+            deleteErrorMessage = error.localizedDescription
         }
     }
 }
