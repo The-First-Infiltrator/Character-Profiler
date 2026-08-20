@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: App Icon Integrity
+
+on:
+  pull_request:
+    paths:
+      - 'CharacterProfiler/Assets.xcassets/AppIcon.appiconset/**'
+      - 'CharacterProfiler.xcodeproj/project.pbxproj'
+      - '.github/scripts/validate_compiled_icon.py'
+      - '.github/workflows/icon-integrity.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'CharacterProfiler/Assets.xcassets/AppIcon.appiconset/**'
+      - 'CharacterProfiler.xcodeproj/project.pbxproj'
+      - '.github/scripts/validate_compiled_icon.py'
+      - '.github/workflows/icon-integrity.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-compiled-app-icon:
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Verify pinned Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version | tee "$RUNNER_TEMP/xcode-version.txt"
+          grep -q '^Xcode 16\.4$' "$RUNNER_TEMP/xcode-version.txt"
+
+      - name: Validate source app icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          icon='CharacterProfiler/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          test -s "$icon"
+          width="$(sips -g pixelWidth "$icon" | awk '/pixelWidth/ {print $2}')"
+          height="$(sips -g pixelHeight "$icon" | awk '/pixelHeight/ {print $2}')"
+          alpha="$(sips -g hasAlpha "$icon" | awk '/hasAlpha/ {print $2}')"
+          [[ "$width" == '1024' && "$height" == '1024' ]]
+          [[ "$alpha" == 'no' ]]
+
+      - name: Build optimized iPhoneOS Release
+        run: >-
+          xcodebuild
+          -project CharacterProfiler.xcodeproj
+          -scheme CharacterProfiler
+          -configuration Release
+          -sdk iphoneos
+          -destination "generic/platform=iOS"
+          -derivedDataPath "$RUNNER_TEMP/CharacterProfilerIconDerivedData"
+          CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
+          build
+
+      - name: Verify compiled app icon pixels
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_icon='CharacterProfiler/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          compiled_icon="$RUNNER_TEMP/CharacterProfilerIconDerivedData/Build/Products/Release-iphoneos/CharacterProfiler.app/AppIcon60x60@2x.png"
+          test -s "$compiled_icon"
+          python3 .github/scripts/validate_compiled_icon.py "$source_icon" "$compiled_icon"
