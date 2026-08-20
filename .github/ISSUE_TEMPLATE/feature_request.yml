@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose a focused author-workflow improvement
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Character Profiler is intentionally a character-development/story-bible tool. Please describe the author problem first rather than only the proposed implementation.
+  - type: textarea
+    id: author_problem
+    attributes:
+      label: Author problem
+      description: What task is difficult, missing or unnecessarily slow today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should the author be able to accomplish?
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Data/compatibility considerations
+      description: Note any expected impact on SwiftData, backups, relationships, Guide behaviour or Visual Studio.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional — describe simpler approaches or existing workflows you tried.

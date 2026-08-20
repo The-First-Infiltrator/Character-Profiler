@@ -31,6 +31,55 @@ struct GuideSuggestion: Identifiable, Hashable {
 }
 
 enum PromptEngine {
+    /// Guide scores are ordinal editorial priorities rather than probabilities. Catalogue prompts
+    /// occupy a lower band and receive development-gap boosts; adaptive prompts live in a higher
+    /// evidence-driven band so a concrete fact in the character record can outrank generic prompts.
+    private enum ScoringPolicy {
+        static let genericCatalogueBase = 40
+        static let genreSpecificCatalogueBase = 58
+        static let emptyCategoryBoost = 24
+        static let lightlyDevelopedBoost = 14
+        static let moderatelyDevelopedBoost = 6
+        static let lightlyDevelopedUpperBound = 2
+        static let moderatelyDevelopedUpperBound = 4
+
+        static let answeredPromptDepth = 2
+        static let identityFactDepth = 1
+        static let storyRoleDepth = 2
+        static let summaryDepth = 1
+        static let relationshipDepthCap = 4
+        static let lifeEventBackgroundDepth = 1
+        static let traumaOrLossDepth = 2
+        static let conflictEventDepth = 1
+        static let secretEventDepth = 1
+        static let populatedFieldDepth = 1
+
+        static let diversityCategoryTarget = 6
+        static let perCategorySelectionCap = 2
+
+        // Adaptive values intentionally sit above the maximum catalogue score (82). Differences
+        // within this band keep the existing evidence-strength ordering stable and deterministic.
+        static let afterTrauma = 112
+        static let traumaVisible = 106
+        static let traumaCoping = 101
+        static let relationshipPressure = 108
+        static let relationshipBlindspot = 99
+        static let familyPattern = 103
+        static let eventChain = 96
+        static let roleContradiction = 98
+        static let magicCost = 110
+        static let magicLimit = 104
+        static let tavernBehaviour = 102
+        static let afterBattle = 107
+        static let violenceLine = 103
+        static let secretPressure = 105
+        static let faithTest = 102
+        static let moneyReflex = 98
+        static let familyExpectation = 101
+        static let relationshipPattern = 100
+        static let revengeEndpoint = 109
+    }
+
     static func suggestions(for character: CharacterProfile, in project: StoryProject, limit: Int = 8) -> [CharacterPrompt] {
         detailedSuggestions(for: character, in: project, limit: limit).map(\.prompt)
     }
@@ -49,19 +98,19 @@ enum PromptEngine {
         for prompt in catalogue where prompt.applies(to: project.genre) && !answeredIDs.contains(prompt.id) {
             let depth = categoryDepth[prompt.category, default: 0]
             let isGenreSpecific = !prompt.genres.isEmpty
-            var score = isGenreSpecific ? 58 : 40
-            if depth == 0 { score += 24 }
-            else if depth <= 2 { score += 14 }
-            else if depth <= 4 { score += 6 }
+            var score = isGenreSpecific ? ScoringPolicy.genreSpecificCatalogueBase : ScoringPolicy.genericCatalogueBase
+            if depth == 0 { score += ScoringPolicy.emptyCategoryBoost }
+            else if depth <= ScoringPolicy.lightlyDevelopedUpperBound { score += ScoringPolicy.lightlyDevelopedBoost }
+            else if depth <= ScoringPolicy.moderatelyDevelopedUpperBound { score += ScoringPolicy.moderatelyDevelopedBoost }
 
             let reason: String
-            if isGenreSpecific && depth <= 2 {
+            if isGenreSpecific && depth <= ScoringPolicy.lightlyDevelopedUpperBound {
                 reason = "Because this is a \(project.genreDisplayName) story and \(prompt.category.displayName.lowercased()) is still lightly developed."
             } else if isGenreSpecific {
                 reason = "Because this is a \(project.genreDisplayName) story."
             } else if depth == 0 {
                 reason = "Because \(prompt.category.displayName.lowercased()) has almost no recorded detail yet."
-            } else if depth <= 2 {
+            } else if depth <= ScoringPolicy.lightlyDevelopedUpperBound {
                 reason = "Because \(prompt.category.displayName.lowercased()) is still one of the less-developed parts of this character."
             } else {
                 reason = "To test and deepen another side of the character."
@@ -83,26 +132,26 @@ enum PromptEngine {
         var depth = Dictionary(uniqueKeysWithValues: PromptCategory.allCases.map { ($0, 0) })
 
         for response in character.promptResponses where !response.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            depth[response.category, default: 0] += 2
+            depth[response.category, default: 0] += ScoringPolicy.answeredPromptDepth
         }
 
-        if !character.nickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { depth[.identity, default: 0] += 1 }
-        if !character.ageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { depth[.identity, default: 0] += 1 }
-        if !character.pronouns.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { depth[.identity, default: 0] += 1 }
-        if !character.storyRole.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { depth[.storyRole, default: 0] += 2 }
+        if !character.nickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { depth[.identity, default: 0] += ScoringPolicy.identityFactDepth }
+        if !character.ageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { depth[.identity, default: 0] += ScoringPolicy.identityFactDepth }
+        if !character.pronouns.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { depth[.identity, default: 0] += ScoringPolicy.identityFactDepth }
+        if !character.storyRole.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { depth[.storyRole, default: 0] += ScoringPolicy.storyRoleDepth }
         if !character.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            depth[.personality, default: 0] += 1
-            depth[.background, default: 0] += 1
+            depth[.personality, default: 0] += ScoringPolicy.summaryDepth
+            depth[.background, default: 0] += ScoringPolicy.summaryDepth
         }
         if !character.allRelationships.isEmpty {
-            depth[.relationships, default: 0] += min(character.allRelationships.count, 4)
+            depth[.relationships, default: 0] += min(character.allRelationships.count, ScoringPolicy.relationshipDepthCap)
         }
 
         for event in character.lifeEvents {
-            depth[.background, default: 0] += 1
-            if event.kind == .trauma || event.kind == .loss { depth[.trauma, default: 0] += 2 }
-            if event.kind == .conflict { depth[.conflict, default: 0] += 1 }
-            if event.kind == .secret { depth[.secrets, default: 0] += 1 }
+            depth[.background, default: 0] += ScoringPolicy.lifeEventBackgroundDepth
+            if event.kind == .trauma || event.kind == .loss { depth[.trauma, default: 0] += ScoringPolicy.traumaOrLossDepth }
+            if event.kind == .conflict { depth[.conflict, default: 0] += ScoringPolicy.conflictEventDepth }
+            if event.kind == .secret { depth[.secrets, default: 0] += ScoringPolicy.secretEventDepth }
         }
 
         for section in character.sections {
@@ -111,7 +160,7 @@ enum PromptEngine {
                 guard !value.isEmpty else { continue }
                 let haystack = (section.title + " " + field.label).lowercased()
                 for category in categories(forFieldText: haystack) {
-                    depth[category, default: 0] += 1
+                    depth[category, default: 0] += ScoringPolicy.populatedFieldDepth
                 }
             }
         }
@@ -145,61 +194,61 @@ enum PromptEngine {
 
         if character.lifeEvents.contains(where: { $0.kind == .trauma || $0.kind == .loss }) {
             result += [
-                adaptive("adaptive.after-trauma", .trauma, "What happens when something unexpectedly reminds them of the painful event?", "Because their history includes trauma or loss.", 112),
-                adaptive("adaptive.trauma-visible", .relationships, "Who notices the lasting effect first, and what gives it away?", "Because a recorded painful event can affect how other characters read them.", 106),
-                adaptive("adaptive.trauma-coping", .lifestyle, "What ordinary habit do they use to keep difficult memories or feelings manageable?", "Because their history includes trauma or loss, and coping often appears in everyday behaviour.", 101)
+                adaptive("adaptive.after-trauma", .trauma, "What happens when something unexpectedly reminds them of the painful event?", "Because their history includes trauma or loss.", ScoringPolicy.afterTrauma),
+                adaptive("adaptive.trauma-visible", .relationships, "Who notices the lasting effect first, and what gives it away?", "Because a recorded painful event can affect how other characters read them.", ScoringPolicy.traumaVisible),
+                adaptive("adaptive.trauma-coping", .lifestyle, "What ordinary habit do they use to keep difficult memories or feelings manageable?", "Because their history includes trauma or loss, and coping often appears in everyday behaviour.", ScoringPolicy.traumaCoping)
             ]
         }
 
         if !character.allRelationships.isEmpty {
             result += [
-                adaptive("adaptive.relationship-pressure", .relationships, "Which relationship is most likely to fracture under story pressure, and why?", "Because this character already has linked relationships.", 108),
-                adaptive("adaptive.relationship-blindspot", .relationships, "Which person understands them better than they realise?", "Because existing relationships can reveal blind spots in how the character sees themselves.", 99)
+                adaptive("adaptive.relationship-pressure", .relationships, "Which relationship is most likely to fracture under story pressure, and why?", "Because this character already has linked relationships.", ScoringPolicy.relationshipPressure),
+                adaptive("adaptive.relationship-blindspot", .relationships, "Which person understands them better than they realise?", "Because existing relationships can reveal blind spots in how the character sees themselves.", ScoringPolicy.relationshipBlindspot)
             ]
         }
 
         if character.allRelationships.contains(where: { $0.kind(from: character).isFamily }) {
-            result.append(adaptive("adaptive.family-pattern", .background, "Which family pattern are they repeating, and which one are they determined to break?", "Because this character has recorded family relationships.", 103))
+            result.append(adaptive("adaptive.family-pattern", .background, "Which family pattern are they repeating, and which one are they determined to break?", "Because this character has recorded family relationships.", ScoringPolicy.familyPattern))
         }
         if character.lifeEvents.count >= 2 {
-            result.append(adaptive("adaptive.event-chain", .background, "Which earlier life event changed the meaning of a later one for them?", "Because their history now contains multiple formative events.", 96))
+            result.append(adaptive("adaptive.event-chain", .background, "Which earlier life event changed the meaning of a later one for them?", "Because their history now contains multiple formative events.", ScoringPolicy.eventChain))
         }
         if !character.storyRole.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            result.append(adaptive("adaptive.role-contradiction", .storyRole, "What part of their personality makes them unexpectedly bad at—or resistant to—the role the story gives them?", "Because their story role is recorded as “\(character.storyRole)”.", 98))
+            result.append(adaptive("adaptive.role-contradiction", .storyRole, "What part of their personality makes them unexpectedly bad at—or resistant to—the role the story gives them?", "Because their story role is recorded as “\(character.storyRole)”.", ScoringPolicy.roleContradiction))
         }
 
         if project.genre == .fantasy && corpus.containsAny(["magic", "spell", "mage", "wizard", "sorcery", "witch"]) {
             result += [
-                adaptive("adaptive.magic-cost", .world, "What personal cost, temptation or compromise comes with their relationship to magic?", "Because their recorded details mention magic.", 110, [.fantasy]),
-                adaptive("adaptive.magic-limit", .conflict, "What magical solution would they refuse even when it would solve an urgent problem?", "Because their recorded details mention magic, which creates an opportunity to define a boundary.", 104, [.fantasy])
+                adaptive("adaptive.magic-cost", .world, "What personal cost, temptation or compromise comes with their relationship to magic?", "Because their recorded details mention magic.", ScoringPolicy.magicCost, [.fantasy]),
+                adaptive("adaptive.magic-limit", .conflict, "What magical solution would they refuse even when it would solve an urgent problem?", "Because their recorded details mention magic, which creates an opportunity to define a boundary.", ScoringPolicy.magicLimit, [.fantasy])
             ]
         }
         if corpus.containsAny(["tavern", "drink", "drinking", "bar", "ale", "wine"]) {
-            result.append(adaptive("adaptive.tavern-behaviour", .lifestyle, "In a crowded drinking place, do they become louder, guarded, flirtatious, watchful, generous, or eager to leave?", "Because drinking places or alcohol appear in their existing details.", 102))
+            result.append(adaptive("adaptive.tavern-behaviour", .lifestyle, "In a crowded drinking place, do they become louder, guarded, flirtatious, watchful, generous, or eager to leave?", "Because drinking places or alcohol appear in their existing details.", ScoringPolicy.tavernBehaviour))
         }
         if corpus.containsAny(["war", "battle", "soldier", "army", "combat", "mercenary"]) {
             result += [
-                adaptive("adaptive.after-battle", .trauma, "What do they do in the first quiet hour after violence ends?", "Because their profile or history mentions war, battle or combat.", 107),
-                adaptive("adaptive.violence-line", .conflict, "What kind of violence still feels unacceptable to them, even if violence is part of their life?", "Because combat is already part of their recorded world or history.", 103)
+                adaptive("adaptive.after-battle", .trauma, "What do they do in the first quiet hour after violence ends?", "Because their profile or history mentions war, battle or combat.", ScoringPolicy.afterBattle),
+                adaptive("adaptive.violence-line", .conflict, "What kind of violence still feels unacceptable to them, even if violence is part of their life?", "Because combat is already part of their recorded world or history.", ScoringPolicy.violenceLine)
             ]
         }
         if corpus.containsAny(["lie", "secret", "hidden", "hide", "deceive", "deception"]) {
-            result.append(adaptive("adaptive.secret-pressure", .secrets, "What situation would make keeping their secret harder than revealing it?", "Because secrecy or deception appears in their existing details.", 105))
+            result.append(adaptive("adaptive.secret-pressure", .secrets, "What situation would make keeping their secret harder than revealing it?", "Because secrecy or deception appears in their existing details.", ScoringPolicy.secretPressure))
         }
         if corpus.containsAny(["faith", "god", "gods", "religion", "church", "temple", "spirit"]) {
-            result.append(adaptive("adaptive.faith-test", .world, "What experience could genuinely shake their belief—or make it stronger?", "Because faith or religion appears in their existing details.", 102))
+            result.append(adaptive("adaptive.faith-test", .world, "What experience could genuinely shake their belief—or make it stronger?", "Because faith or religion appears in their existing details.", ScoringPolicy.faithTest))
         }
         if corpus.containsAny(["money", "poor", "poverty", "rich", "wealth", "debt"]) {
-            result.append(adaptive("adaptive.money-reflex", .lifestyle, "What money habit reveals the economic conditions they grew up with?", "Because money, wealth, poverty or debt appears in their recorded details.", 98))
+            result.append(adaptive("adaptive.money-reflex", .lifestyle, "What money habit reveals the economic conditions they grew up with?", "Because money, wealth, poverty or debt appears in their recorded details.", ScoringPolicy.moneyReflex))
         }
         if corpus.containsAny(["parent", "mother", "father", "child", "son", "daughter", "sibling", "brother", "sister"]) {
-            result.append(adaptive("adaptive.family-expectation", .relationships, "Whose family expectation still has power over them even when that person is absent?", "Because family roles appear in their recorded details.", 101))
+            result.append(adaptive("adaptive.family-expectation", .relationships, "Whose family expectation still has power over them even when that person is absent?", "Because family roles appear in their recorded details.", ScoringPolicy.familyExpectation))
         }
         if corpus.containsAny(["love", "lover", "romance", "relationship", "marriage", "partner"]) {
-            result.append(adaptive("adaptive.relationship-pattern", .relationships, "What relationship pattern do they repeat even when they know it ends badly?", "Because romantic or intimate relationships appear in their existing details.", 100))
+            result.append(adaptive("adaptive.relationship-pattern", .relationships, "What relationship pattern do they repeat even when they know it ends badly?", "Because romantic or intimate relationships appear in their existing details.", ScoringPolicy.relationshipPattern))
         }
         if corpus.containsAny(["revenge", "vengeance"]) {
-            result.append(adaptive("adaptive.revenge-endpoint", .motivation, "If they got perfect revenge tomorrow, what problem would still remain?", "Because revenge appears to be part of their motivation or history.", 109))
+            result.append(adaptive("adaptive.revenge-endpoint", .motivation, "If they got perfect revenge tomorrow, what problem would still remain?", "Because revenge appears to be part of their motivation or history.", ScoringPolicy.revengeEndpoint))
         }
         return result
     }
@@ -240,7 +289,7 @@ enum PromptEngine {
         var remaining = candidates
         var selected: [GuideSuggestion] = []
         var usedCategories: Set<PromptCategory> = []
-        let diversityTarget = min(limit, 6)
+        let diversityTarget = min(limit, ScoringPolicy.diversityCategoryTarget)
 
         while selected.count < diversityTarget {
             guard let index = remaining.firstIndex(where: { !usedCategories.contains($0.category) }) else { break }
@@ -251,7 +300,7 @@ enum PromptEngine {
 
         var categoryCounts = Dictionary(grouping: selected, by: \.category).mapValues { $0.count }
         while selected.count < limit && !remaining.isEmpty {
-            if let index = remaining.firstIndex(where: { categoryCounts[$0.category, default: 0] < 2 }) {
+            if let index = remaining.firstIndex(where: { categoryCounts[$0.category, default: 0] < ScoringPolicy.perCategorySelectionCap }) {
                 let candidate = remaining.remove(at: index)
                 selected.append(candidate)
                 categoryCounts[candidate.category, default: 0] += 1

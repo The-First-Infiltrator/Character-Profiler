@@ -16,8 +16,13 @@ enum LegacyDataMigration {
         let unassigned = characters.filter { $0.project == nil }
         guard !unassigned.isEmpty else { return nil }
 
-        let imported = projects.first(where: { $0.title == "Imported Characters" })
-            ?? StoryProject(title: "Imported Characters", genre: .other, customGenre: "Unassigned")
+        // Match the legacy bucket by all metadata we assigned to it, not title alone. An author is
+        // allowed to create an ordinary story named "Imported Characters" without migration taking it over.
+        let imported = projects.first(where: {
+            $0.title == "Imported Characters" &&
+            $0.genre == .other &&
+            $0.customGenre == "Unassigned"
+        }) ?? StoryProject(title: "Imported Characters", genre: .other, customGenre: "Unassigned")
 
         if imported.modelContext == nil { modelContext.insert(imported) }
         for character in unassigned {
@@ -27,7 +32,7 @@ enum LegacyDataMigration {
             }
         }
         imported.updatedAt = .now
-        try modelContext.save()
+        try modelContext.saveOrRollback()
         return imported
     }
 }
@@ -41,6 +46,7 @@ struct ProjectListView: View {
     @State private var importErrorMessage: String?
     @State private var operationErrorMessage: String?
     @State private var projectsPendingDeletion: [StoryProject] = []
+    @State private var isRestoringBackup = false
 
     var body: some View {
         NavigationStack {
@@ -75,11 +81,17 @@ struct ProjectListView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button { showingImporter = true } label: {
-                        Label("Restore Backup", systemImage: "square.and.arrow.down")
+                        if isRestoringBackup {
+                            ProgressView().accessibilityLabel("Restoring backup")
+                        } else {
+                            Label("Restore Backup", systemImage: "square.and.arrow.down")
+                        }
                     }
+                    .disabled(isRestoringBackup)
                     Button { showingNewProject = true } label: {
                         Label("New Story", systemImage: "plus")
                     }
+                    .disabled(isRestoringBackup)
                 }
             }
             .sheet(isPresented: $showingNewProject) {
@@ -93,7 +105,7 @@ struct ProjectListView: View {
                 switch result {
                 case .success(let urls):
                     guard let url = urls.first else { return }
-                    Task { @MainActor in restoreProject(from: url) }
+                    restoreProject(from: url)
                 case .failure(let error):
                     importErrorMessage = error.localizedDescription
                 }
@@ -149,24 +161,33 @@ struct ProjectListView: View {
         let selected = projectsPendingDeletion
         for project in selected { modelContext.delete(project) }
         do {
-            try modelContext.save()
+            try modelContext.saveOrRollback()
             projectsPendingDeletion = []
         } catch {
             operationErrorMessage = error.localizedDescription
         }
     }
 
-    @MainActor
+    /// Reads and decodes the potentially large JSON archive away from the main actor. SwiftData
+    /// reconstruction remains on the main actor because it mutates the view's ModelContext.
     private func restoreProject(from url: URL) {
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        guard !isRestoringBackup else { return }
+        isRestoringBackup = true
 
-        do {
-            let data = try Data(contentsOf: url)
-            let archive = try ProjectArchive.decode(data)
-            _ = try archive.restore(in: modelContext)
-        } catch {
-            importErrorMessage = error.localizedDescription
+        Task {
+            do {
+                let archive = try await Task.detached(priority: .userInitiated) {
+                    let accessed = url.startAccessingSecurityScopedResource()
+                    defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+                    return try ProjectArchive.safelyDecode(contentsOf: url)
+                }.value
+
+                _ = try archive.restore(in: modelContext)
+                isRestoringBackup = false
+            } catch {
+                importErrorMessage = error.localizedDescription
+                isRestoringBackup = false
+            }
         }
     }
 
@@ -189,6 +210,7 @@ struct ProjectDetailView: View {
     @State private var showingExporter = false
     @State private var exportDocument: ProjectArchiveDocument?
     @State private var exportErrorMessage: String?
+    @State private var isPreparingExport = false
     @State private var operationErrorMessage: String?
     @State private var charactersPendingDeletion: [CharacterProfile] = []
 
@@ -286,8 +308,13 @@ struct ProjectDetailView: View {
                         Label("Edit Story", systemImage: "pencil")
                     }
                     Button { prepareExport() } label: {
-                        Label("Export Backup", systemImage: "square.and.arrow.up")
+                        if isPreparingExport {
+                            Label("Preparing Backup", systemImage: "hourglass")
+                        } else {
+                            Label("Export Backup", systemImage: "square.and.arrow.up")
+                        }
                     }
+                    .disabled(isPreparingExport)
                 } label: {
                     Label("Story Actions", systemImage: "ellipsis.circle")
                 }
@@ -340,8 +367,24 @@ struct ProjectDetailView: View {
     }
 
     private func prepareExport() {
-        exportDocument = ProjectArchiveDocument(archive: ProjectArchive(project: project))
-        showingExporter = true
+        guard !isPreparingExport else { return }
+        isPreparingExport = true
+
+        // SwiftData is read on the view actor. Once projected into value types/Data, validation
+        // and JSON encoding can run without blocking interactive UI work.
+        let archive = ProjectArchive(project: project)
+        Task {
+            do {
+                let data = try await Task.detached(priority: .userInitiated) {
+                    try archive.safelyEncodedData()
+                }.value
+                exportDocument = ProjectArchiveDocument(data: data)
+                showingExporter = true
+            } catch {
+                exportErrorMessage = error.localizedDescription
+            }
+            isPreparingExport = false
+        }
     }
 
     private func stageCharacterDeletion(at offsets: IndexSet) {
@@ -372,7 +415,7 @@ struct ProjectDetailView: View {
         for character in selected { modelContext.delete(character) }
         project.updatedAt = .now
         do {
-            try modelContext.save()
+            try modelContext.saveOrRollback()
             charactersPendingDeletion = []
         } catch {
             operationErrorMessage = error.localizedDescription

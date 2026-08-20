@@ -36,46 +36,46 @@ Status: complete and integrated for simulator-testable behavior. Physical-device
 
 Delivered runtime Image Playground availability handling, labelled/reorderable references, canonical-image lifecycle, canonical identity anchoring for turnaround generation, eight fixed angle slots, missing/duplicate reporting, progress, per-angle recovery/reset and deterministic visual-state tests.
 
-Outstanding physical-device checks:
-
-- actual Image Playground generation on a supported iPhone;
-- device-specific availability/user-flow behavior;
-- canonical and turnaround consistency of face, body proportions, clothing, colours and equipment.
-
 ### 0.8 — Author-release hardening
 
 Status: complete and integrated.
 
 Delivered editable/reorderable life history, in-place inverse-safe relationship editing, edit-aware graph validation, confirmed relationship/life-event deletion, searchable large-cast relationship selection, relationship-aware cast search, migration regression coverage, improved accessibility/empty states and release-quality failure surfacing.
 
-Version 0.8 added no SwiftData entity/field and retained archive format v1.
+### 1.0.0 — First stable author release
 
-## 1.0 — First stable author release
+Status: released.
 
-Status: **current release-readiness candidate**.
+Established the first stable feature baseline, non-destructive startup store failure handling, hostile archive regression coverage, optimized Release CI, complete GPLv3 licensing and explicit physical-device Visual Studio validation boundaries.
 
-Goal: make the existing product dependable enough to call stable without using a major version number as an excuse for unrelated feature growth.
+### 1.0.1 — Audit hardening
 
-The 1.0 pass delivers/validates:
+Status: in validation.
 
-- non-destructive startup behavior when the local SwiftData store cannot open;
-- hostile/malformed archive regression coverage in addition to the existing whole-story round trip;
-- explicit proof that invalid archives are rejected before a destination story is inserted;
-- a CI gate containing both the complete simulator test suite and a separate Release-configuration compile;
-- complete GNU GPLv3 license text in the source distribution;
-- a release checklist tying stability claims to concrete validation;
-- version 1.0.0 build 11;
-- final README/changelog/architecture/feature-status alignment;
-- continued archive format v1 and no 1.0 SwiftData schema change;
-- explicit disclosure of the still-unperformed physical-device Visual Studio quality checks.
+This release is a focused corrective pass over the complete codebase. It addresses issues found in a line-by-line functionality/code/commenting audit:
 
-Release sequence:
+- transactional SwiftData save/rollback semantics;
+- editable/deletable saved Character Guide answers;
+- stable profile section/field identifiers and explicit blank-label validation;
+- Story Library activity timestamps for character-scoped work;
+- Visual Studio persistence debounce and stronger identity-reference handling;
+- stricter archive validation and cleanup behavior;
+- removal of the old arbitrary family-tree traversal cap plus explicit detection of conflicting generation paths;
+- source decomposition and invariant comments around the Guide, relationship and history subsystems;
+- real application asset/AppIcon wiring;
+- simulator tests plus optimized simulator and `iphoneos` device Release builds;
+- release-publisher syntax checking and exact-main/exact-CI target verification;
+- repository documentation synchronized to the actual released/hardened state.
 
-1. exact final 1.0 feature head passes tests and Release build;
-2. PR is marked ready;
-3. integration into `main` requires explicit merge authorization;
-4. exact merged `main` commit passes the same workflow;
-5. a `v1.0.0` tag/GitHub Release is a separate action requiring explicit release authorization.
+Version 1.0.1 remains archive format v1 and introduces no new SwiftData entity or persistent field.
+
+## Outstanding physical-device checks
+
+Hosted CI cannot establish Image Playground output quality. A supported physical iPhone is still required to validate:
+
+- actual Image Playground generation on-device;
+- device-specific availability/user-flow behavior;
+- canonical and turnaround consistency of face, body proportions, clothing, colours and equipment.
 
 ## Post-1.0 candidates, not commitments
 
@@ -86,6 +86,7 @@ The following require a deliberate product decision before entering a numbered r
 - iCloud synchronization;
 - additional visual-AI provider abstraction;
 - richer archive history/comparison;
+- package-based archive assets if JSON backups become too large for practical projects;
 - iPad-specific layouts;
 - Mac companion application;
 - true 3D character mesh.

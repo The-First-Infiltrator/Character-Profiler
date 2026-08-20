@@ -8,30 +8,63 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ios-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Validate application resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          icon="CharacterProfiler/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
+          manifest="CharacterProfiler/Assets.xcassets/AppIcon.appiconset/Contents.json"
+
+          test -s "$icon"
+          test -s "$manifest"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("CharacterProfiler/Assets.xcassets/AppIcon.appiconset/Contents.json").read_text())
+          images = manifest.get("images", [])
+          assert any(item.get("filename") == "AppIcon-1024.png" and item.get("size") == "1024x1024" for item in images)
+          PY
+
+          width="$(sips -g pixelWidth "$icon" | awk '/pixelWidth/ {print $2}')"
+          height="$(sips -g pixelHeight "$icon" | awk '/pixelHeight/ {print $2}')"
+          alpha="$(sips -g hasAlpha "$icon" | awk '/hasAlpha/ {print $2}')"
+          [[ "$width" == "1024" && "$height" == "1024" ]]
+          [[ "$alpha" == "no" ]]
+
+      - name: Verify pinned Xcode version
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$DEVELOPER_DIR"
+          version="$(xcodebuild -version)"
+          printf '%s\n' "$version"
+          grep -q '^Xcode 16\.4$' <<<"$version"
 
       - name: Prepare iOS Simulator
         shell: bash
         run: |
           set -euo pipefail
 
-          # Initialise CoreSimulator first. Some hosted macOS images expose only
-          # the placeholder destination until simctl has started the service.
           xcrun simctl list devices available >/tmp/available-simulators.txt || true
           cat /tmp/available-simulators.txt
 
           simulator_id="$(grep -m1 -E 'iPhone .*[0-9A-Fa-f-]{36}' /tmp/available-simulators.txt | grep -oE '[0-9A-Fa-f-]{36}' | head -1 || true)"
 
           if [[ -z "$simulator_id" ]]; then
-            echo "No bootable iPhone simulator is currently installed; downloading the default iOS runtime for this Xcode."
+            echo "No bootable iPhone simulator is currently installed; downloading the default iOS runtime for the pinned Xcode."
             xcodebuild -downloadPlatform iOS
             xcrun simctl list devices available >/tmp/available-simulators.txt
             cat /tmp/available-simulators.txt
@@ -46,7 +79,7 @@ jobs:
           echo "Using simulator $simulator_id"
           echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
 
-      - name: Build and test
+      - name: Test on iOS Simulator
         run: >-
           xcodebuild
           -project CharacterProfiler.xcodeproj
@@ -54,9 +87,10 @@ jobs:
           -sdk iphonesimulator
           -destination "platform=iOS Simulator,id=${SIMULATOR_ID}"
           CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
           test
 
-      - name: Build Release configuration
+      - name: Build optimized Simulator Release
         run: >-
           xcodebuild
           -project CharacterProfiler.xcodeproj
@@ -65,4 +99,17 @@ jobs:
           -sdk iphonesimulator
           -destination "platform=iOS Simulator,id=${SIMULATOR_ID}"
           CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
+          build
+
+      - name: Build optimized iPhoneOS Release
+        run: >-
+          xcodebuild
+          -project CharacterProfiler.xcodeproj
+          -scheme CharacterProfiler
+          -configuration Release
+          -sdk iphoneos
+          -destination "generic/platform=iOS"
+          CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
           build

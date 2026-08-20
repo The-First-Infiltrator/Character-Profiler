@@ -3,9 +3,18 @@
 import SwiftUI
 import SwiftData
 
-@main
-struct CharacterProfilerApp: App {
-    private let containerResult: Result<ModelContainer, Error> = {
+private final class ModelContainerLoader: ObservableObject {
+    @Published private(set) var result: Result<ModelContainer, Error>
+
+    init() {
+        result = Self.openStore()
+    }
+
+    func retry() {
+        result = Self.openStore()
+    }
+
+    private static func openStore() -> Result<ModelContainer, Error> {
         let schema = Schema([
             StoryProject.self,
             CharacterProfile.self,
@@ -17,7 +26,6 @@ struct CharacterProfilerApp: App {
             CharacterVisualFrame.self,
             CharacterRelationship.self
         ])
-
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
@@ -25,16 +33,33 @@ struct CharacterProfilerApp: App {
         } catch {
             return .failure(error)
         }
-    }()
+    }
+}
+
+@main
+struct CharacterProfilerApp: App {
+    @StateObject private var containerLoader = ModelContainerLoader()
+    @State private var persistenceFailureMessage: String?
 
     var body: some Scene {
         WindowGroup {
-            switch containerResult {
+            switch containerLoader.result {
             case .success(let modelContainer):
                 ProjectListView()
                     .modelContainer(modelContainer)
+                    .environment(\.reportPersistenceFailure) { message in
+                        persistenceFailureMessage = message
+                    }
+                    .alert("Changes Could Not Be Saved", isPresented: Binding(
+                        get: { persistenceFailureMessage != nil },
+                        set: { if !$0 { persistenceFailureMessage = nil } }
+                    )) {
+                        Button("OK", role: .cancel) { persistenceFailureMessage = nil }
+                    } message: {
+                        Text(persistenceFailureMessage ?? "Unknown persistence error.")
+                    }
             case .failure(let error):
-                DataStoreUnavailableView(error: error)
+                DataStoreUnavailableView(error: error, retry: containerLoader.retry)
             }
         }
     }
@@ -42,6 +67,7 @@ struct CharacterProfilerApp: App {
 
 private struct DataStoreUnavailableView: View {
     let error: Error
+    let retry: () -> Void
 
     var body: some View {
         ContentUnavailableView {
@@ -49,11 +75,13 @@ private struct DataStoreUnavailableView: View {
         } description: {
             VStack(spacing: 10) {
                 Text("Character Profiler could not open its local story database. The app will not erase or replace the store automatically.")
-                Text("Close and reopen the app. If the problem continues, preserve the app's data before reinstalling so the story library can be recovered or inspected.")
+                Text("You can retry opening the preserved library. If the problem continues, preserve the app's data before reinstalling so the story library can be recovered or inspected.")
                 Text(error.localizedDescription)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                Button("Retry Opening Library", action: retry)
+                    .buttonStyle(.borderedProminent)
             }
         }
         .padding()

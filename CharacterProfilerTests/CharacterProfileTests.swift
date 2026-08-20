@@ -371,6 +371,45 @@ final class CharacterProfileTests: XCTestCase {
     }
 
     @MainActor
+    func testProjectArchiveRejectsSemanticDuplicateRelationshipAcrossDirection() {
+        let project = StoryProject(title: "Duplicated Meaning")
+        let first = CharacterProfile(name: "First", project: project)
+        let second = CharacterProfile(name: "Second", project: project)
+        project.characters = [first, second]
+        _ = link(first, to: second, as: .mentor)
+
+        var archive = ProjectArchive(project: project)
+        XCTAssertEqual(archive.project.relationships.count, 1)
+        var duplicate = archive.project.relationships[0]
+        duplicate.sourceID = UUID()
+        let originalSource = duplicate.sourceCharacterID
+        duplicate.sourceCharacterID = duplicate.targetCharacterID
+        duplicate.targetCharacterID = originalSource
+        duplicate.kind = duplicate.kind.inverse
+        archive.project.relationships.append(duplicate)
+
+        XCTAssertThrowsError(try archive.validate())
+    }
+
+    @MainActor
+    func testProjectArchiveRejectsMultipleFamilyRelationshipsForSamePair() {
+        let project = StoryProject(title: "Duplicated Family Meaning")
+        let first = CharacterProfile(name: "First", project: project)
+        let second = CharacterProfile(name: "Second", project: project)
+        project.characters = [first, second]
+        _ = link(first, to: second, as: .spouse)
+
+        var archive = ProjectArchive(project: project)
+        XCTAssertEqual(archive.project.relationships.count, 1)
+        var secondFamilyLink = archive.project.relationships[0]
+        secondFamilyLink.sourceID = UUID()
+        secondFamilyLink.kind = .partner
+        archive.project.relationships.append(secondFamilyLink)
+
+        XCTAssertThrowsError(try archive.validate())
+    }
+
+    @MainActor
     func testProjectArchiveRejectsSelfAndMissingRelationshipEndpointsBeforeRestore() throws {
         let container = try makeContainer()
         let context = container.mainContext

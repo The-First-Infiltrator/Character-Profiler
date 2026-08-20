@@ -61,6 +61,8 @@ struct ProjectArchive: Codable {
         return archive
     }
 
+    /// Validates every identifier/invariant that is required to reconstruct a coherent story graph.
+    /// Validation runs before restore inserts anything into SwiftData.
     func validate() throws {
         guard formatVersion == Self.currentFormatVersion else {
             throw ProjectArchiveError.unsupportedFormatVersion(formatVersion)
@@ -70,18 +72,49 @@ struct ProjectArchive: Codable {
         }
 
         let characterIDs = project.characters.map(\.sourceID)
-        guard Set(characterIDs).count == characterIDs.count else {
-            throw ProjectArchiveError.invalidArchive("The archive contains duplicate character identifiers.")
-        }
+        try requireUnique(characterIDs, description: "character identifiers")
         let characterIDSet = Set(characterIDs)
 
         for character in project.characters {
             guard !character.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw ProjectArchiveError.invalidArchive("One of the archived characters has no name.")
             }
+
+            try requireUnique(character.sections.map(\.sourceID), description: "profile section identifiers for \(character.name)")
+            try requireUnique(character.lifeEvents.map(\.sourceID), description: "life-event identifiers for \(character.name)")
+            try requireUnique(character.promptResponses.map(\.sourceID), description: "Guide response identifiers for \(character.name)")
+            try requireUnique(character.referenceImages.map(\.sourceID), description: "reference-image identifiers for \(character.name)")
+            try requireUnique(character.visualFrames.map(\.sourceID), description: "turnaround-frame identifiers for \(character.name)")
+            try requireUnique(character.promptResponses.map(\.promptID), description: "Guide prompt identifiers for \(character.name)")
+            try requireUnique(character.visualFrames.map(\.angle), description: "turnaround angles for \(character.name)")
+
+            for section in character.sections {
+                guard !section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw ProjectArchiveError.invalidArchive("A profile section for \(character.name) has no title.")
+                }
+                try requireUnique(section.fields.map(\.sourceID), description: "profile field identifiers in \(section.title)")
+                for field in section.fields where field.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    throw ProjectArchiveError.invalidArchive("A profile field in \(section.title) has no label.")
+                }
+            }
+
+            for event in character.lifeEvents where event.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                throw ProjectArchiveError.invalidArchive("A life event for \(character.name) has no title.")
+            }
+            for response in character.promptResponses where response.promptID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                throw ProjectArchiveError.invalidArchive("A Guide response for \(character.name) has no prompt identifier.")
+            }
+            for reference in character.referenceImages where reference.imageData.isEmpty {
+                throw ProjectArchiveError.invalidArchive("A reference image for \(character.name) contains no image data.")
+            }
+            for frame in character.visualFrames where frame.imageData.isEmpty {
+                throw ProjectArchiveError.invalidArchive("A turnaround frame for \(character.name) contains no image data.")
+            }
         }
 
         var relationshipIDs = Set<UUID>()
+        var semanticRelationships = Set<RelationshipSemanticKey>()
+        var familyPairs = Set<RelationshipPairKey>()
         for relationship in project.relationships {
             guard relationshipIDs.insert(relationship.sourceID).inserted else {
                 throw ProjectArchiveError.invalidArchive("The archive contains duplicate relationship identifiers.")
@@ -93,6 +126,135 @@ struct ProjectArchive: Codable {
                   characterIDSet.contains(relationship.targetCharacterID) else {
                 throw ProjectArchiveError.invalidArchive("A relationship points to a character that is not present in this story archive.")
             }
+
+            // Relationship semantics are directional even though the same shared edge is shown from
+            // both character perspectives. Canonicalise the pair before comparing so a hand-edited
+            // mentor→student edge cannot be duplicated as the reversed student→mentor equivalent.
+            let pair = RelationshipPairKey(relationship.sourceCharacterID, relationship.targetCharacterID)
+            let kindFromFirstCharacter = relationship.sourceCharacterID == pair.first
+                ? relationship.kind
+                : relationship.kind.inverse
+            let semanticKey = RelationshipSemanticKey(pair: pair, kindFromFirstCharacter: kindFromFirstCharacter)
+            guard semanticRelationships.insert(semanticKey).inserted else {
+                throw ProjectArchiveError.invalidArchive("The archive contains a duplicate relationship between the same characters.")
+            }
+
+            // The live editor permits at most one family edge for a pair. Preserve that invariant at
+            // the archive boundary as well, even when two different zero-generation kinds (for
+            // example spouse and partner) would otherwise pass generation-path validation.
+            if relationship.kind.isFamily, !familyPairs.insert(pair).inserted {
+                throw ProjectArchiveError.invalidArchive("The archive contains more than one family relationship between the same characters.")
+            }
+        }
+
+        try validateArchivedFamilyGraph()
+    }
+
+    private struct RelationshipPairKey: Hashable {
+        let first: UUID
+        let second: UUID
+
+        init(_ left: UUID, _ right: UUID) {
+            if left.uuidString < right.uuidString {
+                first = left
+                second = right
+            } else {
+                first = right
+                second = left
+            }
+        }
+    }
+
+    private struct RelationshipSemanticKey: Hashable {
+        let pair: RelationshipPairKey
+        let kindFromFirstCharacter: RelationshipKind
+    }
+
+    private func requireUnique<T: Hashable>(_ values: [T], description: String) throws {
+        guard Set(values).count == values.count else {
+            throw ProjectArchiveError.invalidArchive("The archive contains duplicate \(description).")
+        }
+    }
+
+    /// Protects restore from hand-edited/corrupt archives containing impossible family graphs.
+    private func validateArchivedFamilyGraph() throws {
+        var parentsByChild: [UUID: Set<UUID>] = [:]
+        for relationship in project.relationships {
+            switch relationship.kind {
+            case .parent:
+                parentsByChild[relationship.sourceCharacterID, default: []].insert(relationship.targetCharacterID)
+            case .child:
+                parentsByChild[relationship.targetCharacterID, default: []].insert(relationship.sourceCharacterID)
+            default:
+                continue
+            }
+        }
+
+        func visitsAncestor(_ current: UUID, origin: UUID, visiting: inout Set<UUID>) -> Bool {
+            guard visiting.insert(current).inserted else { return current == origin }
+            defer { visiting.remove(current) }
+            for parent in parentsByChild[current, default: []] {
+                if parent == origin { return true }
+                if visitsAncestor(parent, origin: origin, visiting: &visiting) { return true }
+            }
+            return false
+        }
+
+        for characterID in project.characters.map(\.sourceID) {
+            var visiting = Set<UUID>()
+            if visitsAncestor(characterID, origin: characterID, visiting: &visiting) {
+                throw ProjectArchiveError.invalidArchive("The archived family graph contains an ancestry cycle.")
+            }
+        }
+
+        // Every path through a family component must imply the same relative generation. Apply the
+        // live-editor invariant before restore so corrupt/legacy archives cannot import a
+        // contradictory graph and reveal the problem only after reconstruction.
+        var familyAdjacency: [UUID: [(characterID: UUID, delta: Int)]] = [:]
+        for relationship in project.relationships where relationship.kind.isFamily {
+            let delta: Int
+            switch relationship.kind {
+            case .parent:
+                delta = -1
+            case .child:
+                delta = 1
+            case .sibling, .spouse, .partner:
+                delta = 0
+            default:
+                continue
+            }
+
+            familyAdjacency[relationship.sourceCharacterID, default: []]
+                .append((relationship.targetCharacterID, delta))
+            familyAdjacency[relationship.targetCharacterID, default: []]
+                .append((relationship.sourceCharacterID, -delta))
+        }
+
+        var generationByID: [UUID: Int] = [:]
+        for rootID in project.characters.map(\.sourceID) where generationByID[rootID] == nil {
+            generationByID[rootID] = 0
+            var queue: [UUID] = [rootID]
+            var index = 0
+
+            while index < queue.count {
+                let currentID = queue[index]
+                index += 1
+                let currentGeneration = generationByID[currentID] ?? 0
+
+                for edge in familyAdjacency[currentID, default: []] {
+                    let expected = currentGeneration + edge.delta
+                    if let existing = generationByID[edge.characterID] {
+                        if existing != expected {
+                            throw ProjectArchiveError.invalidArchive(
+                                "The archived family graph contains conflicting generation paths."
+                            )
+                        }
+                    } else {
+                        generationByID[edge.characterID] = expected
+                        queue.append(edge.characterID)
+                    }
+                }
+            }
         }
     }
 
@@ -100,13 +262,15 @@ struct ProjectArchive: Codable {
     func restore(in modelContext: ModelContext) throws -> StoryProject {
         try validate()
 
+        // Restore is one unit of work. Callers should invoke it with a committed ModelContext so a
+        // rollback can remove every staged object if reconstruction or persistence fails.
         let restoredProject = StoryProject(
             title: project.title,
             genre: project.genre,
             customGenre: project.customGenre,
             premise: project.premise,
             createdAt: project.createdAt,
-            updatedAt: project.updatedAt
+            updatedAt: .now
         )
         modelContext.insert(restoredProject)
 
@@ -222,11 +386,10 @@ struct ProjectArchive: Codable {
                 target.incomingRelationships.append(relationship)
             }
 
-            try modelContext.save()
+            try modelContext.saveOrRollback()
             return restoredProject
         } catch {
-            modelContext.delete(restoredProject)
-            try? modelContext.save()
+            modelContext.rollback()
             throw error
         }
     }
@@ -433,20 +596,22 @@ struct ProjectArchiveDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }
     static var writableContentTypes: [UTType] { [.json] }
 
-    var archive: ProjectArchive
+    /// Pre-encoded bytes keep SwiftUI's synchronous FileDocument write callback lightweight.
+    var data: Data
 
-    init(archive: ProjectArchive) {
-        self.archive = archive
+    init(data: Data) {
+        self.data = data
     }
 
     init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents else {
             throw ProjectArchiveError.missingFileData
         }
-        archive = try ProjectArchive.decode(data)
+        _ = try ProjectArchive.decode(data)
+        self.data = data
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: try archive.encodedData())
+        FileWrapper(regularFileWithContents: data)
     }
 }
