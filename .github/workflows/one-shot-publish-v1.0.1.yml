@@ -1,0 +1,235 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: One-shot publish Character Profiler 1.0.1
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/one-shot-publish-v1.0.1.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/one-shot-publish-v1.0.1.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: character-profiler-v1.0.1-one-shot-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Validate release request
+        shell: bash
+        run: |
+          set -euo pipefail
+          request='.github/release-requests/v1.0.1.json'
+          test -s "$request"
+          [[ "$(jq -r '.tag' "$request")" == 'v1.0.1' ]]
+          [[ "$(jq -r '.title' "$request")" == 'Character Profiler 1.0.1' ]]
+          [[ "$(jq -r '.draft // false' "$request")" == 'false' ]]
+          [[ "$(jq -r '.prerelease // false' "$request")" == 'false' ]]
+
+  publish:
+    if: github.event_name == 'push'
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      RELEASE_TARGET: f184142f2733dd21a8b9f3dc4fe200c5ddd19af8
+      RELEASE_TAG: v1.0.1
+      RELEASE_VERSION: 1.0.1
+    steps:
+      - name: Checkout exact release target
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: f184142f2733dd21a8b9f3dc4fe200c5ddd19af8
+          fetch-depth: 0
+
+      - name: Verify exact target and release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$RELEASE_TARGET" ]]
+          test -d "$DEVELOPER_DIR"
+          xcode_version="$(xcodebuild -version)"
+          printf '%s\n' "$xcode_version"
+          grep -q '^Xcode 16\.4$' <<<"$xcode_version"
+
+          project_version="$(xcodebuild -project CharacterProfiler.xcodeproj -scheme CharacterProfiler -configuration Release -showBuildSettings | awk '/MARKETING_VERSION =/ {print $3; exit}')"
+          [[ "$project_version" == "$RELEASE_VERSION" ]]
+
+          request='.github/release-requests/v1.0.1.json'
+          [[ "$(jq -r '.tag' "$request")" == "$RELEASE_TAG" ]]
+          jq -r '.notes // ""' "$request" > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Validate application resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          icon='CharacterProfiler/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          manifest='CharacterProfiler/Assets.xcassets/AppIcon.appiconset/Contents.json'
+          test -s "$icon"
+          test -s "$manifest"
+          width="$(sips -g pixelWidth "$icon" | awk '/pixelWidth/ {print $2}')"
+          height="$(sips -g pixelHeight "$icon" | awk '/pixelHeight/ {print $2}')"
+          alpha="$(sips -g hasAlpha "$icon" | awk '/hasAlpha/ {print $2}')"
+          [[ "$width" == '1024' && "$height" == '1024' ]]
+          [[ "$alpha" == 'no' ]]
+
+      - name: Prepare iOS Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices available > "$RUNNER_TEMP/available-simulators.txt" || true
+          simulator_id="$(grep -m1 -E 'iPhone .*[0-9A-Fa-f-]{36}' "$RUNNER_TEMP/available-simulators.txt" | grep -oE '[0-9A-Fa-f-]{36}' | head -1 || true)"
+          if [[ -z "$simulator_id" ]]; then
+            xcodebuild -downloadPlatform iOS
+            xcrun simctl list devices available > "$RUNNER_TEMP/available-simulators.txt"
+            simulator_id="$(grep -m1 -E 'iPhone .*[0-9A-Fa-f-]{36}' "$RUNNER_TEMP/available-simulators.txt" | grep -oE '[0-9A-Fa-f-]{36}' | head -1 || true)"
+          fi
+          if [[ -z "$simulator_id" ]]; then
+            echo 'No bootable iPhone simulator is available.' >&2
+            exit 1
+          fi
+          echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+
+      - name: Test exact release target
+        run: >-
+          xcodebuild
+          -project CharacterProfiler.xcodeproj
+          -scheme CharacterProfiler
+          -sdk iphonesimulator
+          -destination "platform=iOS Simulator,id=${SIMULATOR_ID}"
+          CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
+          test
+
+      - name: Build optimized Simulator Release
+        run: >-
+          xcodebuild
+          -project CharacterProfiler.xcodeproj
+          -scheme CharacterProfiler
+          -configuration Release
+          -sdk iphonesimulator
+          -destination "platform=iOS Simulator,id=${SIMULATOR_ID}"
+          CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
+          build
+
+      - name: Build optimized iPhoneOS Release
+        run: >-
+          xcodebuild
+          -project CharacterProfiler.xcodeproj
+          -scheme CharacterProfiler
+          -configuration Release
+          -sdk iphoneos
+          -destination "generic/platform=iOS"
+          -derivedDataPath "$RUNNER_TEMP/CharacterProfilerReleaseDerivedData"
+          CODE_SIGNING_ALLOWED=NO
+          SWIFT_STRICT_CONCURRENCY=complete
+          build
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/CharacterProfilerReleaseDerivedData/Build/Products/Release-iphoneos/CharacterProfiler.app"
+          test -d "$app"
+
+          package="$RUNNER_TEMP/CharacterProfiler-release-package"
+          assets="$GITHUB_WORKSPACE/release-assets"
+          rm -rf "$package" "$assets"
+          mkdir -p "$package/Payload" "$assets"
+          ditto "$app" "$package/Payload/CharacterProfiler.app"
+          (
+            cd "$package"
+            /usr/bin/zip -qry "$assets/CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa" Payload
+          )
+
+          ipa="$assets/CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa"
+          test -s "$ipa"
+          shasum -a 256 "$ipa" > "${ipa}.sha256"
+          cat "${ipa}.sha256"
+
+      - name: Publish and verify GitHub Release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
+          auth=(-H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' -H 'Accept: application/vnd.github+json')
+          response="$RUNNER_TEMP/release.json"
+
+          http="$(curl -sS -o "$response" -w '%{http_code}' "${auth[@]}" "$api/releases/tags/$RELEASE_TAG")"
+          if [[ "$http" == '200' ]]; then
+            release_id="$(jq -er '.id' "$response")"
+            curl -fsS -X PATCH "${auth[@]}" "$api/releases/$release_id" \
+              -d "$(jq -n --arg name 'Character Profiler 1.0.1' --rawfile body "$RUNNER_TEMP/release-notes.md" '{name:$name,body:$body,draft:false,prerelease:false}')" \
+              > "$response"
+          elif [[ "$http" == '404' ]]; then
+            curl -fsS -X POST "${auth[@]}" "$api/releases" \
+              -d "$(jq -n --arg tag "$RELEASE_TAG" --arg target "$RELEASE_TARGET" --arg name 'Character Profiler 1.0.1' --rawfile body "$RUNNER_TEMP/release-notes.md" '{tag_name:$tag,target_commitish:$target,name:$name,body:$body,draft:false,prerelease:false}')" \
+              > "$response"
+            release_id="$(jq -er '.id' "$response")"
+          else
+            cat "$response" >&2
+            echo "Unexpected release lookup HTTP status $http." >&2
+            exit 1
+          fi
+
+          tag_json="$RUNNER_TEMP/tag.json"
+          curl -fsS "${auth[@]}" "$api/git/ref/tags/$RELEASE_TAG" > "$tag_json"
+          tag_target="$(jq -er '.object.sha' "$tag_json")"
+          if [[ "$tag_target" != "$RELEASE_TARGET" ]]; then
+            echo "$RELEASE_TAG points to $tag_target, expected $RELEASE_TARGET." >&2
+            exit 1
+          fi
+
+          for asset in \
+            "release-assets/CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa" \
+            "release-assets/CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa.sha256"
+          do
+            name="$(basename "$asset")"
+            existing_id="$(curl -fsS "${auth[@]}" "$api/releases/$release_id/assets?per_page=100" | jq -r --arg name "$name" '.[] | select(.name == $name) | .id' | head -1)"
+            if [[ -n "$existing_id" ]]; then
+              curl -fsS -X DELETE "${auth[@]}" "$api/releases/assets/$existing_id" >/dev/null
+            fi
+            curl -fsS -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'Content-Type: application/octet-stream' \
+              --data-binary "@$asset" \
+              "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$release_id/assets?name=$name" \
+              > "$RUNNER_TEMP/upload-$name.json"
+            jq -e --arg name "$name" '.name == $name and .state == "uploaded" and .size > 0' "$RUNNER_TEMP/upload-$name.json" >/dev/null
+          done
+
+          final="$RUNNER_TEMP/final-release.json"
+          curl -fsS "${auth[@]}" "$api/releases/$release_id" > "$final"
+          jq -e '.tag_name == "v1.0.1" and .draft == false and .prerelease == false' "$final" >/dev/null
+          jq -e '[.assets[].name] | index("CharacterProfiler-1.0.1-unsigned.ipa") != null' "$final" >/dev/null
+          jq -e '[.assets[].name] | index("CharacterProfiler-1.0.1-unsigned.ipa.sha256") != null' "$final" >/dev/null
+          jq -r '.html_url' "$final"
+
+      - name: Remove one-shot publisher from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          test -f .github/workflows/one-shot-publish-v1.0.1.yml
+          git rm -- .github/workflows/one-shot-publish-v1.0.1.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Remove completed one-shot 1.0.1 release publisher'
+          git push origin HEAD:main
