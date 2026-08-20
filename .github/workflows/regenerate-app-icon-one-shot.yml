@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Regenerate Character Profiler app icon
+
+on:
+  push:
+    branches: [ fix/app-icon-v1.0.3 ]
+    paths:
+      - '.github/workflows/regenerate-app-icon-one-shot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: macos-15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: fix/app-icon-v1.0.3
+          fetch-depth: 2
+
+      - name: Generate deterministic PNG
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/generate_app_icon.py
+          icon='CharacterProfiler/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          test -s "$icon"
+          width="$(sips -g pixelWidth "$icon" | awk '/pixelWidth/ {print $2}')"
+          height="$(sips -g pixelHeight "$icon" | awk '/pixelHeight/ {print $2}')"
+          alpha="$(sips -g hasAlpha "$icon" | awk '/hasAlpha/ {print $2}')"
+          [[ "$width" == '1024' && "$height" == '1024' ]]
+          [[ "$alpha" == 'no' ]]
+          python3 .github/scripts/validate_compiled_icon.py "$icon" "$icon" --max-mean-error 0
+
+      - name: Commit generated icon and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CharacterProfiler/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+          git rm .github/workflows/regenerate-app-icon-one-shot.yml
+          git commit -m 'Regenerate app icon from canonical source'
+          git push origin HEAD:fix/app-icon-v1.0.3
