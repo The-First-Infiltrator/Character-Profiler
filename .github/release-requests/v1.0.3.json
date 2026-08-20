@@ -1,0 +1,8 @@
+{
+  "tag": "v1.0.3",
+  "target": "current-main",
+  "title": "Character Profiler 1.0.3",
+  "draft": false,
+  "prerelease": false,
+  "notes": "Character Profiler 1.0.3 is the app-icon integrity correction release.\n\nThis release fixes the malformed application icon visible in sideloading tools and on physical devices. The canonical 1024×1024 icon is now generated deterministically inside GitHub Actions rather than transported through a binary API path that could corrupt PNG data.\n\nA new permanent App Icon Integrity gate builds the optimized iPhoneOS application, decodes Apple's compiled CgBI AppIcon60x60@2x.png, and compares its actual pixels against the source icon. The release itself repeats that compiled-icon validation before the IPA can be packaged or published.\n\nCharacter and story deletion fixes from 1.0.2 remain included. There is no SwiftData schema or archive-format change; Character Profiler archive format remains v1.\n\nThe release is tested and built with pinned Xcode 16.4 and published as an intentionally unsigned IPA for AltStore, AltServer, Sideloadly, or another sideloading tool to apply the user's development signature during installation."
+}
