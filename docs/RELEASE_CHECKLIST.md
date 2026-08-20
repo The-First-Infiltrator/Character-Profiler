@@ -6,12 +6,12 @@ This checklist records the release-quality gates for the current stable line. It
 
 ## Automated release gates
 
-Exact-head boxes remain unchecked while the release candidate is changing. CI evidence is recorded against the immutable candidate SHA, and no follow-up documentation-only commit should invalidate that proof.
+The immutable 1.0.1 candidate `77ac8fa2f33cf1c06ef59576fd9605bc00330f26` passed GitHub Actions iOS Build run `32313490472`, including the complete simulator test suite, optimized simulator Release build and optimized unsigned generic `iphoneos` Release build. The integration commit is `35667c73496190769a17ef797f81338b799676f6`.
 
-- [ ] Exact final 1.0.1 head passes the complete iOS simulator unit and UI-test suite.
-- [ ] Exact final 1.0.1 head compiles successfully as an optimized simulator Release with code signing disabled.
-- [ ] Exact final 1.0.1 head compiles successfully as an optimized generic `iphoneos` Release with code signing disabled.
-- [ ] After integration, the exact `main` commit passes the same GitHub Actions workflow.
+- [x] Exact final 1.0.1 candidate passes the complete iOS simulator unit and UI-test suite.
+- [x] Exact final 1.0.1 candidate compiles successfully as an optimized simulator Release with code signing disabled.
+- [x] Exact final 1.0.1 candidate compiles successfully as an optimized generic `iphoneos` Release with code signing disabled.
+- [ ] After integration, the exact final `main` commit passes the same GitHub Actions workflow.
 - [x] Hosted CI dynamically discovers or provisions an iPhone simulator rather than assuming one fixed device exists.
 - [x] XCUITest end-to-end coverage launches the Story Library, creates a story, opens it, creates a character, and verifies the saved character appears.
 - [x] CI preflights the AppIcon file, manifest entry, 1024×1024 dimensions and opaque alpha state before Xcode builds.
