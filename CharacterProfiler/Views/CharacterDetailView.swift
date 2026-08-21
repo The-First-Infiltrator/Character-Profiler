@@ -2,6 +2,8 @@
 
 import SwiftUI
 import SwiftData
+import RealityKit
+import QuickLook
 
 /// Character home screen. Heavy workspaces are intentionally separate navigation destinations so
 /// the iPhone experience stays readable and each task gets enough room to breathe.
@@ -135,7 +137,7 @@ struct CharacterDetailView: View {
                 } label: {
                     CharacterWorkspaceCard(
                         title: "Visual Studio",
-                        subtitle: visualAssetCount == 0 ? "Develop a consistent visual identity" : "Work with \(visualAssetCount) portrait, reference or generated asset\(visualAssetCount == 1 ? "" : "s")",
+                        subtitle: visualAssetCount == 0 ? "Build 2D concept art or a real rotatable 3D reconstruction" : "Work with \(visualAssetCount) portrait, reference or generated asset\(visualAssetCount == 1 ? "" : "s"), plus 3D reconstruction",
                         systemImage: "person.crop.rectangle.stack",
                         badge: visualAssetCount == 0 ? "Open" : "\(visualAssetCount)",
                         accent: CharacterProfilerTheme.violet
@@ -367,11 +369,23 @@ private struct CharacterVisualWorkspaceScreen: View {
 
     var body: some View {
         ScrollView {
-            Group {
-                if #available(iOS 18.1, *) {
-                    CharacterVisualWorkspaceView(character: character)
-                } else {
-                    VisualFeatureUnavailableView()
+            VStack(spacing: 18) {
+                Character3DHeadWorkspaceView(character: character)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("2D Concept Views", systemImage: "photo.stack")
+                        .font(.headline)
+                    Text("The section below creates authored 2D reference art and angle views. These are separate from the real 3D reconstruction above.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Group {
+                        if #available(iOS 18.1, *) {
+                            CharacterVisualWorkspaceView(character: character)
+                        } else {
+                            VisualFeatureUnavailableView()
+                        }
+                    }
                 }
             }
             .padding()
@@ -379,6 +393,233 @@ private struct CharacterVisualWorkspaceScreen: View {
         .background { CharacterProfilerBackdrop() }
         .navigationTitle("Visual Studio")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct Character3DHeadWorkspaceView: View {
+    let character: CharacterProfile
+
+    @State private var isGenerating = false
+    @State private var progress = 0.0
+    @State private var statusText = "Ready"
+    @State private var modelURL: URL?
+    @State private var showingPreview = false
+    @State private var errorMessage: String?
+
+    private var sourceImageData: [Data] {
+        var result: [Data] = []
+        if let portrait = character.profileImageData { result.append(portrait) }
+        result.append(contentsOf: character.sortedReferenceImages.map(\.imageData))
+        return result
+    }
+
+    var body: some View {
+        GroupBox("3D Head Reconstruction") {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Real 3D geometry", systemImage: "cube.transparent")
+                    .font(.subheadline.weight(.semibold))
+
+                Text("Builds an actual USDZ model from the character photographs with RealityKit photogrammetry. The result is continuously rotatable; it is not a stack of generated 2D angle pictures.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Text("\(sourceImageData.count) source image\(sourceImageData.count == 1 ? "" : "s") available")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if isGenerating {
+                    ProgressView(value: progress)
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Button(modelURL == nil ? "Generate 3D Head" : "Regenerate 3D Head", systemImage: "cube") {
+                        generateModel()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isGenerating || sourceImageData.count < 3 || !PhotogrammetrySession.isSupported)
+
+                    if modelURL != nil {
+                        Button("Open Rotatable Model", systemImage: "view.3d") {
+                            showingPreview = true
+                        }
+                        .disabled(isGenerating)
+                    }
+                }
+
+                if sourceImageData.count < 3 {
+                    Label("Add at least three clear photographs of the same person from different angles before reconstructing.", systemImage: "photo.stack")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if !PhotogrammetrySession.isSupported {
+                    Label("This device does not support RealityKit photogrammetry. The 2D Visual Studio remains available below.", systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if sourceImageData.count < 8 {
+                    Label("Three images can be attempted, but more overlapping face angles generally produce a much stronger reconstruction.", systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .sheet(isPresented: $showingPreview) {
+            if let modelURL {
+                NavigationStack {
+                    QuickLookModelPreview(url: modelURL)
+                        .ignoresSafeArea(edges: .bottom)
+                        .navigationTitle("3D Head")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") { showingPreview = false }
+                            }
+                        }
+                }
+            }
+        }
+        .alert("3D Reconstruction", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "Unknown reconstruction error.")
+        }
+    }
+
+    private func generateModel() {
+        guard !isGenerating else { return }
+        let images = sourceImageData
+        guard images.count >= 3 else {
+            errorMessage = "At least three photographs of the same person are required."
+            return
+        }
+        guard PhotogrammetrySession.isSupported else {
+            errorMessage = "RealityKit photogrammetry is not supported on this device."
+            return
+        }
+
+        isGenerating = true
+        progress = 0
+        statusText = "Preparing source photographs…"
+
+        Task {
+            do {
+                let manager = FileManager.default
+                let root = manager.temporaryDirectory
+                    .appendingPathComponent("CharacterProfiler-3D-\(UUID().uuidString)", isDirectory: true)
+                let input = root.appendingPathComponent("Input", isDirectory: true)
+                try manager.createDirectory(at: input, withIntermediateDirectories: true)
+
+                for (index, data) in images.enumerated() {
+                    let url = input.appendingPathComponent(String(format: "reference-%02d.jpg", index + 1))
+                    try data.write(to: url, options: .atomic)
+                }
+
+                let output = root.appendingPathComponent("character-head.usdz")
+                let session = try PhotogrammetrySession(input: input)
+                let request = PhotogrammetrySession.Request.modelFile(
+                    url: output,
+                    detail: .reduced,
+                    geometry: nil
+                )
+
+                try session.process(requests: [request])
+                var completedURL: URL?
+
+                for try await event in session.outputs {
+                    switch event {
+                    case .inputComplete:
+                        await MainActor.run { statusText = "Photographs matched. Reconstructing geometry…" }
+                    case .requestProgress(_, let fractionComplete):
+                        await MainActor.run {
+                            progress = fractionComplete
+                            statusText = "Building 3D model… \(Int(fractionComplete * 100))%"
+                        }
+                    case .requestComplete(_, let result):
+                        if case .modelFile(let url) = result {
+                            completedURL = url
+                        }
+                    case .invalidSample(_, let reason):
+                        await MainActor.run { statusText = "A source image was rejected: \(reason)" }
+                    case .skippedSample:
+                        await MainActor.run { statusText = "A source image could not be matched; continuing with the remaining views…" }
+                    case .stitchingIncomplete:
+                        await MainActor.run { statusText = "The photo set only partially matched; finishing the best available reconstruction…" }
+                    case .requestError(_, let error):
+                        throw error
+                    case .processingComplete:
+                        break
+                    default:
+                        break
+                    }
+                }
+
+                guard let completedURL else {
+                    throw Character3DReconstructionError.noModelProduced
+                }
+
+                await MainActor.run {
+                    modelURL = completedURL
+                    progress = 1
+                    statusText = "3D reconstruction complete"
+                    isGenerating = false
+                    showingPreview = true
+                }
+            } catch {
+                await MainActor.run {
+                    isGenerating = false
+                    progress = 0
+                    statusText = "Reconstruction failed"
+                    errorMessage = "The photographs could not be reconstructed into a reliable 3D model. Try clearer, overlapping views of the same head from more angles. \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+}
+
+private enum Character3DReconstructionError: LocalizedError {
+    case noModelProduced
+
+    var errorDescription: String? {
+        switch self {
+        case .noModelProduced:
+            return "RealityKit finished without producing a model file."
+        }
+    }
+}
+
+private struct QuickLookModelPreview: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeCoordinator() -> Coordinator { Coordinator(url: url) }
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {
+        context.coordinator.url = url
+        uiViewController.reloadData()
+    }
+
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        var url: URL
+
+        init(url: URL) {
+            self.url = url
+        }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as NSURL
+        }
     }
 }
 
