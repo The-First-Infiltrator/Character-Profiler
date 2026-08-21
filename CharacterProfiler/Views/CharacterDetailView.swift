@@ -372,11 +372,19 @@ private struct CharacterVisualWorkspaceScreen: View {
             VStack(spacing: 18) {
                 Character3DHeadWorkspaceView(character: character)
 
-                Group {
-                    if #available(iOS 18.1, *) {
-                        CharacterVisualWorkspaceView(character: character)
-                    } else {
-                        VisualFeatureUnavailableView()
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("2D Concept Views", systemImage: "photo.stack")
+                        .font(.headline)
+                    Text("The section below creates authored 2D reference art and angle views. These are separate from the real 3D reconstruction above.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Group {
+                        if #available(iOS 18.1, *) {
+                            CharacterVisualWorkspaceView(character: character)
+                        } else {
+                            VisualFeatureUnavailableView()
+                        }
                     }
                 }
             }
@@ -515,7 +523,7 @@ private struct Character3DHeadWorkspaceView: View {
                 let session = try PhotogrammetrySession(input: input)
                 let request = PhotogrammetrySession.Request.modelFile(
                     url: output,
-                    detail: .medium,
+                    detail: .reduced,
                     geometry: nil
                 )
 
