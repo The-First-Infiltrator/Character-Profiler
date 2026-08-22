@@ -78,6 +78,6 @@ If the local story store cannot be opened, the app does not silently create a re
 
 ## Licence
 
-Copyright © 2026 Shannon Smith.
+Copyright © 2026 Shannon Smith and Olivia Jezewski.
 
 Character Profiler is free software licensed under the GNU General Public License version 3 or, at your option, any later version (`GPL-3.0-or-later`). The complete GPLv3 text is included in `LICENSE`.
