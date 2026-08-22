@@ -81,21 +81,24 @@ Status: released.
 
 Delivered the deterministic canonical icon and a permanent CI gate that verifies the pixels of the icon compiled into the iPhoneOS application before release. Version 1.0.3 remains archive format v1 and introduces no SwiftData entity or persistent field.
 
-### 1.1.0 — iPhone workflow refinement
+### 1.1.0 — iPhone workflow refinement and real 3D reconstruction
 
-Status: release candidate.
+Status: release candidate on current main.
 
 Delivers the redesigned Story Library and story workspace hierarchy, a full-screen Character workspace dashboard, clearer story and character editing, collapsible profile details and end-to-end coverage for the revised navigation and deletion flows.
 
-Version 1.1.0 remains archive format v1 and introduces no SwiftData entity or persistent field. The release candidate must pass the complete simulator test suite plus optimized simulator and unsigned iPhoneOS Release builds before its IPA is published for physical-device testing.
+Current 1.1.0 main also separates the Visual Studio into two deliberate visual paths: the existing Image Playground 2D canonical/turnaround workflow and an optional RealityKit photogrammetry workspace that reconstructs three or more source photographs into a genuinely rotatable USDZ model on supported hardware. The 3D model is currently a temporary on-device inspection result rather than a persistent rigged character asset or archive-v1 field.
+
+Version 1.1.0 remains archive format v1 and introduces no new SwiftData entity or persistent field. The release candidate must pass the complete simulator test suite plus optimized simulator and unsigned iPhoneOS Release builds before its IPA is published for physical-device testing.
 
 ## Outstanding physical-device checks
 
-Hosted CI cannot establish Image Playground output quality. A supported physical iPhone is still required to validate:
+Hosted CI cannot establish Image Playground output quality or the practical quality of a RealityKit photogrammetry result. A supported physical iPhone is still required to validate:
 
 - actual Image Playground generation on-device;
 - device-specific availability/user-flow behavior;
-- canonical and turnaround consistency of face, body proportions, clothing, colours and equipment.
+- canonical and turnaround consistency of face, body proportions, clothing, colours and equipment;
+- RealityKit photogrammetry support and reconstruction quality with real multi-angle photographs.
 
 ## Post-1.0 candidates, not commitments
 
@@ -109,7 +112,7 @@ The following require a deliberate product decision before entering a numbered r
 - package-based archive assets if JSON backups become too large for practical projects;
 - iPad-specific layouts;
 - Mac companion application;
-- true 3D character mesh.
+- persistent/exportable 3D character assets, rigging or model-editing tools beyond the current temporary photogrammetry preview.
 
 ## Explicitly outside the roadmap
 
