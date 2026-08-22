@@ -8,7 +8,7 @@ Character Profiler is a native iPhone story-bible and character-development app 
 
 ## Version 1.1.0
 
-**Character Profiler 1.1.0 build 15** is the first major interface and workflow refinement after the stable 1.0 line. It keeps the existing local data model and archive format while making the app substantially easier to navigate and use on an iPhone.
+**Character Profiler 1.1.0 build 16** is the first major interface and workflow refinement after the stable 1.0 line. It keeps the existing local data model and archive format while making the app substantially easier to navigate and use on an iPhone.
 
 The 1.1 experience centres on three clearer levels:
 
@@ -26,15 +26,15 @@ Character Profiler remains local-first. Version 1.1.0 adds no new SwiftData enti
 
 Character Profiler is a character-development tool. It does not silently turn suggestions into canon and does not attempt to write the novel for the author.
 
-The Visual Studio exists to answer **what does this character look like?** It is not a scene generator, animation/filmmaking system, game engine, posing studio or true 3D character modeller. The eight-view turnaround is a set of generated reference images, not a textured 3D mesh.
+The Visual Studio exists to answer **what does this character look like?** It now has two deliberately separate visual paths: Image Playground produces authored 2D canonical/turnaround reference images, while RealityKit photogrammetry can reconstruct three or more photographs into an actual rotatable USDZ model on supported hardware. The 3D path is for appearance inspection only; it is not a scene generator, animation/filmmaking system, game engine, posing studio or rigged character system. The USDZ reconstruction is currently generated as a temporary on-device result and is separate from archive format v1, which continues to preserve the existing 2D visual assets.
 
 ## Visual Studio validation boundary
 
-The Visual Studio integration, availability handling and deterministic eight-slot state are covered by simulator CI, and the release pipeline separately compiles the real-device iOS target. Actual Image Playground output quality still cannot be proven by hosted CI.
+The Visual Studio integration, deterministic eight-slot 2D state and real-device compilation are covered by hosted CI. The 3D reconstruction path is compiled as part of the real-device target and explicitly fails when RealityKit cannot reconstruct the supplied photographs reliably. Hosted CI still cannot prove physical-device Image Playground output quality or the quality of a particular photogrammetry reconstruction.
 
-A supported physical iPhone is required to validate that real generation launches correctly and that the canonical image plus turnaround views preserve face, body proportions, clothing, colours and equipment well enough to be useful as one consistent character reference set.
+A supported physical iPhone is therefore required to validate actual Image Playground generation, canonical/turnaround consistency and practical RealityKit reconstruction from real photographs. Source photographs for 3D reconstruction should show the same person from overlapping angles; three can be attempted, while a broader set generally provides a stronger reconstruction.
 
-This limitation does not affect the local profile, Guide, relationship, history or backup workflows; those remain available when Image Playground is unavailable.
+This limitation does not affect the local profile, Guide, relationship, history or backup workflows; those remain available when Image Playground or 3D reconstruction is unavailable.
 
 ## Backup and restore
 
@@ -50,7 +50,7 @@ Backup processing is deliberately bounded. The current archive implementation ac
 
 - iOS 17.0 or later for the core application.
 - Xcode with the Image Playground SDK for Visual AI compilation.
-- A supported Apple device/system environment for actual Image Playground generation.
+- A supported Apple device/system environment for actual Image Playground generation and RealityKit photogrammetry.
 - Swift 5 language mode or later.
 
 Open `CharacterProfiler.xcodeproj`, select the `CharacterProfiler` scheme and choose an iPhone simulator or connected iPhone. A physical-device build requires an Apple Development team under Signing & Capabilities. No personal Team ID is committed to the repository.
