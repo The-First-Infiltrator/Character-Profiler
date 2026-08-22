@@ -24,7 +24,7 @@ Character Profiler is not intended to write the novel for the author. Its AI-ass
 3. **Story context matters.** Character development questions should reflect the selected genre and information already known about the character.
 4. **Relationships are data, not notes.** Family and other relationships must link actual character records so the cast can be understood as a network.
 5. **History has consequences.** Trauma, loss, achievements and other formative events should be recordable and may influence later development prompts.
-6. **Visualisation stays focused.** Visual AI exists to establish and inspect a character's appearance. It must not grow into scene generation, animation, filmmaking or a game engine.
+6. **Visualisation stays focused.** Visual tools may create 2D reference imagery or reconstruct 3D geometry for appearance inspection, but must not grow into scene generation, animation, filmmaking or a game engine.
 7. **The core app remains useful without AI.** Profiles, relationships, history and the Character Guide must remain usable when visual AI is unavailable.
 8. **Local-first is the default.** Character and story data should remain available on the device without requiring a permanent online account or service dependency.
 9. **Author work must be portable and recoverable.** A developed story bible must be exportable in a documented, versioned Character Profiler format and restorable without depending on a raw local database copy.
@@ -132,7 +132,12 @@ The Visual workspace exists to answer **what does this character look like?**
 
 The author can supply a written visual description, facts already stored in the character profile, a profile picture, and multiple selected visual reference images.
 
-The AI-assisted visual workflow should use those inputs to help establish a consistent canonical appearance. The author chooses whether to accept a generated result.
+The workspace deliberately contains two different appearance-inspection paths:
+
+1. Image Playground can help establish a consistent 2D canonical appearance and eight-view turnaround reference set; and
+2. RealityKit photogrammetry can attempt to reconstruct multiple photographs into genuinely rotatable 3D geometry on supported hardware.
+
+Neither path changes character canon automatically. The author decides what visual material is useful.
 
 ### 8.1 Reference images
 
@@ -142,21 +147,31 @@ Reference images remain stored with the character so the author can regenerate o
 
 ### 8.2 Canonical appearance
 
-The accepted generated image is the character's canonical visual reference. It may also be used as the profile portrait.
+The accepted generated image is the character's canonical 2D visual reference. It may also be used as the profile portrait.
 
 The AI generation request should emphasise a single character, full-body reference presentation and a neutral/unobtrusive background. It should not create a story scene.
 
-### 8.3 360-degree inspection
+### 8.3 2D turnaround inspection
 
-The current 360-degree design is intentionally simple. It uses eight standard views at 45-degree intervals: front, front-right, right, back-right, back, back-left, left and front-left.
+The 2D turnaround uses eight standard views at 45-degree intervals: front, front-right, right, back-right, back, back-left, left and front-left.
 
 Dragging across the turntable viewer moves through available views to provide a practical character turnaround.
 
-This is **not a true textured 3D mesh** and is not represented as one. A true 3D model would be a separate future decision and must not be introduced merely as feature creep.
+This eight-view sequence is image-based and must not be misrepresented as one continuous 3D model.
 
-### 8.4 Visual portability
+### 8.4 3D reconstruction
 
-Profile portraits, author reference images, accepted canonical visuals and generated turnaround frames are part of the project record and must be included in a complete project backup.
+A separate 3D workspace may use RealityKit `PhotogrammetrySession` to reconstruct source photographs into a USDZ model when the device supports that capability.
+
+The current implementation requires at least three photographs of the same person from different angles and should explain that more overlapping views generally improve reconstruction. Unsupported hardware, rejected samples and failed reconstruction must be reported explicitly rather than silently substituting generated imagery.
+
+The result is intended for rotatable appearance inspection. It is not a rig, animation system, scene asset pipeline or general-purpose 3D modeller. In the current model it is a temporary on-device result and does not add a SwiftData field or change Character Profiler archive format v1.
+
+### 8.5 Visual portability
+
+Profile portraits, author reference images, accepted canonical visuals and generated 2D turnaround frames are part of the project record and must be included in a complete project backup.
+
+A future decision to preserve/export reconstructed USDZ models as first-class project data would require explicit persistence and archive-format design rather than silently changing format v1.
 
 ## 9. Explicit non-goals
 
@@ -167,7 +182,7 @@ Character Profiler must not drift into the following without a deliberate change
 - filmmaking, cinematics or video generation;
 - game-engine systems;
 - combat mechanics or RPG gameplay;
-- large posing or animation studios;
+- large posing, rigging or animation studios;
 - automatically writing story chapters;
 - replacing the author's decisions with AI-generated canon.
 
@@ -192,7 +207,7 @@ The backup format must:
 - include arbitrary profile sections and fields;
 - include Guide answers and life events;
 - preserve relationship kind, direction and endpoints;
-- include current visual assets;
+- include current persistent visual assets;
 - validate required structure before restore;
 - reject unsupported future format versions rather than silently guessing;
 - restore into a coherent project graph without depending on local SwiftData identifiers from the device that created the backup.
@@ -213,7 +228,7 @@ Backup export and restore are explicit author actions through system document in
 
 The core application currently targets iOS 17 or later.
 
-Visual AI is availability-gated because Image Playground support depends on newer Apple software and compatible hardware. A device that cannot use Visual AI must still be able to use the rest of Character Profiler, including project backup/restore.
+Visual AI and photogrammetry are availability-gated because support depends on Apple software and compatible hardware. A device that cannot use those visual capabilities must still be able to use the rest of Character Profiler, including project backup/restore.
 
 Persistence-schema evolution and portable-archive evolution are separate compatibility concerns. Both require deliberate migration/version handling when their structures change.
 
@@ -234,6 +249,8 @@ Story Library
         │   └── Family Tree
         ├── History
         └── Visual
+            ├── 3D Reconstruction
+            └── 2D Concept Views
 ```
 
 This structure should remain understandable as features grow. New functionality should normally fit one of these concepts rather than adding unrelated top-level modes.
@@ -251,11 +268,11 @@ A release suitable to call 1.0 should, at minimum:
 - provide useful genre-aware Character Guide questions;
 - keep answered prompts and character facts persistent;
 - provide complete versioned project backup/export and restore/import;
-- preserve relationships, history, Guide data and visual assets through a tested archive round trip;
+- preserve relationships, history, Guide data and persistent visual assets through a tested archive round trip;
 - warn before destructive actions that remove substantial linked author work;
 - support reference images and focused character visual generation on compatible devices;
-- make the limitations of the eight-view turnaround clear;
-- preserve core functionality on devices without Visual AI;
+- make the limitations of the image-based eight-view turnaround clear;
+- preserve core functionality on devices without optional visual capabilities;
 - have documented migration behaviour and no known destructive data-loss path.
 
 ## 14. Change control
