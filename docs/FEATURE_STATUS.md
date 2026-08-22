@@ -85,18 +85,19 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Dedicated Visual workspace | Implemented | `CharacterVisualWorkspaceView.swift`. |
+| Dedicated Visual workspace | Implemented | Full-screen Visual Studio combines the 2D Image Playground workflow with a separate 3D reconstruction workspace. |
 | Up to six labelled/reorderable references | Implemented | Photos picker, labels, ordering and deletion. |
 | Written appearance instructions | Implemented | Stored per character; 1.0.1 debounces persistence instead of saving on every keystroke. |
 | Runtime Image Playground availability handling | Implemented | Unsupported environments retain core/non-generation functionality. |
 | AI-assisted canonical character image | Partial | Workflow compiles for simulator/device targets; real output quality/identity consistency still needs supported physical-device validation. |
 | Canonical identity inputs | Implemented | Canonical generation can use the existing portrait together with author reference imagery; angles use the accepted canonical image. |
 | Canonical replacement/portrait lifecycle | Implemented | Accepted canonical image is explicit and can become the portrait. |
-| Eight fixed turnaround angles | Implemented | 45° slots. |
+| Eight fixed turnaround angles | Implemented | 45° 2D reference slots remain available independently of the 3D path. |
 | Missing/duplicate/progress state | Implemented | Fixed slots remain visible even when missing. |
 | Per-angle recovery and whole reset | Implemented | Source references/notes can be retained. |
-| Visual asset backup/restore | Implemented | Archive v1 includes current visual data. |
-| True 3D mesh | Not planned | Separate future product decision. |
+| RealityKit photogrammetry USDZ reconstruction | Implemented | Three or more source photographs can be reconstructed into a genuinely rotatable model when `PhotogrammetrySession` is supported; failures are surfaced explicitly. Practical reconstruction quality still requires physical-device validation. |
+| Persistent/archive-backed 3D model | Candidate | The current USDZ result is temporary on-device output and is not a new SwiftData field or archive-v1 payload. |
+| Visual asset backup/restore | Implemented | Archive v1 includes the existing profile/reference/generated 2D visual data and turnaround frames. |
 | Scenes/animation/cinematics | Not planned | Explicitly outside scope. |
 
 ## Data portability and safety
@@ -128,4 +129,4 @@ The 1.1.0 release candidate is ready to integrate only when the exact final head
 5. documentation/source-scope audit showing no accidental SwiftData/archive-format change;
 6. PR review with the exact head SHA fixed for merge approval.
 
-After merge, the exact `main` commit is rebuilt and retested by the release publisher before the 1.1.0 release-candidate IPA and checksum can be attached. Physical-device Image Playground quality remains a separately disclosed validation boundary.
+After merge, the exact `main` commit is rebuilt and retested by the release publisher before the 1.1.0 release-candidate IPA and checksum can be attached. Physical-device Image Playground quality and RealityKit reconstruction quality remain separately disclosed validation boundaries.
