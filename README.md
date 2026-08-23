@@ -4,80 +4,83 @@
 
 [![iOS Build](https://github.com/The-First-Infiltrator/Character-Profiler/actions/workflows/ios-build.yml/badge.svg)](https://github.com/The-First-Infiltrator/Character-Profiler/actions/workflows/ios-build.yml)
 
-Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, linked relationships and family, structured life history, genre-aware development questions, portable project backup/restore and a focused character-appearance workspace.
+Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, relationships and family, structured life history, genre-aware development questions, portable backup/restore and a focused appearance workspace.
 
-## Version 1.1.0
+**Current version:** 1.1.0 build 16  
+**Platform:** iOS 17 or later  
+**Licence:** GPL-3.0-or-later
 
-**Character Profiler 1.1.0 build 16** is the first major interface and workflow refinement after the stable 1.0 line. It keeps the existing local data model and archive format while making the app substantially easier to navigate and use on an iPhone.
+## Capabilities
 
-The 1.1 experience centres on three clearer levels:
+The application is organised around three levels:
 
-- **Story Library** — a cleaner story home with richer story rows, cast/development context and an explicit restore action;
-- **Story workspace** — a story summary card, development metrics and a more deliberate cast-building flow;
-- **Character workspace** — a dashboard instead of a cramped five-way segmented control, with full-screen destinations for Profile, Character Guide, People & Relationships, History and Visual Studio.
+- **Story Library** — story overview, cast/development context and restore entry point.
+- **Story workspace** — story summary, development metrics and cast-building workflow.
+- **Character workspace** — Profile, Character Guide, People & Relationships, History and Visual Studio.
 
-Editing is also less overwhelming. Character identity, story role, portrait and detailed profile sections are separated into clearer groups, while long profile sections collapse until the author chooses to work on them.
+Character Profiler remains local-first. Version 1.1.0 keeps the existing SwiftData model and **Character Profiler archive format v1**.
 
-The 1.0.2 deletion fixes and 1.0.3 app-icon integrity repair remain included. CI still validates the actual compiled iPhone icon against the canonical source image before release packaging.
+Visual Studio has two deliberately separate paths: Image Playground produces authored 2D reference imagery, while RealityKit photogrammetry can reconstruct three or more photographs into a rotatable USDZ model on supported hardware. The 3D path is for appearance inspection, not scene generation, animation, rigging or filmmaking.
 
-Character Profiler remains local-first. Version 1.1.0 adds no new SwiftData entity or persistent field and does not change **Character Profiler archive format v1**.
+## Architecture
 
-## Product boundaries
+SwiftData owns the local story/character store. Large image payloads use external binary storage. Backup files are application-owned JSON interchange documents rather than raw SwiftData database copies, which keeps archive compatibility separate from SwiftData schema compatibility.
 
-Character Profiler is a character-development tool. It does not silently turn suggestions into canon and does not attempt to write the novel for the author.
+Restore validates the archive, creates fresh local identifiers and then rebuilds relationships from archived reconstruction keys. The same backup can therefore be restored repeatedly without identifier collisions.
 
-The Visual Studio exists to answer **what does this character look like?** It now has two deliberately separate visual paths: Image Playground produces authored 2D canonical/turnaround reference images, while RealityKit photogrammetry can reconstruct three or more photographs into an actual rotatable USDZ model on supported hardware. The 3D path is for appearance inspection only; it is not a scene generator, animation/filmmaking system, game engine, posing studio or rigged character system. The USDZ reconstruction is currently generated as a temporary on-device result and is separate from archive format v1, which continues to preserve the existing 2D visual assets.
+Backup processing is bounded: archives are limited to 128 MiB encoded size, 1,000 characters and 25,000 relationships per story, with additional limits on nested collections, text and visual payloads.
 
-## Visual Studio validation boundary
+The app contains no advertising or analytics SDKs. Photos are selected through the system picker, and backup/restore is explicit through the system document UI.
 
-The Visual Studio integration, deterministic eight-slot 2D state and real-device compilation are covered by hosted CI. The 3D reconstruction path is compiled as part of the real-device target and explicitly fails when RealityKit cannot reconstruct the supplied photographs reliably. Hosted CI still cannot prove physical-device Image Playground output quality or the quality of a particular photogrammetry reconstruction.
+## Build and test
 
-A supported physical iPhone is therefore required to validate actual Image Playground generation, canonical/turnaround consistency and practical RealityKit reconstruction from real photographs. Source photographs for 3D reconstruction should show the same person from overlapping angles; three can be attempted, while a broader set generally provides a stronger reconstruction.
+Open `CharacterProfiler.xcodeproj`, select the `CharacterProfiler` scheme and build for an iPhone simulator or connected iPhone. A physical-device build requires an Apple Development team under Signing & Capabilities; no personal Team ID is committed to the repository.
 
-This limitation does not affect the local profile, Guide, relationship, history or backup workflows; those remain available when Image Playground or 3D reconstruction is unavailable.
+GitHub Actions uses pinned Xcode 16.4 on `macos-15`, prepares an iPhone simulator dynamically, runs the complete test suite with strict Swift concurrency diagnostics, builds an optimized simulator Release and separately compiles an unsigned optimized iPhoneOS Release.
 
-## Backup and restore
+Hosted CI validates the compiled application icon against the canonical source image. Physical-device Image Playground output quality and the quality of a particular photogrammetry reconstruction still require real-device testing.
 
-A project backup is a human-inspectable JSON document such as `Ashes-of-the-Crown.characterprofiler.json`.
+## Release assets
 
-Archive format v1 contains project metadata, every character, flexible profile sections/fields, Guide answers, life events, relationships, profile/reference/generated images and turnaround frames. Restore validates the document before creating a destination story, creates fresh local SwiftData identifiers and then rebuilds relationship edges from archived reconstruction keys. The same backup can therefore be restored repeatedly without colliding with the original or another restore.
+A numbered release publishes:
 
-The archive is an application-owned interchange format, not a raw SwiftData database copy. SwiftData schema compatibility and archive-format compatibility are maintained as separate contracts.
+| File | Purpose |
+| --- | --- |
+| `CharacterProfiler-<version>-unsigned.ipa` | Unsigned physical-device iOS application package. |
+| `CharacterProfiler-<version>-unsigned.ipa.sha256` | SHA-256 checksum for the IPA. |
 
-Backup processing is deliberately bounded. The current archive implementation accepts encoded archives up to 128 MiB, at most 1,000 characters and 25,000 relationships per story, no more than six reference images and eight turnaround frames per character, and applies additional generous limits to nested profile/history/Guide collections, text fields and visual payloads.
+The IPA is intentionally unsigned. AltStore/AltServer, Sideloadly or another compatible sideloading tool applies the user's development signature during installation.
 
-## Requirements and build
+Release metadata is stored in `.github/release-requests/`; it describes title, notes and prerelease/draft intent but does not bypass the release gate.
 
-- iOS 17.0 or later for the core application.
-- Xcode with the Image Playground SDK for Visual AI compilation.
-- A supported Apple device/system environment for actual Image Playground generation and RealityKit photogrammetry.
-- Swift 5 language mode or later.
+## Repository and release policy
 
-Open `CharacterProfiler.xcodeproj`, select the `CharacterProfiler` scheme and choose an iPhone simulator or connected iPhone. A physical-device build requires an Apple Development team under Signing & Capabilities. No personal Team ID is committed to the repository.
+This repository uses `main` as its working branch. Development changes are made directly on `main`; the normal project workflow does not depend on PR, feature or release branches.
 
-GitHub Actions uses pinned Xcode 16.4 on the `macos-15` runner, dynamically prepares an iPhone simulator, runs the complete unit/UI-test suite with complete Swift concurrency diagnostics, compiles an optimized simulator Release and separately compiles an unsigned optimized real-device iOS Release. The device build is packaged into `CharacterProfiler-<version>-unsigned.ipa` and retained as a CI artifact.
+Every push to `main` runs the iOS build/test workflow. Ordinary commits do not publish. A commit is release-eligible only when its subject begins `Release <version>` and the complete `iOS Build` workflow succeeds.
 
-Published GitHub Releases include the unsigned IPA and its SHA-256 checksum. The IPA is intentionally unsigned: AltStore/AltServer, Sideloadly or another sideloading tool applies the user's development signature during installation.
+The publisher checks out that exact tested commit, verifies it is still current `main`, validates the matching release-request metadata, reruns the release build/test path, creates the version tag and publishes the unsigned IPA plus checksum. Existing version tags, releases and release assets are immutable and are never moved, patched, deleted or replaced in place.
 
-## Data and privacy
-
-Character and story data is local-first through SwiftData. Large image payloads use external binary storage in the local store. Character Profiler contains no advertising or analytics SDKs. Backups and restores are explicit author actions through the system document UI, and image selection uses the system Photos picker.
-
-If the local story store cannot be opened, the app does not silently create a replacement store as a recovery shortcut.
+Manually runnable build/test helpers, where present, are diagnostic tools only and are not release-approval mechanisms.
 
 ## Documentation
 
 - `docs/PRODUCT_SPEC.md` — product intent and boundaries.
-- `docs/FEATURE_STATUS.md` — implementation/validation audit.
+- `docs/FEATURE_STATUS.md` — implementation and validation status.
 - `docs/ROADMAP.md` — completed milestones and future candidates.
 - `docs/RELEASE_CHECKLIST.md` — stable-release and physical-device validation gates.
 - `ARCHITECTURE.md` — model, graph, archive, migration and subsystem design.
 - `CHANGELOG.md` — release history.
-- `SECURITY.md` — responsible vulnerability reporting and supported-version policy.
-- `CONTRIBUTING.md` — contribution, testing and pull-request expectations.
+- `SECURITY.md` — vulnerability reporting and supported-version policy.
+
+## Limits
+
+Character Profiler is a character-development tool. It does not silently turn suggestions into canon and does not attempt to write the novel for the author. Visual Studio is an appearance workspace, not a general-purpose image/video production system.
+
+If Image Playground or RealityKit reconstruction is unavailable, the local profile, Guide, relationship, history and backup workflows remain usable.
 
 ## Licence
 
 Copyright © 2026 Shannon Smith and Olivia Jezewski.
 
-Character Profiler is free software licensed under the GNU General Public License version 3 or, at your option, any later version (`GPL-3.0-or-later`). The complete GPLv3 text is included in `LICENSE`.
+Character Profiler is free software licensed under the GNU General Public License version 3 or, at your option, any later version (`GPL-3.0-or-later`). The complete licence text is included in `LICENSE`.
