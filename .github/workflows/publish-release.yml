@@ -1,87 +1,81 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-name: Publish requested releases
+name: Publish requested release
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '.github/release-requests/*.json'
-  issue_comment:
-    types: [created]
-  pull_request:
-    branches: [main]
-    types: [closed]
-    paths:
-      - '.github/release-requests/*.json'
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag from the changed request
+        description: Release-request tag to publish from current main
         required: true
         type: string
-  workflow_run:
-    workflows: [iOS Build]
-    types: [completed]
-    branches:
-      - 'release-*'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: character-profiler-release-${{ github.event_name }}
+  group: character-profiler-release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    if: >-
-      github.event_name == 'push' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
-      (github.event_name == 'issue_comment' &&
-       github.event.issue.pull_request &&
-       startsWith(github.event.comment.body, '/publish-release ') &&
-       (github.event.comment.author_association == 'OWNER' ||
-        github.event.comment.author_association == 'MEMBER' ||
-        github.event.comment.author_association == 'COLLABORATOR'))
+    permissions:
+      contents: write
     runs-on: macos-15
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
-      - name: Checkout exact main commit
+      - name: Checkout current main
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
-          fetch-depth: 2
+          ref: main
+          fetch-depth: 0
 
-      - name: Resolve added or modified release request
+      - name: Resolve approved release request
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          RELEASE_COMMENT: ${{ github.event.comment.body || '' }}
-          DISPATCH_TAG: ${{ inputs.tag || '' }}
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
 
-          before='${{ github.event.before }}'
-          if [[ -z "$before" || "$before" == '0000000000000000000000000000000000000000' ]]; then
-            before="$(git rev-parse "$GITHUB_SHA^")"
-          fi
-
-          requests="$(git diff --diff-filter=AM --name-only "$before" "$GITHUB_SHA" -- '.github/release-requests/*.json')"
-          count="$(printf '%s\n' "$requests" | sed '/^$/d' | wc -l | tr -d ' ')"
-          if [[ "$count" != '1' ]]; then
-            echo "Expected exactly one added or modified release request, found $count." >&2
-            printf '%s\n' "$requests" >&2
+          git fetch origin main --tags
+          head_commit="$(git rev-parse HEAD)"
+          main_commit="$(git rev-parse origin/main)"
+          if [[ "$head_commit" != "$main_commit" ]]; then
+            echo "Release checkout $head_commit is not current main $main_commit." >&2
             exit 1
           fi
 
-          request="$(printf '%s\n' "$requests" | sed '/^$/d')"
+          if [[ ! "$DISPATCH_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid requested release tag: $DISPATCH_TAG" >&2
+            exit 1
+          fi
+
+          request=".github/release-requests/${DISPATCH_TAG}.json"
+          if [[ ! -f "$request" ]]; then
+            echo "Release request does not exist: $request" >&2
+            exit 1
+          fi
+
           tag="$(jq -er '.tag | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"))' "$request")"
+          if [[ "$tag" != "$DISPATCH_TAG" ]]; then
+            echo "Release request $request targets $tag, not $DISPATCH_TAG." >&2
+            exit 1
+          fi
+
           target="$(jq -r '.target // "current-main"' "$request")"
-          if [[ "$target" != 'current-main' && "$target" != "$GITHUB_SHA" ]]; then
-            echo "$request targets $target, but this release workflow publishes only the exact main commit $GITHUB_SHA." >&2
+          if [[ "$target" != 'current-main' && "$target" != "$head_commit" ]]; then
+            echo "$request targets $target, but publication is restricted to current main $head_commit." >&2
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Release tag $tag already exists; published releases are immutable." >&2
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; published releases are immutable." >&2
             exit 1
           fi
 
@@ -90,18 +84,6 @@ jobs:
           prerelease="$(jq -r '.prerelease // false' "$request")"
           version="${tag#v}"
           base_version="$(printf '%s\n' "$version" | sed -E 's/[-+].*$//')"
-
-          if [[ "$EVENT_NAME" == 'issue_comment' ]]; then
-            if [[ "$RELEASE_COMMENT" != "/publish-release $tag" ]]; then
-              echo "Release comment requested '$RELEASE_COMMENT', but the changed request targets $tag." >&2
-              exit 1
-            fi
-          fi
-          if [[ "$EVENT_NAME" == 'workflow_dispatch' && "$DISPATCH_TAG" != "$tag" ]]; then
-            echo "Workflow dispatch requested '$DISPATCH_TAG', but the changed request targets $tag." >&2
-            exit 1
-          fi
-
           jq -r '.notes // ""' "$request" > "$RUNNER_TEMP/release-notes.md"
 
           {
@@ -111,6 +93,7 @@ jobs:
             echo "RELEASE_BASE_VERSION=$base_version"
             echo "RELEASE_DRAFT=$draft"
             echo "RELEASE_PRERELEASE=$prerelease"
+            echo "RELEASE_COMMIT=$head_commit"
             echo 'RELEASE_TITLE<<CHARACTER_PROFILER_EOF'
             printf '%s\n' "$title"
             echo 'CHARACTER_PROFILER_EOF'
@@ -237,73 +220,46 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish and verify GitHub Release assets
+      - name: Publish immutable GitHub release
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
-          auth=(-H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' -H 'Accept: application/vnd.github+json')
-          response="$RUNNER_TEMP/release.json"
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
 
-          http="$(curl -sS -o "$response" -w '%{http_code}' "${auth[@]}" "$api/releases/tags/$RELEASE_TAG")"
-          if [[ "$http" == '200' ]]; then
-            release_id="$(jq -er '.id' "$response")"
-            curl -fsS -X PATCH "${auth[@]}" "$api/releases/$release_id" \
-              -d "$(jq -n --arg name "$RELEASE_TITLE" --rawfile body "$RUNNER_TEMP/release-notes.md" --argjson draft "$RELEASE_DRAFT" --argjson prerelease "$RELEASE_PRERELEASE" '{name:$name,body:$body,draft:$draft,prerelease:$prerelease}')" \
-              > "$response"
-          elif [[ "$http" == '404' ]]; then
-            curl -fsS -X POST "${auth[@]}" "$api/releases" \
-              -d "$(jq -n --arg tag "$RELEASE_TAG" --arg target "$GITHUB_SHA" --arg name "$RELEASE_TITLE" --rawfile body "$RUNNER_TEMP/release-notes.md" --argjson draft "$RELEASE_DRAFT" --argjson prerelease "$RELEASE_PRERELEASE" '{tag_name:$tag,target_commitish:$target,name:$name,body:$body,draft:$draft,prerelease:$prerelease}')" \
-              > "$response"
-            release_id="$(jq -er '.id' "$response")"
-          else
-            cat "$response" >&2
-            echo "Unexpected release lookup HTTP status $http." >&2
+          git tag "$RELEASE_TAG" "$RELEASE_COMMIT"
+          git push origin "$RELEASE_TAG"
+
+          args=(
+            "$RELEASE_TAG"
+            "release-assets/CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa"
+            "release-assets/CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa.sha256"
+            --verify-tag
+            --target "$RELEASE_COMMIT"
+            --title "$RELEASE_TITLE"
+            --notes-file "$RUNNER_TEMP/release-notes.md"
+          )
+          if [[ "$RELEASE_DRAFT" == 'true' ]]; then
+            args+=(--draft)
+          fi
+          if [[ "$RELEASE_PRERELEASE" == 'true' ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "${args[@]}"
+
+          release_json="$RUNNER_TEMP/final-release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > "$release_json"
+          jq -e --arg tag "$RELEASE_TAG" --argjson draft "$RELEASE_DRAFT" --argjson prerelease "$RELEASE_PRERELEASE" '.tag_name == $tag and .draft == $draft and .prerelease == $prerelease' "$release_json" >/dev/null
+
+          expected_assets=$(printf '%s\n%s\n' \
+            "CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa" \
+            "CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa.sha256" | sort)
+          published_assets=$(jq -r '.assets[].name' "$release_json" | sort)
+          if [[ "$published_assets" != "$expected_assets" ]]; then
+            echo "Published Character Profiler asset set is not exact." >&2
+            printf 'Expected:\n%s\nPublished:\n%s\n' "$expected_assets" "$published_assets" >&2
             exit 1
           fi
 
-          tag_json="$RUNNER_TEMP/tag.json"
-          curl -fsS "${auth[@]}" "$api/git/ref/tags/$RELEASE_TAG" > "$tag_json"
-          tag_target="$(jq -er '.object.sha' "$tag_json")"
-          if [[ "$tag_target" != "$GITHUB_SHA" ]]; then
-            if [[ "$(git rev-parse --is-shallow-repository)" == 'true' ]]; then
-              git fetch --no-tags --unshallow origin main
-            else
-              git fetch --no-tags origin main "$tag_target"
-            fi
-            if ! git merge-base --is-ancestor "$tag_target" "$GITHUB_SHA" ||
-               ! git diff --quiet "$tag_target" "$GITHUB_SHA" -- CharacterProfiler CharacterProfiler.xcodeproj; then
-              echo "$RELEASE_TAG points to $tag_target, which is not an app-identical ancestor of $GITHUB_SHA." >&2
-              exit 1
-            fi
-            echo "$RELEASE_TAG retains app-identical main ancestor $tag_target."
-          fi
-
-          for asset in \
-            "release-assets/CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa" \
-            "release-assets/CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa.sha256"
-          do
-            name="$(basename "$asset")"
-            existing_id="$(curl -fsS "${auth[@]}" "$api/releases/$release_id/assets?per_page=100" | jq -r --arg name "$name" '.[] | select(.name == $name) | .id' | head -1)"
-            if [[ -n "$existing_id" ]]; then
-              curl -fsS -X DELETE "${auth[@]}" "$api/releases/assets/$existing_id" >/dev/null
-            fi
-            curl -fsS -X POST \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H 'X-GitHub-Api-Version: 2022-11-28' \
-              -H 'Accept: application/vnd.github+json' \
-              -H 'Content-Type: application/octet-stream' \
-              --data-binary "@$asset" \
-              "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$release_id/assets?name=$name" \
-              > "$RUNNER_TEMP/upload-$name.json"
-            jq -e --arg name "$name" '.name == $name and .state == "uploaded" and .size > 0' "$RUNNER_TEMP/upload-$name.json" >/dev/null
-          done
-
-          final="$RUNNER_TEMP/final-release.json"
-          curl -fsS "${auth[@]}" "$api/releases/$release_id" > "$final"
-          jq -e --arg tag "$RELEASE_TAG" --argjson draft "$RELEASE_DRAFT" --argjson prerelease "$RELEASE_PRERELEASE" '.tag_name == $tag and .draft == $draft and .prerelease == $prerelease' "$final" >/dev/null
-          jq -e --arg name "CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa" '[.assets[].name] | index($name) != null' "$final" >/dev/null
-          jq -e --arg name "CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa.sha256" '[.assets[].name] | index($name) != null' "$final" >/dev/null
-          jq -r '.html_url' "$final"
+          jq -r '.html_url' "$release_json"
