@@ -22,7 +22,7 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 | CI simulator test gate | Implemented | Hosted Xcode workflow dynamically prepares a simulator and runs the complete unit-test suite. |
 | CI optimized simulator Release gate | Implemented | Release configuration compiles with signing disabled. |
 | CI optimized iPhoneOS Release gate | Implemented | 1.0.1 separately compiles a generic real-device iOS target with signing disabled. |
-| Release target verification | Implemented | Publisher checks out the exact request merge on `main`, reruns every test/build gate on that SHA, and publishes only after those gates pass. |
+| Release target verification | Implemented | Publisher accepts only a green `Release <version>` commit from exact current `main`, reruns every test/build gate on that SHA and creates a new immutable tag/release only after those gates pass. |
 
 ## Character profile and cast workflow
 
@@ -120,13 +120,13 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 
 ## 1.1.0 validation status
 
-The 1.1.0 release candidate is ready to integrate only when the exact final head passes:
+The 1.1.0 release candidate is ready to publish only when the exact current `main` release commit passes:
 
 1. complete simulator unit tests;
 2. optimized simulator Release compilation;
 3. optimized unsigned `iphoneos` Release compilation;
 4. compiled app-icon integrity validation;
-5. documentation/source-scope audit showing no accidental SwiftData/archive-format change;
-6. PR review with the exact head SHA fixed for merge approval.
+5. documentation/source-scope audit showing no accidental SwiftData/archive-format change; and
+6. commit subject `Release <version>` matching the Xcode marketing version.
 
-After merge, the exact `main` commit is rebuilt and retested by the release publisher before the 1.1.0 release-candidate IPA and checksum can be attached. Physical-device Image Playground quality and RealityKit reconstruction quality remain separately disclosed validation boundaries.
+The release publisher independently verifies that the tested SHA is still exact current `main`, reruns the complete build/test path, then creates a new immutable tag and GitHub Release containing the IPA and checksum. Existing tags/releases are hard failures. Physical-device Image Playground quality and RealityKit reconstruction quality remain separately disclosed validation boundaries.
