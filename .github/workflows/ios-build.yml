@@ -5,11 +5,9 @@ name: iOS Build
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 concurrency:
-  group: ios-build-${{ github.event.pull_request.number || github.ref }}
+  group: ios-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,19 +19,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
-      - name: Enforce explicit immutable release approval
+      - name: Enforce main-only automatic immutable publishing
         shell: bash
         run: |
           set -euo pipefail
           release=.github/workflows/publish-release.yml
-          grep -qx '  workflow_dispatch:' "$release"
-          if grep -Eq '^  (push|pull_request|issue_comment|workflow_run|schedule):' "$release"; then
-            echo 'Character Profiler publication must be manual-only.' >&2
+          grep -Fq '  workflow_run:' "$release"
+          grep -Fq 'workflows: ["iOS Build"]' "$release"
+          grep -Fq "startsWith(github.event.workflow_run.head_commit.message, 'Release ')" "$release"
+          grep -Fq "github.event.workflow_run.head_branch == 'main'" "$release"
+          grep -Fq 'published releases are immutable' "$release"
+          if grep -Eq '^  workflow_dispatch:|^  pull_request:|^  issue_comment:|^  schedule:' "$release"; then
+            echo 'Character Profiler publication must be automatic from tested main only.' >&2
             exit 1
           fi
-          grep -Fq 'ref: main' "$release"
-          grep -Fq 'published releases are immutable' "$release"
-          if grep -Eq '(-X|--request)[[:space:]]+(PATCH|DELETE)|releases/assets/.+DELETE' "$release"; then
+          if grep -Eq '(-X|--request)[[:space:]]+(PATCH|DELETE)|releases/assets/.+DELETE|--clobber|gh release edit' "$release"; then
             echo 'Release mutation or asset replacement is forbidden.' >&2
             exit 1
           fi
