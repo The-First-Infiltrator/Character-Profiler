@@ -188,7 +188,7 @@ For 1.1.0, GitHub Actions proves four gates on the exact candidate SHA:
 3. optimized generic `iphoneos` Release compilation with signing disabled;
 4. compiled iPhoneOS app-icon pixel integrity when icon or project packaging changes.
 
-Release publication is separately hardened. A newly added JSON request is accepted only on `main`, must target the exact request commit and must match the Xcode marketing version. The publisher then reruns the complete simulator tests plus optimized simulator and iPhoneOS builds on that exact SHA before it packages, checksums, uploads and verifies the unsigned IPA.
+Release publication is separately hardened. Only a successful `iOS Build` run caused by a push to exact current `main` can reach the publisher, and the commit subject must begin `Release <version>`. The publisher derives the version from that commit, verifies it against Xcode `MARKETING_VERSION`, reruns the complete simulator tests plus optimized simulator and iPhoneOS builds on the same SHA, then creates a new immutable tag and GitHub Release containing the unsigned IPA and checksum. Existing tags/releases are hard failures; they are never edited, moved, deleted or replaced. A `-suffix` version such as `1.1.0-rc.1` is automatically marked as a prerelease.
 
 Migration/compatibility history:
 
