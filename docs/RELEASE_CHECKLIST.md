@@ -6,7 +6,7 @@ This checklist records the release-quality gates for the current stable line. It
 
 ## Automated release gates
 
-Version 1.1.0 build 15 is the current release-candidate line. A candidate is publishable only when the exact current `main` commit passes the complete simulator tests, optimized simulator Release build and optimized unsigned generic `iphoneos` Release build, and that same commit is deliberately named `Release <version>`. Project/icon packaging changes also run the compiled app-icon pixel-integrity gate.
+Version 1.1.0 build 16 is the current release-candidate line. A candidate is publishable only when the exact current `main` commit passes the complete simulator tests, optimized simulator Release build and optimized unsigned generic `iphoneos` Release build, and that same commit is deliberately named `Release <version>`. Project/icon packaging changes also run the compiled app-icon pixel-integrity gate.
 
 - [ ] Exact final 1.1.0 candidate passes the complete iOS simulator unit and UI-test suite.
 - [ ] Exact final 1.1.0 candidate compiles successfully as an optimized simulator Release with code signing disabled.
@@ -74,7 +74,7 @@ Version 1.1.0 build 15 is the current release-candidate line. A candidate is pub
 
 - [x] Source/project documentation identifies `GPL-3.0-or-later` through SPDX headers/notices.
 - [x] Repository includes the complete GNU General Public License version 3 text.
-- [x] App metadata is 1.1.0 build 15 in Debug and Release configurations.
+- [x] App metadata is 1.1.0 build 16 in Debug and Release configurations.
 - [x] Application asset catalogue includes a real opaque 1024×1024 AppIcon and is part of the app target resources.
 - [x] README, architecture, feature-status audit and roadmap describe the 1.1.0 interface scope and unchanged data/archive contracts.
 - [x] Changelog records 1.0.2, 1.0.3 and 1.1.0 plus the remaining physical-device validation boundary.
