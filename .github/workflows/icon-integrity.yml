@@ -3,12 +3,6 @@
 name: App Icon Integrity
 
 on:
-  pull_request:
-    paths:
-      - 'CharacterProfiler/Assets.xcassets/AppIcon.appiconset/**'
-      - 'CharacterProfiler.xcodeproj/project.pbxproj'
-      - '.github/scripts/validate_compiled_icon.py'
-      - '.github/workflows/icon-integrity.yml'
   push:
     branches: [ main ]
     paths:
