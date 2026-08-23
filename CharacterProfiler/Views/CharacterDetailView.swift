@@ -137,7 +137,7 @@ struct CharacterDetailView: View {
                 } label: {
                     CharacterWorkspaceCard(
                         title: "Visual Studio",
-                        subtitle: visualAssetCount == 0 ? "Build 2D concept art or a real rotatable 3D reconstruction" : "Work with \(visualAssetCount) portrait, reference or generated asset\(visualAssetCount == 1 ? "" : "s"), plus 3D reconstruction",
+                        subtitle: visualAssetCount == 0 ? "Develop a consistent visual identity" : "Work with \(visualAssetCount) portrait, reference or generated asset\(visualAssetCount == 1 ? "" : "s")",
                         systemImage: "person.crop.rectangle.stack",
                         badge: visualAssetCount == 0 ? "Open" : "\(visualAssetCount)",
                         accent: CharacterProfilerTheme.violet
@@ -370,23 +370,15 @@ private struct CharacterVisualWorkspaceScreen: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
-                Character3DHeadWorkspaceView(character: character)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Label("2D Concept Views", systemImage: "photo.stack")
-                        .font(.headline)
-                    Text("The section below creates authored 2D reference art and angle views. These are separate from the real 3D reconstruction above.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Group {
-                        if #available(iOS 18.1, *) {
-                            CharacterVisualWorkspaceView(character: character)
-                        } else {
-                            VisualFeatureUnavailableView()
-                        }
+                Group {
+                    if #available(iOS 18.1, *) {
+                        CharacterVisualWorkspaceView(character: character)
+                    } else {
+                        VisualFeatureUnavailableView()
                     }
                 }
+
+                Character3DHeadWorkspaceView(character: character)
             }
             .padding()
         }
@@ -414,57 +406,82 @@ private struct Character3DHeadWorkspaceView: View {
     }
 
     var body: some View {
-        GroupBox("3D Head Reconstruction") {
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Real 3D geometry", systemImage: "cube.transparent")
-                    .font(.subheadline.weight(.semibold))
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center, spacing: 12) {
+                CharacterProfilerIconTile(
+                    systemImage: "cube.transparent",
+                    accent: CharacterProfilerTheme.violet,
+                    size: 46
+                )
 
-                Text("Builds an actual USDZ model from the character photographs with RealityKit photogrammetry. The result is continuously rotatable; it is not a stack of generated 2D angle pictures.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("3D Head Reconstruction")
+                        .font(.headline)
+                    Text("Real rotatable geometry from your reference photographs")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
-                Text("\(sourceImageData.count) source image\(sourceImageData.count == 1 ? "" : "s") available")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
 
-                if isGenerating {
+                Text("\(sourceImageData.count) PHOTO\(sourceImageData.count == 1 ? "" : "S")")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(CharacterProfilerTheme.violet)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(CharacterProfilerTheme.violet.opacity(0.11), in: Capsule())
+            }
+
+            Text("Build an actual USDZ model with RealityKit photogrammetry. A successful result rotates continuously in 3D instead of switching between generated angle pictures.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            if isGenerating {
+                VStack(alignment: .leading, spacing: 7) {
                     ProgressView(value: progress)
+                        .tint(CharacterProfilerTheme.violet)
                     Text(statusText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            }
 
-                HStack {
-                    Button(modelURL == nil ? "Generate 3D Head" : "Regenerate 3D Head", systemImage: "cube") {
-                        generateModel()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isGenerating || sourceImageData.count < 3 || !PhotogrammetrySession.isSupported)
-
-                    if modelURL != nil {
-                        Button("Open Rotatable Model", systemImage: "view.3d") {
-                            showingPreview = true
-                        }
-                        .disabled(isGenerating)
-                    }
+            HStack(spacing: 10) {
+                Button(modelURL == nil ? "Generate 3D Head" : "Regenerate 3D Head", systemImage: "cube") {
+                    generateModel()
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(CharacterProfilerTheme.violet)
+                .disabled(isGenerating || sourceImageData.count < 3 || !PhotogrammetrySession.isSupported)
 
-                if sourceImageData.count < 3 {
-                    Label("Add at least three clear photographs of the same person from different angles before reconstructing.", systemImage: "photo.stack")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else if !PhotogrammetrySession.isSupported {
-                    Label("This device does not support RealityKit photogrammetry. The 2D Visual Studio remains available below.", systemImage: "exclamationmark.triangle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else if sourceImageData.count < 8 {
-                    Label("Three images can be attempted, but more overlapping face angles generally produce a much stronger reconstruction.", systemImage: "info.circle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                if modelURL != nil {
+                    Button("Open Model", systemImage: "view.3d") {
+                        showingPreview = true
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(CharacterProfilerTheme.violet)
+                    .disabled(isGenerating)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if sourceImageData.count < 3 {
+                Label("Add at least three clear photographs of the same person from different angles before reconstructing.", systemImage: "photo.stack")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if !PhotogrammetrySession.isSupported {
+                Label("This device does not support RealityKit photogrammetry. The 2D Visual Studio above remains available.", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if sourceImageData.count < 8 {
+                Label("Three images can be attempted; additional overlapping face angles improve reconstruction quality.", systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.violet, prominent: true) }
+        .accessibilityIdentifier("three-d-head-reconstruction-card")
         .sheet(isPresented: $showingPreview) {
             if let modelURL {
                 NavigationStack {
