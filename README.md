@@ -51,15 +51,13 @@ A numbered release publishes:
 
 The IPA is intentionally unsigned. AltStore/AltServer, Sideloadly or another compatible sideloading tool applies the user's development signature during installation.
 
-Release metadata is stored in `.github/release-requests/`; it describes title, notes and prerelease/draft intent but does not bypass the release gate.
-
 ## Repository and release policy
 
 This repository uses `main` as its working branch. Development changes are made directly on `main`; the normal project workflow does not depend on PR, feature or release branches.
 
 Every push to `main` runs the iOS build/test workflow. Ordinary commits do not publish. A commit is release-eligible only when its subject begins `Release <version>` and the complete `iOS Build` workflow succeeds.
 
-The publisher checks out that exact tested commit, verifies it is still current `main`, validates the matching release-request metadata, reruns the release build/test path, creates the version tag and publishes the unsigned IPA plus checksum. Existing version tags, releases and release assets are immutable and are never moved, patched, deleted or replaced in place.
+The publisher checks out that exact tested commit, verifies it is still current `main`, derives the version directly from the `Release <version>` commit, reruns the release build/test path, creates the version tag and publishes the unsigned IPA plus checksum. A version containing a prerelease suffix such as `-rc.1` is published as a prerelease automatically. Existing version tags, releases and release assets are immutable and are never moved, patched, deleted or replaced in place.
 
 Manually runnable build/test helpers, where present, are diagnostic tools only and are not release-approval mechanisms.
 
