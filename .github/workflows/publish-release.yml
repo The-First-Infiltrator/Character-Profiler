@@ -3,12 +3,9 @@
 name: Publish requested release
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: Release-request tag to publish from current main
-        required: true
-        type: string
+  workflow_run:
+    workflows: ["iOS Build"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -19,48 +16,55 @@ concurrency:
 
 jobs:
   publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      startsWith(github.event.workflow_run.head_commit.message, 'Release ')
     permissions:
       contents: write
     runs-on: macos-15
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - name: Checkout current main
+      - name: Checkout exact tested main commit
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
-          ref: main
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
-      - name: Resolve approved release request
+      - name: Resolve release request from Release commit
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          DISPATCH_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
 
           git fetch origin main --tags
           head_commit="$(git rev-parse HEAD)"
           main_commit="$(git rev-parse origin/main)"
-          if [[ "$head_commit" != "$main_commit" ]]; then
-            echo "Release checkout $head_commit is not current main $main_commit." >&2
+          if [[ "$head_commit" != "$EXPECTED_SHA" || "$main_commit" != "$EXPECTED_SHA" ]]; then
+            echo "Release source $head_commit is not exact current main $main_commit." >&2
             exit 1
           fi
 
-          if [[ ! "$DISPATCH_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Invalid requested release tag: $DISPATCH_TAG" >&2
+          subject="$(git log -1 --format=%s "$head_commit")"
+          if [[ ! "$subject" =~ ^Release[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?)(:|$) ]]; then
+            echo "Release commit subject must begin with Release <version>." >&2
             exit 1
           fi
-
-          request=".github/release-requests/${DISPATCH_TAG}.json"
+          version="${BASH_REMATCH[1]}"
+          tag="v${version}"
+          request=".github/release-requests/${tag}.json"
           if [[ ! -f "$request" ]]; then
             echo "Release request does not exist: $request" >&2
             exit 1
           fi
 
-          tag="$(jq -er '.tag | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"))' "$request")"
-          if [[ "$tag" != "$DISPATCH_TAG" ]]; then
-            echo "Release request $request targets $tag, not $DISPATCH_TAG." >&2
+          request_tag="$(jq -er '.tag | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"))' "$request")"
+          if [[ "$request_tag" != "$tag" ]]; then
+            echo "Release request $request targets $request_tag, not $tag." >&2
             exit 1
           fi
 
@@ -82,7 +86,6 @@ jobs:
           title="$(jq -r '.title // .tag' "$request")"
           draft="$(jq -r '.draft // false' "$request")"
           prerelease="$(jq -r '.prerelease // false' "$request")"
-          version="${tag#v}"
           base_version="$(printf '%s\n' "$version" | sed -E 's/[-+].*$//')"
           jq -r '.notes // ""' "$request" > "$RUNNER_TEMP/release-notes.md"
 
@@ -213,7 +216,7 @@ jobs:
       - name: Retain release IPA artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: CharacterProfiler-release-${{ github.sha }}
+          name: CharacterProfiler-release-${{ github.event.workflow_run.head_sha }}
           path: |
             release-assets/*.ipa
             release-assets/*.sha256
@@ -226,7 +229,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          git fetch origin main --tags
           test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          test "$(git rev-parse origin/main)" = "$RELEASE_COMMIT"
 
           git tag "$RELEASE_TAG" "$RELEASE_COMMIT"
           git push origin "$RELEASE_TAG"
