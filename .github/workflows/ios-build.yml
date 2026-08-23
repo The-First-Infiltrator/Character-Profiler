@@ -21,6 +21,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
+      - name: Enforce explicit immutable release approval
+        shell: bash
+        run: |
+          set -euo pipefail
+          release=.github/workflows/publish-release.yml
+          grep -qx '  workflow_dispatch:' "$release"
+          if grep -Eq '^  (push|pull_request|issue_comment|workflow_run|schedule):' "$release"; then
+            echo 'Character Profiler publication must be manual-only.' >&2
+            exit 1
+          fi
+          grep -Fq 'ref: main' "$release"
+          grep -Fq 'published releases are immutable' "$release"
+          if grep -Eq '(-X|--request)[[:space:]]+(PATCH|DELETE)|releases/assets/.+DELETE' "$release"; then
+            echo 'Release mutation or asset replacement is forbidden.' >&2
+            exit 1
+          fi
+
       - name: Validate application resources
         shell: bash
         run: |
