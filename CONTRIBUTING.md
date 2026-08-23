@@ -16,11 +16,13 @@ Character Profiler is intentionally focused: it is an author-facing character-de
 
 The project uses Swift 5 language mode and targets iOS 17 or later. CI pins Xcode 16.4, runs complete Swift concurrency diagnostics, executes the simulator test suite, builds an optimized simulator Release and separately compiles an unsigned optimized `iphoneos` Release.
 
-Before proposing a change, run the `CharacterProfiler` scheme tests and a Release build with the same toolchain where practical. Changes to archive parsing, relationships/family invariants, persistence safety, Guide ranking or Visual Studio state should include focused regression tests.
+Before landing a change on `main`, run the `CharacterProfiler` scheme tests and a Release build with the same toolchain where practical. Changes to archive parsing, relationships/family invariants, persistence safety, Guide ranking or Visual Studio state should include focused regression tests.
 
-## Pull requests
+## Main-only development
 
-Keep each pull request scoped to one coherent change. Explain the user-visible effect, persistence/archive compatibility impact, tests added or changed, and any limitation that still requires physical-device validation.
+The repository uses `main` as its working branch. Normal development is committed directly to `main`; the project does not depend on feature branches, release branches or pull requests. Keep each commit coherent, describe the user-visible effect and any persistence/archive compatibility impact, and record tests or physical-device limitations where relevant.
+
+A commit publishes only when its subject deliberately begins `Release <version>` and the complete `main` CI gate succeeds. Existing version tags and GitHub Releases are immutable.
 
 Do not commit personal signing-team identifiers, credentials, generated build products or private story/character data.
 

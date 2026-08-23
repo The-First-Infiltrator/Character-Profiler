@@ -6,23 +6,24 @@ This checklist records the release-quality gates for the current stable line. It
 
 ## Automated release gates
 
-Version 1.1.0 build 15 is the current release-candidate line. A candidate is publishable only when the exact PR head and the exact request commit on `main` pass the complete simulator tests, optimized simulator Release build and optimized unsigned generic `iphoneos` Release build. Project/icon packaging changes also run the compiled app-icon pixel-integrity gate.
+Version 1.1.0 build 15 is the current release-candidate line. A candidate is publishable only when the exact current `main` commit passes the complete simulator tests, optimized simulator Release build and optimized unsigned generic `iphoneos` Release build, and that same commit is deliberately named `Release <version>`. Project/icon packaging changes also run the compiled app-icon pixel-integrity gate.
 
 - [ ] Exact final 1.1.0 candidate passes the complete iOS simulator unit and UI-test suite.
 - [ ] Exact final 1.1.0 candidate compiles successfully as an optimized simulator Release with code signing disabled.
 - [ ] Exact final 1.1.0 candidate compiles successfully as an optimized generic `iphoneos` Release with code signing disabled.
 - [ ] Exact final 1.1.0 candidate passes compiled app-icon integrity validation.
-- [ ] After integration, the exact release-request commit on `main` passes the complete publication build/test gate.
+- [ ] The exact `Release <version>` commit on `main` passes the complete publication build/test gate.
 - [x] Hosted CI dynamically discovers or provisions an iPhone simulator rather than assuming one fixed device exists.
 - [x] XCUITest end-to-end coverage launches the Story Library, creates a story, opens it, creates a character, and verifies the saved character appears.
 - [x] CI preflights the AppIcon file, manifest entry, 1024×1024 dimensions and opaque alpha state before Xcode builds.
 - [x] Third-party GitHub Actions are pinned to immutable commit SHAs.
-- [x] Stale CI for the same pull request or branch is cancelled by concurrency grouping.
+- [x] Stale CI for the same `main` ref is cancelled by concurrency grouping.
 - [x] Green CI builds package the optimized unsigned device app into an IPA artifact and emit a SHA-256 checksum.
-- [x] Release requests publish only the exact `main` commit created by the request merge and require the request base version to match `MARKETING_VERSION`.
-- [x] Release publication independently runs the complete simulator tests plus optimized simulator and iPhoneOS Release builds before creating or updating a GitHub Release.
-- [x] Release publication is strict for stable and prerelease requests; a failed test cannot be bypassed to obtain an IPA.
-- [x] Published releases attach `CharacterProfiler-<version>-unsigned.ipa` and its SHA-256 checksum as release assets.
+- [x] Release publication accepts only the exact tested current `main` commit whose subject begins `Release <version>`.
+- [x] Release publication independently reruns the complete simulator tests plus optimized simulator and iPhoneOS Release builds before creating a new immutable GitHub Release.
+- [x] Existing version tags and GitHub Releases are hard failures and are never moved, edited, deleted or replaced.
+- [x] Stable versions publish as normal releases; versions with a `-suffix` such as `1.1.0-rc.1` publish as prereleases automatically.
+- [x] Published releases attach `CharacterProfiler-<version>-unsigned.ipa` and its SHA-256 checksum as the exact asset set.
 
 ## Persistence and data safety
 

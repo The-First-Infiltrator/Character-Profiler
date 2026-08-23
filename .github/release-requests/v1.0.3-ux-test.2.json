@@ -1,8 +1,0 @@
-{
-  "tag": "v1.0.3-ux-test.2",
-  "target": "current-main",
-  "title": "Character Profiler 1.1 UX Test Build .2",
-  "draft": false,
-  "prerelease": true,
-  "notes": "Physical-device test build of the merged Character Profiler 1.1 iPhone UX overhaul. The publisher now correctly accepts prerelease tags whose base version matches the current project version, and the build is emitted as build 15. The known simulator UI-test failure is retained as a prerelease warning so the iPhoneOS build and unsigned IPA packaging can continue."
-}

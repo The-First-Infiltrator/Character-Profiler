@@ -1,8 +1,0 @@
-{
-  "tag": "v1.0.2",
-  "target": "current-main",
-  "title": "Character Profiler 1.0.2",
-  "draft": false,
-  "prerelease": false,
-  "notes": "Character Profiler 1.0.2 is the physical-device correction release.\n\nThis release replaces the ineffective solid-black application icon with the finished Character Profiler icon and adds explicit, confirmed deletion workflows for both characters and stories. Story deletion now occurs from the owning story screen and returns cleanly to the Story Library only after SwiftData saves successfully.\n\nThe end-to-end iOS UI test now creates a story, character and history entry, then deletes the history entry, character and story and verifies each destructive operation completes through the real interface.\n\nThere is no SwiftData schema or archive-format change. Character Profiler archive format remains v1.\n\nThe release is built and tested with pinned Xcode 16.4 and published as an intentionally unsigned IPA for AltStore/AltServer or another sideloading tool to apply the user's development signature during installation."
-}

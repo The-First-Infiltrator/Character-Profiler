@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-name: Publish requested release
+name: Publish release
 
 on:
   workflow_run:
@@ -34,7 +34,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
-      - name: Resolve release request from Release commit
+      - name: Resolve release from Release commit
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -56,22 +56,10 @@ jobs:
           fi
           version="${BASH_REMATCH[1]}"
           tag="v${version}"
-          request=".github/release-requests/${tag}.json"
-          if [[ ! -f "$request" ]]; then
-            echo "Release request does not exist: $request" >&2
-            exit 1
-          fi
-
-          request_tag="$(jq -er '.tag | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"))' "$request")"
-          if [[ "$request_tag" != "$tag" ]]; then
-            echo "Release request $request targets $request_tag, not $tag." >&2
-            exit 1
-          fi
-
-          target="$(jq -r '.target // "current-main"' "$request")"
-          if [[ "$target" != 'current-main' && "$target" != "$head_commit" ]]; then
-            echo "$request targets $target, but publication is restricted to current main $head_commit." >&2
-            exit 1
+          base_version="$(printf '%s\n' "$version" | sed -E 's/[-+].*$//')"
+          prerelease=false
+          if [[ "$version" == *-* ]]; then
+            prerelease=true
           fi
 
           if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
@@ -83,22 +71,20 @@ jobs:
             exit 1
           fi
 
-          title="$(jq -r '.title // .tag' "$request")"
-          draft="$(jq -r '.draft // false' "$request")"
-          prerelease="$(jq -r '.prerelease // false' "$request")"
-          base_version="$(printf '%s\n' "$version" | sed -E 's/[-+].*$//')"
-          jq -r '.notes // ""' "$request" > "$RUNNER_TEMP/release-notes.md"
+          notes="$RUNNER_TEMP/release-notes.md"
+          git log -1 --format='%B' "$head_commit" | sed '1d;/^[[:space:]]*$/d' > "$notes"
+          if [[ ! -s "$notes" ]]; then
+            printf 'Character Profiler %s.\n' "$version" > "$notes"
+          fi
 
           {
-            echo "RELEASE_REQUEST=$request"
             echo "RELEASE_TAG=$tag"
             echo "RELEASE_VERSION=$version"
             echo "RELEASE_BASE_VERSION=$base_version"
-            echo "RELEASE_DRAFT=$draft"
             echo "RELEASE_PRERELEASE=$prerelease"
             echo "RELEASE_COMMIT=$head_commit"
             echo 'RELEASE_TITLE<<CHARACTER_PROFILER_EOF'
-            printf '%s\n' "$title"
+            printf 'Character Profiler %s\n' "$version"
             echo 'CHARACTER_PROFILER_EOF'
           } >> "$GITHUB_ENV"
 
@@ -113,7 +99,7 @@ jobs:
 
           project_version="$(xcodebuild -project CharacterProfiler.xcodeproj -scheme CharacterProfiler -configuration Release -showBuildSettings | awk '/MARKETING_VERSION =/ {print $3; exit}')"
           if [[ "$project_version" != "$RELEASE_BASE_VERSION" ]]; then
-            echo "Release request base version $RELEASE_BASE_VERSION does not match MARKETING_VERSION $project_version." >&2
+            echo "Release base version $RELEASE_BASE_VERSION does not match MARKETING_VERSION $project_version." >&2
             exit 1
           fi
 
@@ -233,6 +219,15 @@ jobs:
           test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
           test "$(git rev-parse origin/main)" = "$RELEASE_COMMIT"
 
+          if git rev-parse -q --verify "refs/tags/${RELEASE_TAG}" >/dev/null; then
+            echo "Release tag $RELEASE_TAG already exists; published releases are immutable." >&2
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; published releases are immutable." >&2
+            exit 1
+          fi
+
           git tag "$RELEASE_TAG" "$RELEASE_COMMIT"
           git push origin "$RELEASE_TAG"
 
@@ -245,9 +240,6 @@ jobs:
             --title "$RELEASE_TITLE"
             --notes-file "$RUNNER_TEMP/release-notes.md"
           )
-          if [[ "$RELEASE_DRAFT" == 'true' ]]; then
-            args+=(--draft)
-          fi
           if [[ "$RELEASE_PRERELEASE" == 'true' ]]; then
             args+=(--prerelease)
           fi
@@ -255,7 +247,7 @@ jobs:
 
           release_json="$RUNNER_TEMP/final-release.json"
           gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > "$release_json"
-          jq -e --arg tag "$RELEASE_TAG" --argjson draft "$RELEASE_DRAFT" --argjson prerelease "$RELEASE_PRERELEASE" '.tag_name == $tag and .draft == $draft and .prerelease == $prerelease' "$release_json" >/dev/null
+          jq -e --arg tag "$RELEASE_TAG" --argjson prerelease "$RELEASE_PRERELEASE" '.tag_name == $tag and .draft == false and .prerelease == $prerelease' "$release_json" >/dev/null
 
           expected_assets=$(printf '%s\n%s\n' \
             "CharacterProfiler-${RELEASE_VERSION}-unsigned.ipa" \

@@ -1,8 +1,0 @@
-{
-  "tag": "v1.0.3-ux-test.1",
-  "target": "current-main",
-  "title": "Character Profiler 1.1 UX Test Build",
-  "draft": false,
-  "prerelease": true,
-  "notes": "Test build of the merged Character Profiler 1.1 iPhone UX overhaul.\n\nThis prerelease uses the current 1.0.3 project version metadata while carrying the merged 1.1 interface and navigation code. It is intended for direct physical-device testing before the formal 1.1.0 release.\n\nKnown issue: the simulator end-to-end navigation test still has one failing assertion; this prerelease is permitted to continue through device build and IPA packaging so the real UI can be tested on Shannon's iPhone.\n\nThe IPA is intentionally unsigned for AltStore, AltServer, Sideloadly, or another sideloading tool to apply the user's development signature during installation."
-}
