@@ -2,6 +2,23 @@
 
 # Changelog
 
+## [1.1.1] - 2026-08-25
+
+### Changed
+
+- Added direct Profile editing and a visible Edit Character action from the character workspace.
+- Added unsaved-change protection to major author editors.
+- Clarified Visual Studio as separate **2D Appearance** and **3D Reconstruction** workflows and renamed the eight-angle image sequence so it is not presented as true 3D.
+- Added cancellable RealityKit reconstruction, readiness guidance and clearer temporary-output messaging.
+- Improved Dynamic Type behaviour, light-mode contrast, Visual Studio card consistency and family-tree centring/recenter controls.
+- Expanded UI regression coverage for Profile and Visual Studio flows.
+
+### Compatibility and validation
+
+- Published version 1.1.1 build 17 with an unsigned IPA and SHA-256 checksum.
+- Version 1.1.1 adds no SwiftData entity or persistent field and keeps Character Profiler archive format v1.
+- Hosted CI validates the complete simulator test suite plus optimized simulator and unsigned iPhoneOS Release builds; physical-device visual-output quality remains a separate validation boundary.
+
 ## [1.1.0-rc.2] - 2026-08-21
 
 ### Changed

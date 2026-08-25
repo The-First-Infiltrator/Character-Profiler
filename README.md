@@ -6,7 +6,7 @@
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, relationships and family, structured life history, genre-aware development questions, portable backup/restore and a focused appearance workspace.
 
-**Current version:** 1.1.0 build 16  
+**Current version:** 1.1.1 build 17  
 **Platform:** iOS 17 or later  
 **Licence:** GPL-3.0-or-later
 
@@ -18,7 +18,7 @@ The application is organised around three levels:
 - **Story workspace** — story summary, development metrics and cast-building workflow.
 - **Character workspace** — Profile, Character Guide, People & Relationships, History and Visual Studio.
 
-Character Profiler remains local-first. Version 1.1.0 keeps the existing SwiftData model and **Character Profiler archive format v1**.
+Character Profiler remains local-first. Version 1.1.1 keeps the existing SwiftData model and **Character Profiler archive format v1**.
 
 Visual Studio has two deliberately separate paths: Image Playground produces authored 2D reference imagery, while RealityKit photogrammetry can reconstruct three or more photographs into a rotatable USDZ model on supported hardware. The 3D path is for appearance inspection, not scene generation, animation, rigging or filmmaking.
 
@@ -57,14 +57,14 @@ This repository uses `main` as its working branch. Development changes are made 
 
 Every push to `main` runs the iOS build/test workflow. Ordinary commits do not publish. A commit is release-eligible only when its subject begins `Release <version>` and the complete `iOS Build` workflow succeeds.
 
-The publisher checks out that exact tested commit, verifies it is still current `main`, derives the version directly from the `Release <version>` commit, reruns the release build/test path, creates the version tag and publishes the unsigned IPA plus checksum. A version containing a prerelease suffix such as `-rc.1` is published as a prerelease automatically. Existing version tags, releases and release assets are immutable and are never moved, patched, deleted or replaced in place.
+The publisher checks out that exact tested commit, verifies it is still current `main`, validates project/release metadata and independently builds the optimized unsigned iPhoneOS release payload on the same SHA. It then creates a new immutable version tag and GitHub Release containing the unsigned IPA plus checksum. A version containing a prerelease suffix such as `-rc.1` is published as a prerelease automatically. Existing version tags, releases and release assets are never moved, patched, deleted or replaced in place.
 
-Manually runnable build/test helpers, where present, are diagnostic tools only and are not release-approval mechanisms.
+The simulator test and optimized simulator/device compile gates belong to the triggering `iOS Build` run. Publication consumes that successful exact-SHA result rather than pretending to rerun tests it does not rerun.
 
 ## Documentation
 
 - `docs/PRODUCT_SPEC.md` — product intent and boundaries.
-- `docs/FEATURE_STATUS.md` — implementation and validation status.
+- `docs/FEATURE_STATUS.md` — current implementation and validation status.
 - `docs/ROADMAP.md` — completed milestones and future candidates.
 - `docs/RELEASE_CHECKLIST.md` — stable-release and physical-device validation gates.
 - `ARCHITECTURE.md` — model, graph, archive, migration and subsystem design.
