@@ -76,9 +76,33 @@ final class CharacterProfilerUITests: XCTestCase {
             "The character dossier hero should be visible"
         )
 
-        let historyWorkspace = app.buttons["workspace-history"]
+        // Profile should be a real working destination, not a read-only dead end that forces the
+        // author to back out and rediscover editing in an overflow menu.
         let characterDashboard = app.scrollViews.firstMatch
         XCTAssertTrue(characterDashboard.waitForExistence(timeout: 4))
+        let profileWorkspace = app.buttons["workspace-profile"]
+        XCTAssertTrue(reveal(profileWorkspace, in: characterDashboard), "Profile workspace should be directly reachable")
+        profileWorkspace.tap()
+        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.buttons["Edit"].waitForExistence(timeout: 4), "Profile should expose a direct Edit action")
+        app.navigationBars["Profile"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars[characterName].waitForExistence(timeout: 4))
+
+        // The two visual workflows must stay explicitly separated so the image-based turnaround is
+        // never presented as a true 3D model again.
+        let visualWorkspace = app.buttons["workspace-visual"]
+        XCTAssertTrue(reveal(visualWorkspace, in: characterDashboard), "Visual Studio should become hittable after scrolling")
+        visualWorkspace.tap()
+        XCTAssertTrue(app.navigationBars["Visual Studio"].waitForExistence(timeout: 4))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["visual-mode-picker"].waitForExistence(timeout: 4),
+            "Visual Studio should expose the 2D Appearance / 3D Reconstruction mode selector"
+        )
+        XCTAssertTrue(app.staticTexts["2D Appearance Studio"].waitForExistence(timeout: 4))
+        app.navigationBars["Visual Studio"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars[characterName].waitForExistence(timeout: 4))
+
+        let historyWorkspace = app.buttons["workspace-history"]
         XCTAssertTrue(reveal(historyWorkspace, in: characterDashboard), "History workspace should become hittable after scrolling the character dashboard")
         historyWorkspace.tap()
         XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 4))
