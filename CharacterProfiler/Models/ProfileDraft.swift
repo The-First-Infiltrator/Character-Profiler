@@ -3,7 +3,7 @@
 import Foundation
 import SwiftData
 
-struct ProjectDraft {
+struct ProjectDraft: Equatable {
     var title: String = ""
     var genre: StoryGenre = .fantasy
     var customGenre: String = ""
@@ -35,7 +35,7 @@ struct ProjectDraft {
     }
 }
 
-struct ProfileDraft {
+struct ProfileDraft: Equatable {
     var name: String = ""
     var nickname: String = ""
     var summary: String = ""
@@ -189,7 +189,7 @@ struct ProfileDraft {
     }
 }
 
-struct SectionDraft: Identifiable {
+struct SectionDraft: Identifiable, Equatable {
     var id = UUID()
     var title: String
     var fields: [FieldDraft]
@@ -207,7 +207,7 @@ struct SectionDraft: Identifiable {
     }
 }
 
-struct FieldDraft: Identifiable {
+struct FieldDraft: Identifiable, Equatable {
     var id = UUID()
     var label: String
     var value: String
