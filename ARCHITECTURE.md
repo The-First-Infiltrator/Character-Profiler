@@ -160,14 +160,15 @@ Hosted CI can prove SDK integration and compile both simulator and real-device t
 
 ## Source organization
 
-`CharacterDetailView.swift` is intentionally kept as the character-workspace shell. It currently also hosts the bounded 3D reconstruction view because that feature is temporary-state presentation rather than a persistent data subsystem. Other subsystem-heavy implementations are split into:
+`CharacterDetailView.swift` is the character-workspace shell and navigation boundary. Subsystem-heavy implementations are kept separate so presentation state does not turn the shell into a second application layer:
 
-- `CharacterGuideView.swift`;
-- `CharacterRelationshipsView.swift`;
-- `CharacterHistoryView.swift`;
-- `CharacterVisualWorkspaceView.swift`.
+- `CharacterGuideView.swift` — Guide workflow;
+- `CharacterRelationshipsView.swift` — relationships and family projection;
+- `CharacterHistoryView.swift` — life history;
+- `CharacterVisualWorkspaceView.swift` — persistent 2D appearance workflow; and
+- `Character3DHeadWorkspaceView.swift` — temporary RealityKit reconstruction and Quick Look presentation.
 
-If 3D reconstruction later gains persistent project state, export, editing or a substantially larger implementation, it should move into its own subsystem source rather than expanding the shell indefinitely.
+The 3D subsystem remains separate even though its USDZ is not persisted. If persistence/export/editing is added later, that change requires an explicit storage/archive contract rather than expanding the workspace shell or silently adding model state.
 
 Comments should explain invariants, compatibility decisions and non-obvious safety constraints rather than restating obvious Swift syntax.
 

@@ -250,6 +250,8 @@ enum VisualAngle: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// Persistent story root. Character-scoped author work must also advance `updatedAt`
+/// so Story Library recency reflects work performed below the project record.
 @Model
 final class StoryProject {
     @Attribute(.unique) var id: UUID
@@ -301,6 +303,9 @@ final class StoryProject {
     }
 }
 
+/// Persistent character aggregate. Flexible sections and visual/history/Guide records
+/// are owned children; relationship edges are shared graph records whose direction has
+/// semantic meaning. Raw enum strings are compatibility storage and must remain stable.
 @Model
 final class CharacterProfile {
     @Attribute(.unique) var id: UUID
@@ -332,6 +337,8 @@ final class CharacterProfile {
     @Relationship(deleteRule: .cascade, inverse: \CharacterVisualFrame.character)
     var visualFrames: [CharacterVisualFrame] = []
 
+    // A relationship is stored once. Do not create a second inverse edge;
+    // endpoint-relative meaning is derived by CharacterRelationship.kind(from:).
     @Relationship(deleteRule: .cascade, inverse: \CharacterRelationship.source)
     var outgoingRelationships: [CharacterRelationship] = []
 
@@ -572,6 +579,8 @@ final class PromptResponse {
     }
 }
 
+/// One directed graph edge shared by two characters. `kindRaw` is interpreted from
+/// `source`; callers viewing from `target` receive the defined inverse meaning.
 @Model
 final class CharacterRelationship {
     @Attribute(.unique) var id: UUID

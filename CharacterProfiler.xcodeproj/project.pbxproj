@@ -21,6 +21,7 @@
 		A20000000000000000000001 /* CharacterGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* CharacterGuide.swift */; };
 		A30000000000000000000001 /* ProjectArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000001 /* ProjectArchive.swift */; };
 		A40000000000000000000001 /* CharacterVisualWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000001 /* CharacterVisualWorkspaceView.swift */; };
+		A70000000000000000000001 /* Character3DHeadWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70000000000000000000001 /* Character3DHeadWorkspaceView.swift */; };
 		A40000000000000000000002 /* VisualStudioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000002 /* VisualStudioTests.swift */; };
 		A50000000000000000000001 /* PersistenceSafety.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50000000000000000000001 /* PersistenceSafety.swift */; };
 		A50000000000000000000002 /* CharacterGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50000000000000000000002 /* CharacterGuideView.swift */; };
@@ -65,6 +66,7 @@
 		B20000000000000000000001 /* CharacterGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterGuide.swift; sourceTree = "<group>"; };
 		B30000000000000000000001 /* ProjectArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArchive.swift; sourceTree = "<group>"; };
 		B40000000000000000000001 /* CharacterVisualWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterVisualWorkspaceView.swift; sourceTree = "<group>"; };
+		B70000000000000000000001 /* Character3DHeadWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Character3DHeadWorkspaceView.swift; sourceTree = "<group>"; };
 		B40000000000000000000002 /* VisualStudioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualStudioTests.swift; sourceTree = "<group>"; };
 		B50000000000000000000001 /* PersistenceSafety.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceSafety.swift; sourceTree = "<group>"; };
 		B50000000000000000000002 /* CharacterGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterGuideView.swift; sourceTree = "<group>"; };
@@ -154,6 +156,7 @@
 				B50000000000000000000003 /* CharacterRelationshipsView.swift */,
 				B50000000000000000000004 /* CharacterHistoryView.swift */,
 				B40000000000000000000001 /* CharacterVisualWorkspaceView.swift */,
+				B70000000000000000000001 /* Character3DHeadWorkspaceView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -349,6 +352,7 @@
 				A50000000000000000000003 /* CharacterRelationshipsView.swift in Sources */,
 				A50000000000000000000004 /* CharacterHistoryView.swift in Sources */,
 				A40000000000000000000001 /* CharacterVisualWorkspaceView.swift in Sources */,
+				A70000000000000000000001 /* Character3DHeadWorkspaceView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
