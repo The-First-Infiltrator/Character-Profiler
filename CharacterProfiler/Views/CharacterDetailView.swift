@@ -49,11 +49,11 @@ struct CharacterDetailView: View {
                         .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.gold) }
                 }
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 8) {
                     Label("Character Workspace", systemImage: "square.grid.2x2.fill")
                         .font(.title3.bold())
                         .foregroundStyle(CharacterProfilerTheme.indigo)
-                    Text("Open the part of this character you want to work on. Each area keeps its own tools and editing flow.")
+                    Text("Choose the part of this character you want to develop.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -63,7 +63,7 @@ struct CharacterDetailView: View {
                 } label: {
                     CharacterWorkspaceCard(
                         title: "Profile",
-                        subtitle: profileFactCount == 0 ? "Build identity, personality and custom facts" : "Review identity and \(profileFactCount) saved fact\(profileFactCount == 1 ? "" : "s")",
+                        subtitle: profileFactCount == 0 ? "Build identity, personality and custom facts" : "Review and edit \(profileFactCount) saved fact\(profileFactCount == 1 ? "" : "s")",
                         systemImage: "person.text.rectangle",
                         badge: profileFactCount == 0 ? "Start" : "\(profileFactCount)",
                         accent: CharacterProfilerTheme.indigo
@@ -137,7 +137,7 @@ struct CharacterDetailView: View {
                 } label: {
                     CharacterWorkspaceCard(
                         title: "Visual Studio",
-                        subtitle: visualAssetCount == 0 ? "Develop a consistent visual identity" : "Work with \(visualAssetCount) portrait, reference or generated asset\(visualAssetCount == 1 ? "" : "s")",
+                        subtitle: visualAssetCount == 0 ? "Develop 2D appearance or reconstruct a 3D head" : "Work with \(visualAssetCount) saved visual asset\(visualAssetCount == 1 ? "" : "s") and optional 3D reconstruction",
                         systemImage: "person.crop.rectangle.stack",
                         badge: visualAssetCount == 0 ? "Open" : "\(visualAssetCount)",
                         accent: CharacterProfilerTheme.violet
@@ -155,16 +155,18 @@ struct CharacterDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if character.project != nil {
-                Menu {
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     Button { showingEditor = true } label: {
                         Label("Edit Character", systemImage: "pencil")
                     }
-                    Divider()
-                    Button(role: .destructive) { showingDeleteConfirmation = true } label: {
-                        Label("Delete Character", systemImage: "trash")
+
+                    Menu {
+                        Button(role: .destructive) { showingDeleteConfirmation = true } label: {
+                            Label("Delete Character", systemImage: "trash")
+                        }
+                    } label: {
+                        Label("Character Actions", systemImage: "ellipsis.circle")
                     }
-                } label: {
-                    Label("Character Actions", systemImage: "ellipsis.circle")
                 }
             }
         }
@@ -220,34 +222,15 @@ private struct CharacterHeader: View {
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(CharacterProfilerTheme.gold)
 
-            HStack(alignment: .center, spacing: 16) {
-                CharacterPortraitView(character: character, size: 96)
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(character.displayName)
-                        .font(.title2.bold())
-                        .lineLimit(2)
-                    if !character.storyRole.isEmpty {
-                        Text(character.storyRole)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.76))
-                    }
-                    HStack(spacing: 10) {
-                        if !character.ageText.isEmpty {
-                            Label(character.ageText, systemImage: "birthday.cake")
-                        }
-                        if !character.pronouns.isEmpty { Text(character.pronouns) }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.68))
-                    ProgressView(value: character.completionScore)
-                        .tint(CharacterProfilerTheme.gold)
-                        .accessibilityLabel("Character development")
-                        .accessibilityValue("\(Int(character.completionScore * 100)) percent")
-                    Text("\(Int(character.completionScore * 100))% developed")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(CharacterProfilerTheme.gold)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 16) {
+                    CharacterPortraitView(character: character, size: 96)
+                    headerDetails
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 14) {
+                    CharacterPortraitView(character: character, size: 88)
+                    headerDetails
+                }
             }
         }
         .foregroundStyle(.white)
@@ -260,6 +243,41 @@ private struct CharacterHeader: View {
         .shadow(color: CharacterProfilerTheme.ink.opacity(0.24), radius: 18, y: 10)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("character-dossier-hero")
+    }
+
+    private var headerDetails: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(character.displayName)
+                .font(.title2.bold())
+                .lineLimit(2)
+            if !character.storyRole.isEmpty {
+                Text(character.storyRole)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.76))
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) { identityDetails }
+                VStack(alignment: .leading, spacing: 4) { identityDetails }
+            }
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.72))
+            ProgressView(value: character.completionScore)
+                .tint(CharacterProfilerTheme.gold)
+                .accessibilityLabel("Character development")
+                .accessibilityValue("\(Int(character.completionScore * 100)) percent")
+            Text("\(Int(character.completionScore * 100))% developed")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(CharacterProfilerTheme.gold)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var identityDetails: some View {
+        if !character.ageText.isEmpty {
+            Label(character.ageText, systemImage: "birthday.cake")
+        }
+        if !character.pronouns.isEmpty { Text(character.pronouns) }
     }
 }
 
@@ -308,6 +326,7 @@ private struct CharacterWorkspaceCard: View {
 
 private struct CharacterProfileWorkspaceView: View {
     let character: CharacterProfile
+    @State private var showingEditor = false
 
     var body: some View {
         ScrollView {
@@ -317,6 +336,18 @@ private struct CharacterProfileWorkspaceView: View {
         .background { CharacterProfilerBackdrop() }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if character.project != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit", systemImage: "pencil") { showingEditor = true }
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditor) {
+            if let project = character.project {
+                NavigationStack { CharacterEditorView(project: project, character: character) }
+            }
+        }
     }
 }
 
@@ -364,21 +395,45 @@ private struct CharacterHistoryWorkspaceView: View {
     }
 }
 
+private enum VisualStudioMode: String, CaseIterable, Identifiable {
+    case twoD = "2D Appearance"
+    case threeD = "3D Reconstruction"
+
+    var id: Self { self }
+}
+
 private struct CharacterVisualWorkspaceScreen: View {
     let character: CharacterProfile
+    @State private var mode: VisualStudioMode = .twoD
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
-                Group {
-                    if #available(iOS 18.1, *) {
-                        CharacterVisualWorkspaceView(character: character)
-                    } else {
-                        VisualFeatureUnavailableView()
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Choose how you want to inspect this character's appearance.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Picker("Visual mode", selection: $mode) {
+                        ForEach(VisualStudioMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("visual-mode-picker")
                 }
 
-                Character3DHeadWorkspaceView(character: character)
+                switch mode {
+                case .twoD:
+                    Group {
+                        if #available(iOS 18.1, *) {
+                            CharacterVisualWorkspaceView(character: character)
+                        } else {
+                            VisualFeatureUnavailableView()
+                        }
+                    }
+                case .threeD:
+                    Character3DHeadWorkspaceView(character: character)
+                }
             }
             .padding()
         }
@@ -397,6 +452,7 @@ private struct Character3DHeadWorkspaceView: View {
     @State private var modelURL: URL?
     @State private var showingPreview = false
     @State private var errorMessage: String?
+    @State private var activeSession: PhotogrammetrySession?
 
     private var sourceImageData: [Data] {
         var result: [Data] = []
@@ -436,6 +492,36 @@ private struct Character3DHeadWorkspaceView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
+            Label(
+                "Temporary preview: the reconstructed USDZ is not yet stored in this character or included in project backups.",
+                systemImage: "externaldrive.badge.exclamationmark"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(CharacterProfilerTheme.gold.opacity(0.09), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Reconstruction readiness")
+                    .font(.subheadline.weight(.semibold))
+                ReconstructionReadinessRow(
+                    title: "Minimum source set",
+                    detail: sourceImageData.count >= 3 ? "At least 3 photos available" : "Add \(3 - sourceImageData.count) more photo\(3 - sourceImageData.count == 1 ? "" : "s")",
+                    isReady: sourceImageData.count >= 3
+                )
+                ReconstructionReadinessRow(
+                    title: "Stronger overlap",
+                    detail: sourceImageData.count >= 8 ? "8+ views available" : "8+ overlapping angles recommended",
+                    isReady: sourceImageData.count >= 8
+                )
+                ReconstructionReadinessRow(
+                    title: "Device support",
+                    detail: PhotogrammetrySession.isSupported ? "RealityKit reconstruction available" : "This device cannot run photogrammetry",
+                    isReady: PhotogrammetrySession.isSupported
+                )
+            }
+
             if isGenerating {
                 VStack(alignment: .leading, spacing: 7) {
                     ProgressView(value: progress)
@@ -446,22 +532,9 @@ private struct Character3DHeadWorkspaceView: View {
                 }
             }
 
-            HStack(spacing: 10) {
-                Button(modelURL == nil ? "Generate 3D Head" : "Regenerate 3D Head", systemImage: "cube") {
-                    generateModel()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(CharacterProfilerTheme.violet)
-                .disabled(isGenerating || sourceImageData.count < 3 || !PhotogrammetrySession.isSupported)
-
-                if modelURL != nil {
-                    Button("Open Model", systemImage: "view.3d") {
-                        showingPreview = true
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(CharacterProfilerTheme.violet)
-                    .disabled(isGenerating)
-                }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) { reconstructionActions }
+                VStack(alignment: .leading, spacing: 10) { reconstructionActions }
             }
 
             if sourceImageData.count < 3 {
@@ -469,7 +542,7 @@ private struct Character3DHeadWorkspaceView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else if !PhotogrammetrySession.isSupported {
-                Label("This device does not support RealityKit photogrammetry. The 2D Visual Studio above remains available.", systemImage: "exclamationmark.triangle")
+                Label("This device does not support RealityKit photogrammetry. Switch to 2D Appearance to continue using the visual tools.", systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else if sourceImageData.count < 8 {
@@ -507,6 +580,34 @@ private struct Character3DHeadWorkspaceView: View {
         }
     }
 
+    @ViewBuilder
+    private var reconstructionActions: some View {
+        Button(modelURL == nil ? "Generate 3D Head" : "Regenerate 3D Head", systemImage: "cube") {
+            generateModel()
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(CharacterProfilerTheme.violet)
+        .disabled(isGenerating || sourceImageData.count < 3 || !PhotogrammetrySession.isSupported)
+
+        if isGenerating {
+            Button("Cancel Reconstruction", systemImage: "xmark.circle", role: .destructive) {
+                cancelReconstruction()
+            }
+            .buttonStyle(.bordered)
+        } else if modelURL != nil {
+            Button("Open Model", systemImage: "view.3d") {
+                showingPreview = true
+            }
+            .buttonStyle(.bordered)
+            .tint(CharacterProfilerTheme.violet)
+        }
+    }
+
+    private func cancelReconstruction() {
+        activeSession?.cancel()
+        statusText = "Cancelling reconstruction…"
+    }
+
     private func generateModel() {
         guard !isGenerating else { return }
         let images = sourceImageData
@@ -538,6 +639,7 @@ private struct Character3DHeadWorkspaceView: View {
 
                 let output = root.appendingPathComponent("character-head.usdz")
                 let session = try PhotogrammetrySession(input: input)
+                await MainActor.run { activeSession = session }
                 let request = PhotogrammetrySession.Request.modelFile(
                     url: output,
                     detail: .reduced,
@@ -566,6 +668,14 @@ private struct Character3DHeadWorkspaceView: View {
                         await MainActor.run { statusText = "A source image could not be matched; continuing with the remaining views…" }
                     case .stitchingIncomplete:
                         await MainActor.run { statusText = "The photo set only partially matched; finishing the best available reconstruction…" }
+                    case .processingCancelled:
+                        await MainActor.run {
+                            activeSession = nil
+                            isGenerating = false
+                            progress = 0
+                            statusText = "Reconstruction cancelled"
+                        }
+                        return
                     case .requestError(_, let error):
                         throw error
                     case .processingComplete:
@@ -580,6 +690,7 @@ private struct Character3DHeadWorkspaceView: View {
                 }
 
                 await MainActor.run {
+                    activeSession = nil
                     modelURL = completedURL
                     progress = 1
                     statusText = "3D reconstruction complete"
@@ -588,6 +699,7 @@ private struct Character3DHeadWorkspaceView: View {
                 }
             } catch {
                 await MainActor.run {
+                    activeSession = nil
                     isGenerating = false
                     progress = 0
                     statusText = "Reconstruction failed"
@@ -595,6 +707,28 @@ private struct Character3DHeadWorkspaceView: View {
                 }
             }
         }
+    }
+}
+
+private struct ReconstructionReadinessRow: View {
+    let title: String
+    let detail: String
+    let isReady: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: isReady ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isReady ? CharacterProfilerTheme.teal : .secondary)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -661,7 +795,7 @@ private struct CharacterProfilePanel: View {
                 ContentUnavailableView(
                     "Profile Is Still Empty",
                     systemImage: "person.text.rectangle",
-                    description: Text("Use Edit Character to add identity, profile sections and facts.")
+                    description: Text("Use Edit to add identity, profile sections and facts.")
                 )
             } else {
                 ForEach(populatedSections) { section in
