@@ -79,6 +79,23 @@ struct CharacterProfilerCardSurface: View {
     }
 }
 
+/// Gives standard SwiftUI GroupBox content the same card language as the rest of Character Profiler.
+/// Visual Studio is currently the only feature that uses GroupBox, so applying this style at the app
+/// root keeps those sections consistent without duplicating card markup around each subsection.
+struct CharacterProfilerGroupBoxStyle: GroupBoxStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            configuration.label
+                .font(.headline)
+                .foregroundStyle(.primary)
+            configuration.content
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.violet) }
+    }
+}
+
 struct CharacterProfilerIconTile: View {
     let systemImage: String
     let accent: Color
@@ -103,15 +120,22 @@ struct CharacterProfilerIconTile: View {
 }
 
 struct CharacterProfilerSectionHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let systemImage: String
     var accent = CharacterProfilerTheme.indigo
 
     var body: some View {
-        Label(title, systemImage: systemImage)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(accent)
-            .textCase(nil)
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .foregroundStyle(accent)
+                .accessibilityHidden(true)
+            Text(title)
+                .foregroundStyle(colorScheme == .light ? CharacterProfilerTheme.ink : accent)
+        }
+        .font(.subheadline.weight(.semibold))
+        .textCase(nil)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -160,6 +184,7 @@ struct CharacterProfilerApp: App {
                 ProjectListView()
                     .modelContainer(modelContainer)
                     .tint(CharacterProfilerTheme.indigo)
+                    .groupBoxStyle(CharacterProfilerGroupBoxStyle())
                     .environment(\.reportPersistenceFailure) { message in
                         persistenceFailureMessage = message
                     }
