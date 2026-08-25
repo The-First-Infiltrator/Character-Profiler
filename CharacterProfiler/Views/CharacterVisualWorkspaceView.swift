@@ -138,10 +138,10 @@ struct CharacterVisualWorkspaceView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Label("Character Visual Studio", systemImage: "person.crop.rectangle.stack")
+            Label("2D Appearance Studio", systemImage: "photo.stack")
                 .font(.title3.bold())
                 .foregroundStyle(CharacterProfilerTheme.violet)
-            Text("Establish one canonical look from the character record and references, then build an eight-view turnaround from that canonical image.")
+            Text("Establish one canonical 2D look from the character record and references, then build eight image-based angle views from that accepted image.")
                 .foregroundStyle(.secondary)
 
             if !supportsImagePlayground {
@@ -302,20 +302,9 @@ struct CharacterVisualWorkspaceView: View {
                         .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                    HStack {
-                        Button("Use as Portrait", systemImage: "person.crop.circle") {
-                            character.profileImageData = data
-                            character.markModified()
-                            saveContext()
-                        }
-                        Button("Replace", systemImage: "sparkles") {
-                            if character.visualFrames.isEmpty {
-                                beginCanonicalGeneration(resetTurnaroundOnSuccess: false)
-                            } else {
-                                showingCanonicalReplacementOptions = true
-                            }
-                        }
-                        .disabled(!supportsImagePlayground)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) { canonicalActions(data: data) }
+                        VStack(alignment: .leading, spacing: 10) { canonicalActions(data: data) }
                     }
 
                     Button("Clear Visual Set", systemImage: "trash", role: .destructive) {
@@ -346,10 +335,31 @@ struct CharacterVisualWorkspaceView: View {
         }
     }
 
+    @ViewBuilder
+    private func canonicalActions(data: Data) -> some View {
+        Button("Use as Portrait", systemImage: "person.crop.circle") {
+            character.profileImageData = data
+            character.markModified()
+            saveContext()
+        }
+        Button("Replace", systemImage: "sparkles") {
+            if character.visualFrames.isEmpty {
+                beginCanonicalGeneration(resetTurnaroundOnSuccess: false)
+            } else {
+                showingCanonicalReplacementOptions = true
+            }
+        }
+        .disabled(!supportsImagePlayground)
+    }
+
     private var turnaroundSection: some View {
         let state = snapshot
-        return GroupBox("360° Turnaround") {
+        return GroupBox("8-View 2D Turnaround") {
             VStack(alignment: .leading, spacing: 12) {
+                Text("This is an image-based inspection set, not a continuous 3D model. Switch to 3D Reconstruction for rotatable geometry.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 HStack {
                     Label("\(state.completedAngleCount) of 8 views", systemImage: state.isTurnaroundComplete ? "checkmark.circle.fill" : "circle.dotted")
                         .font(.subheadline.weight(.semibold))
