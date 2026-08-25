@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: temporary-architecture-normalize
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          fetch-depth: 0
+      - name: Normalize current architecture contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('ARCHITECTURE.md')
+          text = path.read_text()
+          text = text.replace(
+              'Versions 0.8 through 1.1.0 add no SwiftData entity or persistent field. The 1.1.0 app continues to use the model proven by the 0.8/1.0 line.',
+              'Versions 0.8 through 1.1.1 add no SwiftData entity or persistent field. The 1.1.1 app continues to use the model proven by the 0.8/1.0 line.',
+              1,
+          )
+          text = text.replace(
+              '`Character3DHeadWorkspaceView`, currently hosted by the full-screen Visual workspace in `CharacterDetailView.swift`, gathers the profile portrait plus ordered reference images and requires at least three source photographs before attempting reconstruction.',
+              '`Character3DHeadWorkspaceView.swift`, presented from the full-screen Visual workspace, gathers the profile portrait plus ordered reference images and requires at least three source photographs before attempting reconstruction.',
+              1,
+          )
+
+          start = text.index('For 1.1.0, GitHub Actions proves four gates on the exact candidate SHA:')
+          end = text.index('Migration/compatibility history:', start)
+          replacement = '''For current `main`, the push-triggered `iOS Build` proves these gates on the exact candidate SHA:\n\n1. complete simulator unit/UI tests;\n2. optimized simulator Release compilation;\n3. optimized generic `iphoneos` Release compilation with signing disabled; and\n4. application-resource/AppIcon validation with strict Swift concurrency diagnostics enabled for test/build work.\n\nRelease publication is separately hardened. Only a successful `iOS Build` caused by a push to exact current `main` can reach the publisher, and the commit subject must begin `Release <version>`. The publisher derives and validates release metadata against the Xcode project, independently rebuilds the optimized unsigned device payload on that already-tested SHA, then creates a new immutable tag and GitHub Release containing the unsigned IPA and checksum. It does not claim to rerun simulator tests during publication. Existing tags/releases are hard failures; they are never edited, moved, deleted or replaced. A version suffix such as `-rc.1` is published as a prerelease.\n\n'''
+          text = text[:start] + replacement + text[end:]
+          text = text.replace(
+              '- 1.1.0: Story Library, story workspace, character dashboard and editor-flow refinement plus temporary RealityKit 3D reconstruction; no persistent change and archive remains v1.\n',
+              '- 1.1.0: Story Library, story workspace, character dashboard and editor-flow refinement plus temporary RealityKit 3D reconstruction; no persistent change and archive remains v1.\n- 1.1.1: interface-flow/usability refinement, unsaved-change protection and clearer 2D/3D workspace separation; no persistent change and archive remains v1.\n',
+              1,
+          )
+          path.write_text(text)
+          Path('.github/workflows/temporary-architecture-normalize.yml').unlink()
+          PY
+          git diff --check
+          grep -q 'Versions 0.8 through 1.1.1' ARCHITECTURE.md
+          grep -q 'It does not claim to rerun simulator tests during publication' ARCHITECTURE.md
+          ! test -e .github/workflows/temporary-architecture-normalize.yml
+          git config user.name 'Shannon Smith'
+          git config user.email 'infiltratr@yandex.com'
+          git add -A
+          git commit -m 'Align architecture with current 1.1.1 contracts'
+          git push origin HEAD:main
