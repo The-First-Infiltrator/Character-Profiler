@@ -39,7 +39,7 @@ StoryProject
     └── CharacterVisualFrame[]
 ```
 
-Versions 0.8 through 1.1.0 add no SwiftData entity or persistent field. The 1.1.0 app continues to use the model proven by the 0.8/1.0 line. RealityKit reconstruction therefore produces a temporary USDZ result rather than adding another persistent entity or field.
+Versions 0.8 through 1.1.1 add no SwiftData entity or persistent field. The 1.1.1 app continues to use the model proven by the 0.8/1.0 line. RealityKit reconstruction therefore produces a temporary USDZ result rather than adding another persistent entity or field.
 
 ## Persistence transaction rule
 
@@ -150,7 +150,7 @@ Image Playground support is availability-gated. Core profile, Guide, relationshi
 
 ### 3D reconstruction path
 
-`Character3DHeadWorkspaceView`, currently hosted by the full-screen Visual workspace in `CharacterDetailView.swift`, gathers the profile portrait plus ordered reference images and requires at least three source photographs before attempting reconstruction.
+`Character3DHeadWorkspaceView.swift`, presented from the full-screen Visual workspace, gathers the profile portrait plus ordered reference images and requires at least three source photographs before attempting reconstruction.
 
 When `PhotogrammetrySession.isSupported` is true, the workspace writes those source images to a private temporary directory, asks RealityKit to produce a reduced-detail USDZ model, tracks progress and rejected/skipped samples, and presents the resulting model through Quick Look. Failure to produce a model is surfaced explicitly.
 
@@ -182,14 +182,14 @@ Confirmations are not an undo system; portable project backup remains the durabl
 
 The core deployment target remains iOS 17. Image Playground and photogrammetry functionality are separately availability-gated.
 
-For 1.1.0, GitHub Actions proves four gates on the exact candidate SHA:
+For current `main`, the push-triggered `iOS Build` proves these gates on the exact candidate SHA:
 
-1. complete simulator test suite;
+1. complete simulator unit/UI tests;
 2. optimized simulator Release compilation;
-3. optimized generic `iphoneos` Release compilation with signing disabled;
-4. compiled iPhoneOS app-icon pixel integrity when icon or project packaging changes.
+3. optimized generic `iphoneos` Release compilation with signing disabled; and
+4. application-resource/AppIcon validation with strict Swift concurrency diagnostics enabled for test/build work.
 
-Release publication is separately hardened. Only a successful `iOS Build` run caused by a push to exact current `main` can reach the publisher, and the commit subject must begin `Release <version>`. The publisher derives the version from that commit, verifies it against Xcode `MARKETING_VERSION`, reruns the complete simulator tests plus optimized simulator and iPhoneOS builds on the same SHA, then creates a new immutable tag and GitHub Release containing the unsigned IPA and checksum. Existing tags/releases are hard failures; they are never edited, moved, deleted or replaced. A `-suffix` version such as `1.1.0-rc.1` is automatically marked as a prerelease.
+Release publication is separately hardened. Only a successful `iOS Build` caused by a push to exact current `main` can reach the publisher, and the commit subject must begin `Release <version>`. The publisher derives and validates release metadata against the Xcode project, independently rebuilds the optimized unsigned device payload on that already-tested SHA, then creates a new immutable tag and GitHub Release containing the unsigned IPA and checksum. It does not claim to rerun simulator tests during publication. Existing tags/releases are hard failures; they are never edited, moved, deleted or replaced. A version suffix such as `-rc.1` is published as a prerelease.
 
 Migration/compatibility history:
 
@@ -203,5 +203,6 @@ Migration/compatibility history:
 - 1.0.2: explicit story/character deletion workflow and device-icon correction; no persistent change and archive remains v1.
 - 1.0.3: deterministic app icon plus compiled-icon integrity verification; no persistent change and archive remains v1.
 - 1.1.0: Story Library, story workspace, character dashboard and editor-flow refinement plus temporary RealityKit 3D reconstruction; no persistent change and archive remains v1.
+- 1.1.1: interface-flow/usability refinement, unsaved-change protection and clearer 2D/3D workspace separation; no persistent change and archive remains v1.
 
 Any future schema change capable of invalidating stored records requires deliberate migration design and regression coverage before release. Archive-format evolution requires an independent version/upgrade decision.
