@@ -1,17 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import SwiftUI
-import SwiftData
+
+private struct CharacterDeletionActionKey: EnvironmentKey {
+    static let defaultValue: (CharacterProfile) -> Void = { _ in }
+}
+
+extension EnvironmentValues {
+    var characterDeletionAction: (CharacterProfile) -> Void {
+        get { self[CharacterDeletionActionKey.self] }
+        set { self[CharacterDeletionActionKey.self] = newValue }
+    }
+}
 
 /// Character home screen. Heavy workspaces are intentionally separate navigation destinations so
 /// the iPhone experience stays readable and each task gets enough room to breathe.
 struct CharacterDetailView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.characterDeletionAction) private var deleteCharacter
     let character: CharacterProfile
     @State private var showingEditor = false
     @State private var showingDeleteConfirmation = false
-    @State private var deleteErrorMessage: String?
+    @State private var deleteCharacterAfterDismiss = false
 
     private var profileFactCount: Int {
         character.sections.reduce(0) { total, section in
@@ -178,18 +188,17 @@ struct CharacterDetailView: View {
             isPresented: $showingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete Character Permanently", role: .destructive) { deleteCharacter() }
+            Button("Delete Character Permanently", role: .destructive) { stageCharacterDeletion() }
             Button("Cancel", role: .cancel) { }
         } message: {
             Text(characterDeletionMessage)
         }
-        .alert("Character Could Not Be Deleted", isPresented: Binding(
-            get: { deleteErrorMessage != nil },
-            set: { if !$0 { deleteErrorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) { deleteErrorMessage = nil }
-        } message: {
-            Text(deleteErrorMessage ?? "Unknown delete error.")
+        .onDisappear {
+            if deleteCharacterAfterDismiss {
+                // Cascade deletion invalidates the character's SwiftData children immediately.
+                // Delete only after this destination can no longer render those child models.
+                deleteCharacter(character)
+            }
         }
     }
 
@@ -198,16 +207,9 @@ struct CharacterDetailView: View {
         return "This permanently deletes \(character.displayName) and removes \(relationshipCount) linked relationship\(relationshipCount == 1 ? "" : "s"), \(historyCount) history entr\(historyCount == 1 ? "y" : "ies"), \(answerCount) Guide answer\(answerCount == 1 ? "" : "s"), and \(visualAssetCount) visual asset\(visualAssetCount == 1 ? "" : "s"). Export the story backup first if you may need this character again."
     }
 
-    private func deleteCharacter() {
-        let project = character.project
-        modelContext.delete(character)
-        project?.updatedAt = .now
-        do {
-            try modelContext.saveOrRollback()
-            dismiss()
-        } catch {
-            deleteErrorMessage = error.localizedDescription
-        }
+    private func stageCharacterDeletion() {
+        deleteCharacterAfterDismiss = true
+        dismiss()
     }
 }
 

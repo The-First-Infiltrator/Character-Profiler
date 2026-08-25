@@ -5,6 +5,17 @@ import SwiftData
 import UIKit
 import UniformTypeIdentifiers
 
+private struct StoryDeletionActionKey: EnvironmentKey {
+    static let defaultValue: (StoryProject) -> Void = { _ in }
+}
+
+private extension EnvironmentValues {
+    var storyDeletionAction: (StoryProject) -> Void {
+        get { self[StoryDeletionActionKey.self] }
+        set { self[StoryDeletionActionKey.self] = newValue }
+    }
+}
+
 enum LegacyDataMigration {
     @MainActor
     @discardableResult
@@ -185,6 +196,12 @@ struct ProjectListView: View {
             }
             .task { migrateUnassignedCharacters() }
         }
+        .environment(\.characterDeletionAction, { character in
+            deleteCharacter(character)
+        })
+        .environment(\.storyDeletionAction, { project in
+            deleteProject(project)
+        })
     }
 
     private func stageProjectDeletion(at offsets: IndexSet) {
@@ -207,6 +224,26 @@ struct ProjectListView: View {
         do {
             try modelContext.saveOrRollback()
             projectsPendingDeletion = []
+        } catch {
+            operationErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteProject(_ project: StoryProject) {
+        modelContext.delete(project)
+        do {
+            try modelContext.saveOrRollback()
+        } catch {
+            operationErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteCharacter(_ character: CharacterProfile) {
+        let project = character.project
+        modelContext.delete(character)
+        project?.updatedAt = .now
+        do {
+            try modelContext.saveOrRollback()
         } catch {
             operationErrorMessage = error.localizedDescription
         }
@@ -246,6 +283,7 @@ struct ProjectListView: View {
 struct ProjectDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.storyDeletionAction) private var deleteStory
     let project: StoryProject
     @State private var searchText = ""
     @State private var showingNewCharacter = false
@@ -257,6 +295,7 @@ struct ProjectDetailView: View {
     @State private var isPreparingExport = false
     @State private var operationErrorMessage: String?
     @State private var charactersPendingDeletion: [CharacterProfile] = []
+    @State private var deleteStoryAfterDismiss = false
 
     private var filteredCharacters: [CharacterProfile] {
         let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -458,6 +497,13 @@ struct ProjectDetailView: View {
         } message: {
             Text(characterDeletionMessage)
         }
+        .onDisappear {
+            if deleteStoryAfterDismiss {
+                // A story cascade owns every model rendered by this destination. Let navigation
+                // remove the destination before the library context invalidates that graph.
+                deleteStory(project)
+            }
+        }
     }
 
     private func prepareExport() {
@@ -485,13 +531,8 @@ struct ProjectDetailView: View {
     }
 
     private func confirmStoryDeletion() {
-        modelContext.delete(project)
-        do {
-            try modelContext.saveOrRollback()
-            dismiss()
-        } catch {
-            operationErrorMessage = error.localizedDescription
-        }
+        deleteStoryAfterDismiss = true
+        dismiss()
     }
 
     private func stageCharacterDeletion(at offsets: IndexSet) {
