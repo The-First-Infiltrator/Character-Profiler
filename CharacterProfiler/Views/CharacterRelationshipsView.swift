@@ -427,8 +427,6 @@ enum FamilyRelationshipRules {
             break
         }
 
-        // If the two people are already connected elsewhere in the family graph, a new family edge
-        // must agree with the generation difference implied by that existing path.
         if kind.isFamily,
            let existingGeneration = existingRelativeGeneration(
                 of: target,
@@ -523,9 +521,6 @@ struct FamilyGraphSnapshot {
 
     var hasGenerationConflicts: Bool { !generationConflicts.isEmpty }
 
-    /// Projects the connected family component into relative generations without imposing an
-    /// arbitrary character limit. Conflicting paths are reported rather than silently moving a
-    /// character between rows depending on traversal order.
     init(root: CharacterProfile) {
         rootID = root.id
         var generationByID: [UUID: Int] = [root.id: 0]
@@ -655,49 +650,82 @@ struct FamilyTreeView: View {
                     .padding(.top, 10)
                 }
 
-                HStack(spacing: 16) {
-                    Label("Parent / child", systemImage: "arrow.up.and.down")
-                    Label("Partner", systemImage: "heart")
-                    Label("Sibling", systemImage: "person.2")
-                    Spacer()
-                    Button { baseScale = max(0.6, baseScale - 0.15) } label: {
-                        Image(systemName: "minus.magnifyingglass")
-                    }
-                    .accessibilityLabel("Zoom out")
-                    Button { baseScale = 1 } label: { Image(systemName: "1.magnifyingglass") }
-                        .accessibilityLabel("Reset zoom")
-                    Button { baseScale = min(1.8, baseScale + 0.15) } label: {
-                        Image(systemName: "plus.magnifyingglass")
-                    }
-                    .accessibilityLabel("Zoom in")
-                }
-                .font(.caption)
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-
-                Divider()
-
-                ScrollView([.horizontal, .vertical]) {
-                    familyGraph(snapshot: snapshot, layout: layout)
-                        .scaleEffect(scale, anchor: .topLeading)
-                        .frame(
-                            width: layout.size.width * scale,
-                            height: layout.size.height * scale,
-                            alignment: .topLeading
-                        )
-                }
-                .gesture(
-                    MagnifyGesture()
-                        .updating($gestureScale) { value, state, _ in state = value.magnification }
-                        .onEnded { value in
-                            baseScale = min(max(baseScale * value.magnification, 0.6), 1.8)
+                ScrollViewReader { proxy in
+                    VStack(spacing: 0) {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 14) {
+                                Label("Parent / child", systemImage: "arrow.up.and.down")
+                                Label("Partner", systemImage: "heart")
+                                Label("Sibling", systemImage: "person.2")
+                            }
+                            .font(.caption)
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
                         }
-                )
+                        .accessibilityLabel("Family tree relationship legend")
+
+                        HStack(spacing: 12) {
+                            Button("Center on \(root.name)", systemImage: "scope") {
+                                centerRoot(using: proxy)
+                            }
+                            .lineLimit(1)
+
+                            Spacer(minLength: 6)
+
+                            Button { baseScale = max(0.6, baseScale - 0.15) } label: {
+                                Image(systemName: "minus.magnifyingglass")
+                            }
+                            .accessibilityLabel("Zoom out")
+                            Button { baseScale = 1 } label: { Image(systemName: "1.magnifyingglass") }
+                                .accessibilityLabel("Reset zoom")
+                            Button { baseScale = min(1.8, baseScale + 0.15) } label: {
+                                Image(systemName: "plus.magnifyingglass")
+                            }
+                            .accessibilityLabel("Zoom in")
+                        }
+                        .font(.caption)
+                        .padding(.horizontal)
+                        .padding(.bottom, 10)
+
+                        Divider()
+
+                        ScrollView([.horizontal, .vertical]) {
+                            familyGraph(snapshot: snapshot, layout: layout)
+                                .scaleEffect(scale, anchor: .topLeading)
+                                .frame(
+                                    width: layout.size.width * scale,
+                                    height: layout.size.height * scale,
+                                    alignment: .topLeading
+                                )
+                        }
+                        .gesture(
+                            MagnifyGesture()
+                                .updating($gestureScale) { value, state, _ in state = value.magnification }
+                                .onEnded { value in
+                                    baseScale = min(max(baseScale * value.magnification, 0.6), 1.8)
+                                }
+                        )
+                        .task {
+                            await Task.yield()
+                            centerRoot(using: proxy, animated: false)
+                        }
+                    }
+                }
             }
         }
         .background { CharacterProfilerBackdrop() }
         .navigationTitle("\(root.name) — Family")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func centerRoot(using proxy: ScrollViewProxy, animated: Bool = true) {
+        if animated {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                proxy.scrollTo(root.id, anchor: .center)
+            }
+        } else {
+            proxy.scrollTo(root.id, anchor: .center)
+        }
     }
 
     private func familyGraph(snapshot: FamilyGraphSnapshot, layout: FamilyGraphLayout) -> some View {
@@ -729,6 +757,7 @@ struct FamilyTreeView: View {
                         hasGenerationConflict: snapshot.generationConflicts.contains(member.id)
                     )
                     .position(point)
+                    .id(member.id)
                 }
             }
         }
