@@ -8,13 +8,19 @@ struct ProjectEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     let project: StoryProject?
+    private let initialDraft: ProjectDraft
     @State private var draft: ProjectDraft
     @State private var saveErrorMessage: String?
+    @State private var showingDiscardConfirmation = false
 
     init(project: StoryProject?) {
         self.project = project
-        _draft = State(initialValue: project.map(ProjectDraft.init) ?? ProjectDraft())
+        let initial = project.map(ProjectDraft.init) ?? ProjectDraft()
+        initialDraft = initial
+        _draft = State(initialValue: initial)
     }
+
+    private var hasUnsavedChanges: Bool { draft != initialDraft }
 
     var body: some View {
         Form {
@@ -56,17 +62,28 @@ struct ProjectEditorView: View {
         .scrollContentBackground(.hidden)
         .background { CharacterProfilerBackdrop() }
         .scrollDismissesKeyboard(.interactively)
+        .interactiveDismissDisabled(hasUnsavedChanges)
         .navigationTitle(project == nil ? "New Story" : "Edit Story")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button("Cancel") { requestCancel() }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") { saveProject() }
                     .fontWeight(.semibold)
                     .disabled(!draft.isValid)
             }
+        }
+        .confirmationDialog(
+            "Discard unsaved story changes?",
+            isPresented: $showingDiscardConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Discard Changes", role: .destructive) { dismiss() }
+            Button("Keep Editing", role: .cancel) { }
+        } message: {
+            Text("Changes made in this editor have not been saved.")
         }
         .alert("Story Change Could Not Be Completed", isPresented: Binding(
             get: { saveErrorMessage != nil },
@@ -75,6 +92,14 @@ struct ProjectEditorView: View {
             Button("OK", role: .cancel) { saveErrorMessage = nil }
         } message: {
             Text(saveErrorMessage ?? "Unknown save error.")
+        }
+    }
+
+    private func requestCancel() {
+        if hasUnsavedChanges {
+            showingDiscardConfirmation = true
+        } else {
+            dismiss()
         }
     }
 
@@ -94,15 +119,21 @@ struct CharacterEditorView: View {
     @Environment(\.modelContext) private var modelContext
     let project: StoryProject
     let character: CharacterProfile?
+    private let initialDraft: ProfileDraft
     @State private var draft: ProfileDraft
     @State private var photoItem: PhotosPickerItem?
     @State private var errorMessage: String?
+    @State private var showingDiscardConfirmation = false
 
     init(project: StoryProject, character: CharacterProfile?) {
         self.project = project
         self.character = character
-        _draft = State(initialValue: character.map(ProfileDraft.init) ?? ProfileDraft())
+        let initial = character.map(ProfileDraft.init) ?? ProfileDraft()
+        initialDraft = initial
+        _draft = State(initialValue: initial)
     }
+
+    private var hasUnsavedChanges: Bool { draft != initialDraft }
 
     var body: some View {
         Form {
@@ -113,12 +144,18 @@ struct CharacterEditorView: View {
                     .textInputAutocapitalization(.words)
                 TextField("Nickname", text: $draft.nickname)
                     .textInputAutocapitalization(.words)
-                HStack {
-                    TextField("Age", text: $draft.ageText)
-                        .frame(maxWidth: .infinity)
-                    Divider()
-                    TextField("Pronouns", text: $draft.pronouns)
-                        .frame(maxWidth: .infinity)
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        TextField("Age", text: $draft.ageText)
+                            .frame(maxWidth: .infinity)
+                        Divider()
+                        TextField("Pronouns", text: $draft.pronouns)
+                            .frame(maxWidth: .infinity)
+                    }
+                    VStack(spacing: 10) {
+                        TextField("Age", text: $draft.ageText)
+                        TextField("Pronouns", text: $draft.pronouns)
+                    }
                 }
             } header: {
                 CharacterProfilerSectionHeader(
@@ -164,16 +201,28 @@ struct CharacterEditorView: View {
                                     .font(.headline)
 
                                 ForEach($section.fields) { $field in
-                                    VStack(alignment: .leading, spacing: 5) {
-                                        TextField("Field name", text: $field.label)
-                                            .font(.caption.weight(.medium))
-                                            .foregroundStyle(.secondary)
-                                        TextField("Value", text: $field.value, axis: .vertical)
-                                            .lineLimit(1...6)
+                                    HStack(alignment: .top, spacing: 8) {
+                                        VStack(alignment: .leading, spacing: 5) {
+                                            TextField("Field name", text: $field.label)
+                                                .font(.caption.weight(.medium))
+                                                .foregroundStyle(.secondary)
+                                            TextField("Value", text: $field.value, axis: .vertical)
+                                                .lineLimit(1...6)
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                        Menu {
+                                            Button("Delete Field", systemImage: "trash", role: .destructive) {
+                                                section.fields.removeAll { $0.id == field.id }
+                                            }
+                                        } label: {
+                                            Image(systemName: "ellipsis.circle")
+                                                .frame(minWidth: 36, minHeight: 36)
+                                        }
+                                        .accessibilityLabel("Actions for \(field.label.isEmpty ? "profile field" : field.label)")
                                     }
                                     .padding(.vertical, 3)
                                 }
-                                .onDelete { section.fields.remove(atOffsets: $0) }
 
                                 Button {
                                     section.fields.append(FieldDraft(label: "New Field", value: ""))
@@ -216,7 +265,7 @@ struct CharacterEditorView: View {
                     accent: CharacterProfilerTheme.violet
                 )
             } footer: {
-                Text("Sections stay collapsed until you open them, keeping long profiles manageable on iPhone. Swipe individual fields to delete them.")
+                Text("Sections stay collapsed until you open them, keeping long profiles manageable on iPhone. Use each field's action menu to remove it.")
             }
 
             if let validationMessage = draft.validationMessage {
@@ -235,11 +284,12 @@ struct CharacterEditorView: View {
         .scrollContentBackground(.hidden)
         .background { CharacterProfilerBackdrop() }
         .scrollDismissesKeyboard(.interactively)
+        .interactiveDismissDisabled(hasUnsavedChanges)
         .navigationTitle(character == nil ? "New Character" : "Edit Character")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button("Cancel") { requestCancel() }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") { saveCharacter() }
@@ -250,6 +300,16 @@ struct CharacterEditorView: View {
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
             importPortrait(item)
+        }
+        .confirmationDialog(
+            "Discard unsaved character changes?",
+            isPresented: $showingDiscardConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Discard Changes", role: .destructive) { dismiss() }
+            Button("Keep Editing", role: .cancel) { }
+        } message: {
+            Text("Profile, portrait and character-detail changes made in this editor have not been saved.")
         }
         .alert("Character Change Could Not Be Completed", isPresented: Binding(
             get: { errorMessage != nil },
@@ -263,23 +323,14 @@ struct CharacterEditorView: View {
 
     private var portraitSection: some View {
         Section {
-            HStack(spacing: 18) {
-                portraitPreview
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Visual Identity")
-                        .font(.headline)
-                    Text("A clear portrait makes the story and relationship screens much easier to scan.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    PhotosPicker(selection: $photoItem, matching: .images) {
-                        Label(draft.profileImageData == nil ? "Choose Portrait" : "Change Portrait", systemImage: "photo")
-                    }
-                    if draft.profileImageData != nil {
-                        Button("Remove Portrait", systemImage: "trash", role: .destructive) {
-                            draft.profileImageData = nil
-                        }
-                        .font(.caption)
-                    }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 18) {
+                    portraitPreview
+                    portraitControls
+                }
+                VStack(alignment: .leading, spacing: 14) {
+                    portraitPreview
+                    portraitControls
                 }
             }
             .padding(.vertical, 4)
@@ -289,6 +340,34 @@ struct CharacterEditorView: View {
                 systemImage: "person.crop.circle",
                 accent: CharacterProfilerTheme.rose
             )
+        }
+    }
+
+    private var portraitControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Visual Identity")
+                .font(.headline)
+            Text("A clear portrait makes the story and relationship screens much easier to scan.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                Label(draft.profileImageData == nil ? "Choose Portrait" : "Change Portrait", systemImage: "photo")
+            }
+            if draft.profileImageData != nil {
+                Button("Remove Portrait", systemImage: "trash", role: .destructive) {
+                    draft.profileImageData = nil
+                }
+                .font(.caption)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func requestCancel() {
+        if hasUnsavedChanges {
+            showingDiscardConfirmation = true
+        } else {
+            dismiss()
         }
     }
 
