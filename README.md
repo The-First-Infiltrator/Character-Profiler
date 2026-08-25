@@ -30,6 +30,8 @@ Restore validates the archive, creates fresh local identifiers and then rebuilds
 
 Backup processing is bounded: archives are limited to 128 MiB encoded size, 1,000 characters and 25,000 relationships per story, with additional limits on nested collections, text and visual payloads.
 
+The optional RealityKit/Quick Look reconstruction implementation is isolated in `Character3DHeadWorkspaceView.swift`; `CharacterDetailView.swift` remains the character-workspace/navigation shell rather than owning the 3D subsystem.
+
 The app contains no advertising or analytics SDKs. Photos are selected through the system picker, and backup/restore is explicit through the system document UI.
 
 ## Build and test
