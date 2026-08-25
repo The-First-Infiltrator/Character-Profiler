@@ -10,6 +10,7 @@ struct CharacterGuidePanel: View {
     let character: CharacterProfile
     let project: StoryProject
     @State private var selectedSuggestion: GuideSuggestion?
+    @State private var editingSavedResponse: PromptResponse?
     @State private var answer = ""
     @State private var showingSavedAnswers = false
     @State private var saveErrorMessage: String?
@@ -30,9 +31,10 @@ struct CharacterGuidePanel: View {
                     .foregroundStyle(CharacterProfilerTheme.gold)
                 Spacer()
                 if !savedAnswers.isEmpty {
-                    Button("Saved Answers (\(savedAnswers.count))", systemImage: "text.book.closed") {
+                    Button("All Answers", systemImage: "text.book.closed") {
                         showingSavedAnswers = true
                     }
+                    .accessibilityLabel("All saved Guide answers, \(savedAnswers.count)")
                 }
             }
 
@@ -81,16 +83,28 @@ struct CharacterGuidePanel: View {
                 }
                 ForEach(savedAnswers.prefix(3)) { response in
                     Button {
-                        showingSavedAnswers = true
+                        editingSavedResponse = response
                     } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(response.question).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
-                            Text(response.answer).foregroundStyle(.secondary).lineLimit(3)
+                        HStack(alignment: .top, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(response.question)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Text(response.answer)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(3)
+                            }
+                            Spacer(minLength: 6)
+                            Image(systemName: "pencil")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .accessibilityHidden(true)
                         }
+                        .padding(.vertical, 4)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityHint("Opens all saved Guide answers for editing")
+                    .accessibilityHint("Opens this saved Guide answer for editing")
                 }
             }
         }
@@ -120,6 +134,11 @@ struct CharacterGuidePanel: View {
                             .disabled(answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
+            }
+        }
+        .sheet(item: $editingSavedResponse) { response in
+            NavigationStack {
+                SavedGuideAnswerEditor(character: character, response: response)
             }
         }
         .sheet(isPresented: $showingSavedAnswers) {
@@ -189,27 +208,37 @@ private struct SavedGuideAnswersView: View {
                 )
             } else {
                 ForEach(answers) { response in
-                    Button { editingResponse = response } label: {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Label(response.category.displayName, systemImage: response.category.icon)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                            Text(response.question).font(.headline).foregroundStyle(.primary)
-                            Text(response.answer).foregroundStyle(.secondary)
+                    HStack(alignment: .top, spacing: 10) {
+                        Button { editingResponse = response } label: {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Label(response.category.displayName, systemImage: response.category.icon)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Text(response.question).font(.headline).foregroundStyle(.primary)
+                                Text(response.answer).foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Opens this Guide answer for editing")
+
+                        Menu {
+                            Button("Edit Answer", systemImage: "pencil") {
+                                editingResponse = response
+                            }
+                            Button("Delete Answer", systemImage: "trash", role: .destructive) {
+                                responsePendingDeletion = response
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .frame(minWidth: 40, minHeight: 40)
+                        }
+                        .accessibilityLabel("Actions for saved Guide answer")
                     }
-                    .buttonStyle(.plain)
+                    .padding(12)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .padding(.vertical, 5)
                     .background { CharacterProfilerCardSurface(accent: CharacterProfilerTheme.gold) }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button("Delete", systemImage: "trash", role: .destructive) {
-                            responsePendingDeletion = response
-                        }
-                    }
-                    .accessibilityHint("Opens this Guide answer for editing")
                 }
             }
         }
@@ -267,14 +296,19 @@ private struct SavedGuideAnswerEditor: View {
     @Environment(\.modelContext) private var modelContext
     let character: CharacterProfile
     let response: PromptResponse
+    private let initialAnswer: String
     @State private var answer: String
     @State private var saveErrorMessage: String?
+    @State private var showingDiscardConfirmation = false
 
     init(character: CharacterProfile, response: PromptResponse) {
         self.character = character
         self.response = response
+        initialAnswer = response.answer
         _answer = State(initialValue: response.answer)
     }
+
+    private var hasUnsavedChanges: Bool { answer != initialAnswer }
 
     var body: some View {
         Form {
@@ -291,14 +325,27 @@ private struct SavedGuideAnswerEditor: View {
         }
         .scrollContentBackground(.hidden)
         .background { CharacterProfilerBackdrop() }
+        .interactiveDismissDisabled(hasUnsavedChanges)
         .navigationTitle("Edit Guide Answer")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    if hasUnsavedChanges { showingDiscardConfirmation = true } else { dismiss() }
+                }
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") { save() }
                     .disabled(answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
+        }
+        .confirmationDialog(
+            "Discard unsaved answer changes?",
+            isPresented: $showingDiscardConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Discard Changes", role: .destructive) { dismiss() }
+            Button("Keep Editing", role: .cancel) { }
         }
         .alert("Guide Answer Could Not Be Saved", isPresented: Binding(
             get: { saveErrorMessage != nil },
