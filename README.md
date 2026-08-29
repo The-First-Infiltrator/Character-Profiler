@@ -2,7 +2,7 @@
 
 # Character Profiler
 
-[![iOS Build](https://github.com/The-First-Infiltrator/Character-Profiler/actions/workflows/ios-build.yml/badge.svg)](https://github.com/The-First-Infiltrator/Character-Profiler/actions/workflows/ios-build.yml)
+[![iOS Build](https://github.com/Infiltrator-Projects/Character-Profiler/actions/workflows/ios-build.yml/badge.svg)](https://github.com/Infiltrator-Projects/Character-Profiler/actions/workflows/ios-build.yml)
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, relationships and family, structured life history, genre-aware development questions, portable backup/restore and a focused appearance workspace.
 
