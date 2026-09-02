@@ -1,10 +1,10 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 
-# Character Profiler 1.1.1 Release Checklist
+# Character Profiler 1.1.2 Release Checklist
 
 This checklist records the stable-line release gates without duplicating implementation detail from `ARCHITECTURE.md` or feature history from `CHANGELOG.md`.
 
-**Current stable metadata:** 1.1.1 build 17, iOS 17+, SwiftData schema unchanged from the 1.0/1.1 line, archive format v1.
+**Current stable metadata:** 1.1.2 build 18, iOS 17+, SwiftData schema unchanged from the 1.0/1.1 line, archive format v1.
 
 ## Automated release gates
 

@@ -6,7 +6,7 @@
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, relationships and family, structured life history, genre-aware development questions, portable backup/restore and a focused appearance workspace.
 
-**Current version:** 1.1.1 build 17  
+**Current version:** 1.1.2 build 18  
 **Platform:** iOS 17 or later  
 **Licence:** GPL-3.0-or-later
 
@@ -18,7 +18,7 @@ The application is organised around three levels:
 - **Story workspace** — story summary, development metrics and cast-building workflow.
 - **Character workspace** — Profile, Character Guide, People & Relationships, History and Visual Studio.
 
-Character Profiler remains local-first. Version 1.1.1 keeps the existing SwiftData model and **Character Profiler archive format v1**.
+Character Profiler remains local-first. Version 1.1.2 keeps the existing SwiftData model and **Character Profiler archive format v1**.
 
 Visual Studio has two deliberately separate paths: Image Playground produces authored 2D reference imagery, while RealityKit photogrammetry can reconstruct three or more photographs into a rotatable USDZ model on supported hardware. The 3D path is for appearance inspection, not scene generation, animation, rigging or filmmaking.
 
