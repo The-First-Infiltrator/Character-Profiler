@@ -6,7 +6,7 @@
 
 Character Profiler is a native iPhone story-bible and character-development app for authors. It combines flexible character profiles, relationships and family, structured life history, genre-aware development questions, portable backup/restore and a focused appearance workspace.
 
-**Current version:** 1.1.2 build 18  
+**Current version:** 1.1.3 build 18  
 **Platform:** iOS 17 or later  
 **Licence:** GPL-3.0-or-later
 

@@ -2,6 +2,11 @@
 
 # Changelog
 
+## [1.1.3] - 2026-09-03
+
+- Rebuilt and requalified the current application entirely on GitHub-hosted CI for the coordinated project release refresh.
+- No SwiftData schema or archive-format change; archive format v1 remains current.
+
 ## [1.1.2] - 2026-09-02
 
 - Freshly rebuilt and republished the fully qualified 1.1 application as build 18.

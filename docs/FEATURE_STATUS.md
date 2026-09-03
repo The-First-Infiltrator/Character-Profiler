@@ -10,7 +10,7 @@ Status meanings: **Implemented** is present in code and covered by the stated va
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Native SwiftUI iPhone application | Implemented | iOS 17+ target, current version 1.1.2 build 18. |
+| Native SwiftUI iPhone application | Implemented | iOS 17+ target, current version 1.1.3 build 18. |
 | SwiftData local persistence | Implemented | Projects, characters, profiles, Guide, history, relationships and visual assets. |
 | Transactional save failure handling | Implemented | User-visible save failure rolls back the current SwiftData unit of work. |
 | Story/project library | Implemented | Projects own cast, genre, premise and activity context. |

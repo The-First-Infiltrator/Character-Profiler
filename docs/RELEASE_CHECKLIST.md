@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 
-# Character Profiler 1.1.2 Release Checklist
+# Character Profiler 1.1.3 Release Checklist
 
 This checklist records the stable-line release gates without duplicating implementation detail from `ARCHITECTURE.md` or feature history from `CHANGELOG.md`.
 
